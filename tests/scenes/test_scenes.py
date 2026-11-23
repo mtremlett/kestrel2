@@ -60,23 +60,25 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
 # ---------------------------------------------------------------- the scenes
 
 
-def test_scene_1_the_days_data_is_clean_or_the_line_is_parked(tmp_path: Path) -> None:
-    parked = store.prepare(tmp_path, SPOILT, TODAY)
+def test_scene_1_the_days_data_is_clean_or_the_line_is_parked() -> None:
+    judged = {line: store.judge(line, answer, TODAY) for line, answer in SPOILT.items()}
+    parked = [park for _, _, park in judged.values() if park]
 
     assert [(p.symbol, p.day) for p in parked] == [(BAD.symbol, TODAY)]
     assert parked[0].reason.strip(), "a parked line names its reason"
     for line in LINES:
         if line != BAD:
-            assert store.read(tmp_path, line.symbol) == CLEAN[line], f"{line.symbol} incomplete"
-    kept = store.read(tmp_path, BAD.symbol)
+            assert tuple(judged[line][0]) == CLEAN[line], f"{line.symbol} incomplete"
+    kept = judged[BAD][0]
     assert WRONG_UNIT not in kept, "the bad bar reached the store"
     assert [b.day for b in kept] == sorted({b.day for b in kept}), "a date is stored twice"
 
 
-def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
-    parked = {p.symbol for p in store.prepare(tmp_path, SPOILT, TODAY)}
+def test_scene_2_the_decision_cannot_see_the_future() -> None:
+    judged = {line: store.judge(line, answer, TODAY) for line, answer in SPOILT.items()}
+    parked = {line.symbol for line, (_, _, park) in judged.items() if park}
     trading = [line.symbol for line in LINES if line.symbol not in parked]
-    bars = {symbol: store.read(tmp_path, symbol) for symbol in trading}
+    bars = {line.symbol: tuple(judged[line][0]) for line in LINES if line.symbol in trading}
 
     every = strategy.decide(bars)
     names = {d.strategy for d in every}

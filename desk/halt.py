@@ -1,15 +1,13 @@
-"""halt - WHAT STOPS THE DESK BUYING. A HALT (FIL-08, NS-06) is a typed record: called at a
-moment for a reason, by someone, and in force until it is lifted. Nothing lifts one because
-time has passed: the operator lifts any, and the part that called one lifts its own unless it
-is his alone. While one is in force the send path refuses every buy, and the rules and the stops
-sell as ever; every day's record names it, that day does not count, and the desk says so each
-day, counting the days. THE BLOCKERS (FIL-04, TRD-01) are everything that can stand between a
-rule's signal and its whole trade, each named once here; every morning's orders leave one list
-of every blocker with the signals it blocked. Sending what is said to him is the messenger's.
-A HALT CALLED THROUGH `stop` also has the broker cancel every buy of the desk's still working
-(the stops resting stay); `call` alone cancels nothing. Its moments are its caller's word, so
-the day's verdict also reads what the send path did (stopped). One process at a time writes
-or reads these."""
+"""halt - WHAT STOPS THE DESK BUYING. A HALT (FIL-08, NS-06) is a typed record: called at a moment
+for a reason, by someone, and in force until it is lifted. Nothing lifts one because time has
+passed: the operator lifts any, and the part that called one lifts its own unless it is his alone.
+While one is in force the send path refuses every buy, and the rules and the stops sell as ever;
+every day's record names it, that day does not count, and the desk says so each day. THE BLOCKERS
+(FIL-04, TRD-01) are everything that can stand between a rule's signal and its whole trade, every
+morning's orders leave one list of every blocker with the signals it blocked. A HALT CALLED THROUGH
+`stop` also has the broker cancel every buy of the desk's still working (the stops resting stay);
+`call` alone cancels nothing. Its moments are its caller's word, so the day's verdict reads what the
+send path did. One process at a time writes or reads these."""
 
 from __future__ import annotations
 
@@ -23,7 +21,6 @@ from pathlib import Path
 from desk.broker import Broker
 from desk.orders import Refused, Settings
 from desk.risk import Standing, loss_limit
-from desk.store import _write
 
 HALTS, BLOCKED = "halts.csv", "blocked"  #: the one record of halts; a folder, a list a morning
 WOULD = "would_have_halted.csv"  #: beside it, what a halt would have been on paper: no halt
@@ -275,6 +272,9 @@ def _rows(path: Path, names: tuple[str, ...]) -> list[list[str]]:
 
 
 def _keep(path: Path, names: tuple[str, ...], rows: Iterable[tuple[object, ...]]) -> None:
-    """Written whole, then swapped in, by the store's one writer."""
+    """Written whole to a part file, then swapped in at once: a crash leaves the old file."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    _write(path, names, list(rows))
+    part = path.with_suffix(".part")
+    with part.open("w", newline="", encoding="utf-8") as out:
+        csv.writer(out).writerows([names, *rows])
+    part.replace(path)
