@@ -30,7 +30,6 @@ from desk import (
     book,
     conformance,
     conformance_parts,
-    day,
     halt,
     keeper,
     keeper_live,
@@ -369,7 +368,7 @@ def slow(life: _Life, on: date) -> None:
     seen = len(life.pretend.submitted())
     life.live(on)
     sent = len(life.pretend.submitted()) - seen
-    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= day.STEP_SECONDS)
+    life.promise(SLOW, sent * paper.FILL_SECONDS + paper.SECONDS <= paper.STEP_SECONDS)
 
 
 def gateway_silent(life: _Life, on: date) -> None:

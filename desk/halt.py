@@ -43,6 +43,7 @@ class Blocker(Enum):
     HELD = "The line is held already, or was sold this morning"
     GATE = "The pre-trade gate refused it"
     BROKER = "The broker, or the desk's door to it, did not take it whole"
+    CARRIED = "The round's step time was spent: carried to the next step, never sent"
 
 
 class Stopped(Refused):
