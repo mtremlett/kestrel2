@@ -227,6 +227,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1823 money-round-cap: cap built and tested (7 orders a round), 1 file move left; box not ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1833 money-small: fixtures ready, liquidity cap still unfed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1861 money-honest: no box ticked; docstring only, interest stays beside profit. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1889 MONEY scribe folds #1823, #1833, #1861; no box ticked.
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #1891 money-small: TRD-10 flag function `orders.thin` landed; liquidity-cap feed and the flag's caller open.
 
 
 ### DATA
