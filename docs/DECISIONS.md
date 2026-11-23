@@ -2377,3 +2377,14 @@ widens to lab/spec.py, its test and the manifest; rungs-fast-engine and rungs-ep
 after: links alone, and real money stays his. data-disk-rolloff keeps its wait: deleting data is his.
 Check: `tests/guards/test_lanes.py` still reads every remaining wait; the runner's READY gate holds each box
 behind its after: link.
+
+## 23 Nov - four RUNGS waits lifted; the known-answer kit before the fast engine
+Coordinator 158's ruling 19:3x, carried out by runner ops 159. His words: 22 Nov "nothing parks on him but hard
+lines", and 23 Nov 19:2x "allow the ladder to run 24x7". Options: keep `waits: operator` on four RUNGS boxes
+(the ladder chain idles behind them) or let each be held by its after: links alone. Decided by rule: the waits
+leave rungs-plateau-wired, rungs-eponymous, rungs-indicators (ticked) and rungs-fast-engine, none of them a hard
+line; real money stays his. A new box, rungs-known-answer-kit, follows the blind review, and the fast engine
+waits on it (a parity test first, canon B2). data-disk-rolloff keeps its wait: deleting data is his, and his
+yes of 23 Nov 19:3x named five folders once, not a standing rule.
+Check: `tests/guards/test_lanes.py` reads every wait and after: link; the runner's READY gate holds each box
+behind its after: links.
