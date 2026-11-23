@@ -374,9 +374,10 @@ def _order(
     if no := day.refusal(desk.root, oid, line, held):  #: the daily buy's own refusals
         return no[0]
     buy = Decision(d.strategy, d.symbol, today, d.action)
+    mine = book.side(desk.root, held, oid)  #: sized on its own side's holdings, as book.send gates
     try:
         return replace(
-            size(buy, line, close, desk.rates(today)[line.currency], room, held), order_id=oid
+            size(buy, line, close, desk.rates(today)[line.currency], room, mine), order_id=oid
         )
     except Refused as refused:
         return str(refused)

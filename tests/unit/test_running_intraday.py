@@ -19,7 +19,7 @@ from desk import book, command, handpark, intraday, kill, paper, running, venues
 from desk.broker import Disconnected, Pretend
 from desk.intraday import Span
 from desk.lines import YARDSTICK
-from desk.orders import is_zoo
+from desk.orders import ZOO_ROOM, Order, is_zoo
 from desk.rollup import Candle
 from desk.store import Bar
 from desk.strategy import Action
@@ -102,6 +102,16 @@ def test_an_intraday_buy_gets_the_daily_buys_refusals(
     buy = intraday.IntradayDecision("flip", "VUAG", at, Action.BUY)
     said = running._order(desk, desk.room, buy, line, "id", Decimal(40), held)  # type: ignore[arg-type]
     assert isinstance(said, str) and "not sent" in said and words in said
+
+
+def test_a_zoo_buy_is_sized_on_the_zoos_own_holdings_never_the_desks(tmp_path: Path) -> None:
+    desk, at = _desk(tmp_path)[0], venues.hours("LSE", MON.date()).open
+    full = {s: 1 for s in ("A1", "B2", "C3", "D4", "E5")}  # the desk's five: no zoo fill names one
+    buy = intraday.IntradayDecision("zoo_flip", "VUAG", at, Action.BUY)
+    zoo = running._order(desk, ZOO_ROOM, buy, YARDSTICK, "1-zoo_flip-VUAG-0805B", Decimal(40), full)  # type: ignore[arg-type]
+    assert isinstance(zoo, Order)  # 23 Nov: 133 zoo buys refused "5 holdings already" (book.side)
+    mine = running._order(desk, desk.room, buy, YARDSTICK, "1-flip-VUAG-0805B", Decimal(40), full)  # type: ignore[arg-type]
+    assert isinstance(mine, str) and "5 holdings already" in mine  # the desk's own cap holds
 
 
 def test_londons_round_waits_for_nine_after_the_dead_window(tmp_path: Path) -> None:

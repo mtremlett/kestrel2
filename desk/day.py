@@ -414,7 +414,8 @@ def _buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = size(d, line, *price, settings, now, None, traded_value(bars, price[1]))
+        mine = book.side(root, now, name)  #: its own side's holdings, as book.send gates
+        order = size(d, line, *price, settings, mine, None, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     looked = watch and watch(d.symbol)
@@ -538,7 +539,7 @@ def _zoo_buy(
             name, 0, f"{name}: not sent, {d.symbol} was sold this morning", Blocker.HELD
         )
     try:
-        order = replace(size(d, line, *price, ZOO_ROOM, held), quantity=1)
+        order = replace(size(d, line, *price, ZOO_ROOM, book.side(root, held, name)), quantity=1)
     except Refused as refused:
         return book.Sent(name, 0, str(refused), Blocker.GATE)
     return _send(root, broker, order, ZOO_ROOM, tell, standing(root, day, True))
