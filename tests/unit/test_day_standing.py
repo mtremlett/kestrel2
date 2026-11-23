@@ -310,22 +310,3 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     assert len(carried) == len(lines) - 7 and all(
         s.filled == 0 and s.blocker is Blocker.CARRIED for s in carried
     )
-
-
-def test_the_desks_own_orders_are_inside_the_rounds_one_cap(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
-    cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
-    bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
-    broker = Pretend(bars, {})
-    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
-    monkeypatch.setattr(orders, "HOLDINGS", 20)
-    monkeypatch.setattr(paper, "MAX_ORDERS", 2)
-    broker.open(TUE)
-    first = {ln: (bars[ln][0],) for ln in lines}
-    rates = {ln.currency: Decimal(1) for ln in lines}
-    answers = day.trade(tmp_path, first, broker, ROOM, TUE, rates)
-    carried = [s for s in answers if s.blocker is Blocker.CARRIED]
-    assert len(broker.submitted()) == 2
-    assert len(carried) == len(answers) - 2 > 0

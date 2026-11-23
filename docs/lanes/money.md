@@ -714,3 +714,4 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 ### 2026-11-23 - Orders past the round's cap are listed, not resent (#2036, R-RUNNER-456)
 - Options: resend the CARRIED ids in `running._again` now, or list them honestly under `halt.morning` and resend later. Chosen: list them, with words saying "not sent today". The churn guard bars a third fix to `desk/running.py` until FAILURE_PATTERNS names the file, which a lane cannot write. His words: "always go with recommended".
 - The cap has one count, `day._room`. Carried ids equal the morning list's (tested).
+- Reverted 23 Nov (coordinator 140): #2036 landed over its A6 NO-GO (B1: carried orders dropped for the day) and moved the golden; R-RUNNER-456 is rebuilt from main with a real carry.
