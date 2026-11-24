@@ -460,8 +460,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       an ISA eligibility change on any line held or researched raises an alert (BIC-11)
       {id: data-lifecycle; files: desk/lifecycle.py, tests/unit/test_lifecycle.py, manifest.toml; after: data-isa-twins}
 - [x] Disk watched; old research files roll off by rule (OPS-07)
-      Built (#1098, #1107, #2122): `python -m desk.quality` goes red under 10% free on the store's drive; `quality.rolloff(old, kept)` / `python -m desk.quality rolloff <folder>` deletes only a file whose same-named copy in the store matches byte for byte; every other file is listed for his yes. Remains: the runner job reading the red and calling rolloff (runner ops); a row-check against market.db for files with no byte twin.
+      Built (#1098, #1107, #2122): `python -m desk.quality` goes red under 10% free on the store's drive; `quality.rolloff(old, kept)` / `python -m desk.quality rolloff <folder>` deletes only a file whose same-named copy in the store matches byte for byte; every other file is listed for his yes. The rest was carved out (coordinator 173): the job calling rolloff on red is runner work; the row-check is the box below.
       {id: data-disk-rolloff; files: desk/quality.py, tests/unit/test_quality*.py}
+- [ ] Old research files with no byte twin in the store are checked row by row against market.db before any
+      roll-off (carved from data-disk-rolloff, coordinator 173): a file whose every row the store holds is listed
+      as safe to roll; any other is kept and named. Deletion beyond byte twins keeps his wait. Gate, written
+      first: a file with no byte twin whose rows the store holds is listed safe; one with a row the store lacks
+      is kept and named
+      {id: data-rolloff-rows; files: desk/quality.py, tests/unit/test_quality*.py; after: data-disk-rolloff}
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
       built from quotes; polled 1-minute bars for 27 tickers every 5 minutes, 81 every 15 and
@@ -523,6 +529,20 @@ day's trading and reconciliation are built, and any broker can stand behind them
       first (a running-level test; claim narrowed off test_book*.py, which MONEY-s3 holds, coordinator
       173). Money path: A6 blind review
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
+- [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
+      '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
+      #2088, pattern 13), so 14 scenarios never happen and SimCity proves nothing. A day the store withdrew is
+      a scenario the world meets (R-RUNNER-246's hole), never the end of the world. Carded in MONEY, which owns
+      the SimCity modules (manifest.toml, the money lane; the lanes guard refuses DATA there). Gate, written
+      first: a world whose line has a withdrawn day still lives past it and meets its later scenarios. Check:
+      the next deep run's verdict has no 'stops on' line
+      {id: money-simcity-withdrawn-day; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
+- [ ] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
+      desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
+      Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
+      has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the
+      replay's verdict, never a crash. Check: the next fills-replay says done
+      {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py; after: money-simcity-withdrawn-day}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
       about 550 lines, so the 08:00 data fix and the zoo's own-side card fit under the 18,000 ceiling
