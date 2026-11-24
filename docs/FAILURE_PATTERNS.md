@@ -168,9 +168,11 @@ again. Its root (20 November): the runner reads a done list one request per line
 `- R-X-n: ...`, and DATA's run-on list (`R-PAPER-23 #294, -22 #505, ...`) closed nothing, so
 41 of 100 merges in a day were empty re-verifications. → *Debt:* a check that every
 request named under `### Done for other lanes` stands on its own `- R-X-n:` line.
-A third root (22 November): a request written inside another's box rode into the host's
-text and was handed out and answered met 13 times. → *Caught by:* the runner ends a request's
-text at the next request, boxed or not (drive `drive_runon`).
+A third root (22 November): a request written inside another's box, with no checkbox
+of its own (R-DATA-60 in R-DATA-62, R-MONEY-48 in R-MONEY-35), rode into the host's text,
+so DATA was handed it and answered it met 13 times in an hour, each answer dropped because
+it was not itself open. → *Caught by:* the runner ends a request's text at the next
+request, boxed or not (drive `drive_runon`).
 
 **23. The order the broker may hold, forgotten.** A gateway blip arrives after an order is
 sent (2110, 2157, 20 November 08:27): the desk called it never received and deleted its
@@ -184,8 +186,11 @@ fixed `desk/paper.py` three times in ten changes (#373 the gateway's wait, #860 
 order's wait, #1014 link news mid-send): the paper door learns IBKR's behaviour one live
 fault at a time, never from a table of everything the gateway can say; the matrix is that
 table.
-The send path's side has fixed `desk/book.py` twice the same day (#1008, #1031): what the desk
-knows of the broker's orders was built for the day that goes well. The same matrix is its table.
+The send path's side of it has fixed `desk/book.py` twice the same day (#1008 the going note
+kept on a disconnect, #1031 a halt cancelling working buys) with a third change due (an order
+the desk cancelled sent once more, pattern 25): what the desk knows of the orders the broker
+holds (sent, working, cancelled by whom) was built for the day that goes well, and each edge
+was met live. The same matrix, its rows run through `book.send`, is the table for it.
 
 **24. A wait added inside a step, its caller's timeout left.** Each market order came to
 wait 120 seconds for its fill (da70408), while the runner still killed the whole desk step
@@ -214,8 +219,3 @@ NO-GO (22 Nov 18:06); conformance, `desk/simcitycmd.py` and the fills replay gue
 last record of any date: Friday's refused every Monday buy (23 Nov). *Debt:* a loss has no date.
 → *Caught by:* each caller names its home; the rates stubs fail when handed a records folder;
 `tests/unit/test_day.py` reads the live pre-FX records; #2039 plants Friday's loss on a Monday.
-
-**28. The promise that pins a refusal's old shape.** `desk/simcity.py` and
-`desk/simcity_incidents.py` match a refusal's wording, so each change to the money path's
-refusal (R-RUNNER-488) is a fix to SimCity too (#1755, #1909, #2168). → *Caught by:* the
-failing promise. *Debt:* promises match text, not a type.
