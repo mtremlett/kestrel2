@@ -515,7 +515,7 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
-- [ ] The day's rate is kept once (coordinator 169, 22:1x): desk-day FAILED 21:43 and 21:48 Mon 23 Nov,
+- [ ] FIRST-LIGHT: the day's rate is kept once (coordinator 169, 22:1x; tag: the first governor slot, coordinator 173): desk-day FAILED 21:43 and 21:48 Mon 23 Nov,
       'USD was kept at 0.764701, not 0.764175': each step fetches the rate again and the day's record refuses
       a second figure, so no paper trade is placed. The day's rate is fixed at its first record and later steps
       price at the kept one; a different fetched rate later that day is neither an error nor an overwrite.
