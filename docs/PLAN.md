@@ -561,6 +561,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
       refuses one share while it is within the zoo's 1,000 pounds and the zoo's total stays within it; the one risk
       gate still judges every order. Net lines in desk/ must not rise (no ceiling room)
+      Remains (#2137, #2152): the daily round's pounds-room and total on main; the intraday round (desk/running.py, PAPER's) and per-side share counts in desk/book.py
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
       {id: zoo-own-side; files: desk/running.py, desk/day.py, desk/orders.py, tests/unit/test_running*.py, tests/unit/test_orders*.py, tests/unit/test_day*.py}
@@ -747,7 +748,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (money-round-cap waits to 2026-11-24: stall watch 09:46, built on main; only a blind review and the zoo-on rehearsal remain, never a coding session)
       (runner ops 168, 23 Nov 22:0x, chat 167's order: the claim adds desk/running.py and its tests for the CARRIED resend,
       which pattern 20's naming of the zoo's path now allows; zoo-own-side, above it, holds the same files)
-      {id: money-round-cap; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
+      {id: money-round-cap; waits: operator; files: desk/day.py, desk/simcity_incidents.py, desk/halt.py, tests/unit/test_day*.py, tests/unit/test_halt*.py,
       tests/unit/test_simcity*.py, desk/running.py, tests/unit/test_running*.py}
       (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37

@@ -745,3 +745,9 @@ true result on the fixture, not a tuning target.
 - What takes a slot: (a) every send attempt, as on main; (b) only an answer for which the broker was asked (filled, or blocker BROKER). Took (b). An order the gate would refuse inside `book.send` after the cap is reached is answered CARRIED, not GATE; it still sends nothing.
 - Golden re-pinned (his 22 Nov: the desk approves goldens): on Mon 11 Aug 2025, 17 orders decided, 7 sent, 9 desk buys carried, 1 held; profit 61.86 -> -154.51, costs 353.78 -> 351.96; days 310, fills 64, trips 32 stand.
 - money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's goes to RUNGS, re-carded by runner ops.
+
+### 2026-11-24 - The zoo's "held already" stays on the whole book; its pounds are the zoo's own (#2137, #2152)
+- Held already for a zoo buy: (a) read only the zoo's side, as the ruling says, (b) keep reading the whole book. Took (b): line ownership is the last buyer per line, not per share, so a zoo buy of a desk-held line would flip the line to the zoo and a zoo sale would sell the desk's shares. The ruling is met safely only with per-side share counts in desk/book.py; #2152 pins the refusal as a test.
+- Total bound for the daily zoo: (a) cap lines by count only, (b) cap pounds at each line's last buy and the day's rate. Took (b): a line's room is the zoo's whole 1,000 pounds (`ZOO_DAY`) and the zoo's total stays within it.
+- money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's is re-carded to RUNGS, claiming desk/eponymous_connors.py, lab/published_epon.py and their tests. His standing ruling "always go with recommended".
+- The 36 evening refusals' words are in no file of the repo; the test replays their cause with the refusal's words.
