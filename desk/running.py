@@ -68,7 +68,7 @@ from desk.gateway import Known, State
 from desk.lines import LINES, YARDSTICK, Line
 from desk.listing import Listing, Unlisted
 from desk.messenger_parts import Mail
-from desk.orders import ZOO_ROOM, Order, Refused, Sale, Settings, is_zoo, size, strategy_of
+from desk.orders import ZOO_DAY, Order, Refused, Sale, Settings, is_zoo, size, strategy_of
 from desk.rollup import Candle
 from desk.running_parts import PUT_RIGHT
 from desk.running_parts import recover as recover
@@ -311,15 +311,14 @@ def _rule_round(
     name: str,
     make: Callable[[], intraday.IntradayRule],
 ) -> list[str]:
-    """One rule's orders at the bar, each said; the book read afresh for it, so a line another
-    rule bought at this bar is held. A zoo rule decides on the zoo's lines, buys one share and
-    meets the gate with its own allowance (ZOO_ROOM, its own standing)."""
+    """One rule's orders at the bar, each said, the book read afresh. A zoo rule decides on the
+    zoo's lines and buys one share on ZOO_DAY, its total within day._zoo_full's pounds."""
     root, today, said = desk.root, now.date(), list[str]()
     machine, held = name in intraday.ZOO_RULES, book.positions(desk.root)
     owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
     pool = intraday.zoo_lines() if machine else LINES
     lines = {ln.symbol: ln for ln in pool if ln.venue == venue}
-    room = ZOO_ROOM if machine else desk.room
+    room = ZOO_DAY if machine else desk.room
     bars = _latest(desk, lines, make().span, now)
     mine = {s: owner[s] for s in held if s in owner}
     for d in intraday.today(venue, bars, mine, {name: make}):
@@ -327,11 +326,12 @@ def _rule_round(
             continue
         oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
         order = _order(desk, room, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
+        if machine and isinstance(order, Order):  #: tiny: one share, never the room
+            order = replace(order, quantity=1)
+            order = day._zoo_full(root, order, desk.rates(today)) or order
         if isinstance(order, str):
             said.append(order)
             continue
-        if machine and isinstance(order, Order):  #: tiny: one share, never the room
-            order = replace(order, quantity=1)
         sent = day._send(root, broker, order, room, None, day.standing(root, today, machine))
         tag = f" ({MACHINERY})" * machine
         said.append(f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}")
