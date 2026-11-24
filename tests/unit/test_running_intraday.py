@@ -15,11 +15,11 @@ import test_placing as tp
 from test_reports import END
 from test_running import FLAT_, MON, _desk, _step
 
-from desk import book, command, handpark, intraday, kill, paper, running, venues, watch
+from desk import book, command, day, handpark, intraday, kill, paper, running, venues, watch
 from desk.broker import Disconnected, Pretend
 from desk.intraday import Span
 from desk.lines import YARDSTICK
-from desk.orders import ZOO_ROOM, Order, is_zoo
+from desk.orders import ZOO_DAY, ZOO_ROOM, Order, is_zoo
 from desk.rollup import Candle
 from desk.store import Bar
 from desk.strategy import Action
@@ -132,3 +132,24 @@ def test_the_steps_intraday_round_sends_through_a_broker_that_takes_an_order_dat
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
     with pytest.raises(Disconnected):  # past the session's gate: only the gateway is left
         bar.call_args.args[1]._cleared(replace(tp.SALE, session=now.date()))
+
+
+def test_a_dear_zoo_buy_is_judged_by_the_zoo_day_and_its_total_never_passes_the_pounds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    desk, at = replace(_desk(tmp_path)[0], zoo=True), venues.hours("LSE", MON.date()).open
+    buy = intraday.IntradayDecision("zoo_flip", "VUAG", at, Action.BUY)
+    dear = Decimal(
+        300
+    )  # over a fifth of the zoo's 1,000 pounds: ZOO_ROOM refuses, ZOO_DAY does not
+    assert isinstance(
+        running._order(desk, ZOO_DAY, buy, YARDSTICK, "1-zoo_flip-VUAG-0805B", dear, {}), Order
+    )
+    monkeypatch.setattr(intraday, "ZOO_RULES", {"zoo_flip": _Flip})
+    monkeypatch.setattr(running, "_latest", lambda *_: {"VUAG": [Mock(close=dear)]})
+    monkeypatch.setattr(intraday, "today", lambda *_: [buy])
+    monkeypatch.setattr(day, "_zoo_full", lambda *_: "over the zoo's pounds")
+    sent = Mock()
+    monkeypatch.setattr(day, "_send", sent)
+    words = running._rule_round(desk, Mock(), "LSE", at, "zoo_flip", _Flip)
+    assert words == ["over the zoo's pounds"] and not sent.called
