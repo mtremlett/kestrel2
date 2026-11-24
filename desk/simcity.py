@@ -13,6 +13,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from shutil import rmtree
@@ -364,11 +365,7 @@ def _stops(life: _Life) -> None:
 def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """BIC-04: the trips' gross is their trading at the buy's rate plus the currency's move."""
     money = {line.symbol: line.currency for line in life.market}
-
-    def rate(currency: str, _day: date) -> Decimal:
-        """The night's own pound: the one source SimCity's days are run with."""
-        return life.rates[currency]
-
+    rate: book.Rate = lambda currency, _day: life.rates[currency]  # noqa: E731 - the night's own pound
     traded = sum(
         (
             -t.sell.quantity * (t.sell.price - t.buy.price) * rate(money[t.buy.symbol], t.buy.day)
@@ -378,14 +375,11 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     )
     gross = sum((t.gross for t in trips), Decimal(0))
     unit = {line.symbol: Decimal(1) for line in life.market}
-    open_gain = (
-        book.open_currency_gain(
-            life.desk, life.market, {k: v * 2 for k, v in unit.items()}, d, rate
-        )
-        == 2 * book.open_currency_gain(life.desk, life.market, unit, d, rate)
+    held = partial(book.open_currency_gain, life.desk, life.market)
+    return traded + book.currency_gain(life.market, trips, rate) == gross and all(
+        held({k: v * 2 for k, v in unit.items()}, d, rate) == 2 * held(unit, d, rate)
         for d in {t.sell.day for t in trips}
     )
-    return traded + book.currency_gain(life.market, trips, rate) == gross and all(open_gain)
 
 
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:

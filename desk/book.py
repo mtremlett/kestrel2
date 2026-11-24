@@ -395,13 +395,13 @@ def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
     return tuple(trips)
 
 
-def currency_gain(
-    lines: Iterable[Line], trips: Iterable[RoundTrip], rate: Callable[[str, date], Decimal]
-) -> Decimal:
+Rate = Callable[[str, date], Decimal]
+
+
+def currency_gain(lines: Iterable[Line], trips: Iterable[RoundTrip], rate: Rate) -> Decimal:
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
-    currency moved between the buy's day and the sale's, the shares sold at the sale's price
-    times the change in the day's rate, which the caller's `rate` gives (the one door, never a
-    record read here). A trip's gross less this is its trading profit."""
+    currency moved between the buy's day and the sale's: shares sold times the sale's price
+    times the change in the caller's rate. A trip's gross less this is its trading profit."""
     currency = {line.symbol: line.currency for line in lines}
     return sum(
         (
@@ -415,11 +415,7 @@ def currency_gain(
 
 
 def open_currency_gain(
-    root: Path,
-    lines: Iterable[Line],
-    prices: Mapping[str, Decimal],
-    day: date,
-    rate: Callable[[str, date], Decimal],
+    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date, rate: Rate
 ) -> Decimal:
     """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
     close the oldest), have gained or lost at today's price from the currency's move since the
