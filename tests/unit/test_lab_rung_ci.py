@@ -7,9 +7,11 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Callable, Sequence
+from datetime import date
 from decimal import Decimal
 
 import pytest
+from test_lab_calibration import _cell as _first
 
 from lab import rung, rung_ci
 from lab.rung import MIN_TRADES, Answer
@@ -94,3 +96,22 @@ def test_the_old_audits_defects_must_fail() -> None:
     assert rung_ci.judge([-g for g in wins * 2]) is Answer.FAIL  # LAD-08: a loss is a fail
     # LAD-08: an interval holding nothing is never a pass or a fail
     assert rung_ci.judge([Decimal(g % 3 - 1) for g in range(90)]) is Answer.DOUBT
+
+
+def test_the_bootstrap_is_on_the_judges_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R-RUNNER-503: `Rung.judge` is given the bars and the rates and calls the bootstrap; an
+    interval's PASS stands unless the redrawn blocks FAIL (then DOUBT) and is no fail on THIN."""
+    first, seen = _first(1, 0.02), []
+    for answer, held in (
+        (Answer.PASS, Answer.PASS),
+        (Answer.THIN, Answer.PASS),
+        (Answer.FAIL, Answer.DOUBT),
+    ):
+
+        def drawn(*given: object, answer: Answer = answer) -> rung_ci.Redrawn:
+            seen.append(given)
+            return rung_ci.Redrawn(900, 0.3, answer)
+
+        monkeypatch.setattr(rung_ci, "bootstrap", drawn)
+        assert rung_ci.RUNG.judge(first, [], {date(2020, 1, 1): Decimal(1)})[0] is held
+    assert seen == [(first, [], {date(2020, 1, 1): Decimal(1)})] * 3

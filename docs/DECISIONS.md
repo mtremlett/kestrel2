@@ -2405,3 +2405,14 @@ waits on it (a parity test first, canon B2). data-disk-rolloff keeps its wait: d
 yes of 23 Nov 19:3x named five folders once, not a standing rule.
 Check: `tests/guards/test_lanes.py` reads every wait and after: link; the runner's READY gate holds each box
 behind its after: links.
+
+## 24 Nov - the block bootstrap is wired into the ci rung (R-RUNNER-503, RUNGS lane)
+
+`Rung.judge` now takes the first rung's verdict, the bars and the day's rates; the ci rung's
+answer is its interval's, held to the block bootstrap (`rung_ci.bootstrap`): an interval PASS
+whose redrawn runs of days made nothing or lost more than 2.5% of the time is DOUBT. Options for
+that case: FAIL (the bootstrap gates, as its module says), DOUBT, or leave it a PASS. Decided
+DOUBT, by canon LAD-08: FAIL is for an interval wholly below nothing; a PASS the days' runs do
+not bear out is a doubt about the rule, never proof of a loss. Too few days to draw (THIN) leaves
+the PASS standing (LAD-06). Golden verdicts moved: none (the ladder's golden and the registry
+tests pass unchanged); calibration worlds now carry daily bars, as the bootstrap reads them.
