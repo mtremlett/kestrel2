@@ -93,14 +93,14 @@ def hole(life: _Life, on: date) -> None:
     line, whole = held[0], life.market[held[0]]
     life.market[line] = tuple(bar for bar in whole if bar.day != on)
     try:
-        life.live(on)
-    except ValueError as refusal:  #: the desk's own word that the day has no record
-        life.promise(PROMISE, line.symbol in str(refusal))
+        record = life.live(on)
+    except ValueError as refusal:  #: no held line had a close: the desk's word, no record
+        life.promise(PROMISE, "no held line" in str(refusal))
         life.market[line] = whole
         life.live(on)
-    else:  #: a stop or a sale ended the holding that day: no close was owed
+    else:  #: the record names the line owed, or a stop or sale ended it: no close was owed
         life.market[line] = whole
-        life.promise(PROMISE, line.symbol not in book.positions(life.desk))
+        life.promise(PROMISE, f"{line.symbol}: no close owed" in record.mismatches)
 
 
 def beside(life: _Life, on: date) -> None:
