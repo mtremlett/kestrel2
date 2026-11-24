@@ -215,3 +215,15 @@ def test_a_trade_expected_to_gain_under_twice_its_round_trip_cost_is_flagged() -
     assert trip > 0
     assert orders.thin(order, 2 * trip - Decimal("0.01"))
     assert not orders.thin(order, 2 * trip)
+
+
+def test_the_zoo_has_its_own_twenty_lines_twenty_new_a_day_and_five_thousand_pounds() -> None:
+    zoo = orders.ZOO_ROOM
+    assert (zoo.capital, zoo.new_lines, zoo.lines) == (Decimal(5_000), 20, 20)
+    assert orders.size(_buy(PLAIN), PLAIN, Decimal(1), Decimal(1), orders.ZOO_DAY, {}).quantity
+    twenty = {f"S{n}": 1 for n in range(20)}
+    orders.gate(_order(PLAIN, 1, "1"), zoo, {f"S{n}": 1 for n in range(19)})  # a 20th line
+    with pytest.raises(orders.Refused, match="20 holdings already, at most 20"):
+        orders.gate(_order(PLAIN, 1, "1"), zoo, twenty)  # a 21st
+    with pytest.raises(orders.Refused, match="5 holdings already, at most 5"):
+        orders.gate(_order(PLAIN, 1, "1"), TEN_K, {s: 1 for s in "VWXYZ"})  # the desk's 6th

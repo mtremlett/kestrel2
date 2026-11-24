@@ -2416,3 +2416,14 @@ DOUBT, by canon LAD-08: FAIL is for an interval wholly below nothing; a PASS the
 not bear out is a doubt about the rule, never proof of a loss. Too few days to draw (THIN) leaves
 the PASS standing (LAD-06). Golden verdicts moved: none (the ladder's golden and the registry
 tests pass unchanged); calibration worlds now carry daily bars, as the bootstrap reads them.
+
+## 24 Nov - the zoo's room loosened: 20 lines, 20 new a day, 5,000 pounds (R-RUNNER-506, MONEY lane)
+
+His words, 24 Nov 11:4x: "Yes zoo cap to 20", and 11:5x: "this is a test environment that paper trades so you can
+loosen the number of trades and portfolio sizes as required". Options: raise the desk's own five holdings too
+(no: his 13 Nov ruling stands), or loosen the zoo alone. Decided the zoo alone, in `desk/orders.py`'s ZOO_ROOM:
+at most 20 zoo lines (new `Settings.lines`, the gate's cap, 5 for the desk), 20 new zoo lines a day (was 10), zoo
+capital 5,000 pounds (was 1,000, so one share of MU, NVDA or MSTR fits). The zoo stays one share an order (B6, his
+22 Nov); the desk's rules, the risk gate and the kill switch are unchanged. Golden numbers moved: none.
+Check: `tests/unit/test_orders.py` (the zoo refused at its 21st line, the desk still at its 6th, each setting
+pinned), seen red on main first; `tests/unit/test_day_standing.py`'s zoo-total test now prices at the new capital.

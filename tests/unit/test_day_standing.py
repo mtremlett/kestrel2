@@ -333,10 +333,11 @@ def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_f
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """23 Nov: 36 zoo buys (AAPL, TSLA, NVDA) refused 'one share costs more than the room of 200
-    pounds'; a share costing 300 is bought now, and the fourth would take the zoo past 1,000."""
+    pounds'; a share costing 1,300 is bought now, and the fourth would take the zoo past 5,000."""
     lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:4]
     dear = tuple(
-        Bar(d, Decimal(300), Decimal(301), Decimal(299), Decimal(300), 10**7) for d in (MON, TUE)
+        Bar(d, Decimal(1300), Decimal(1301), Decimal(1299), Decimal(1300), 10**7)
+        for d in (MON, TUE)
     )
     broker = Pretend({ln: dear for ln in lines}, {})
     broker.open(TUE)
@@ -349,7 +350,7 @@ def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_f
     )
     assert sorted(a.filled for a in answers) == [0, 1, 1, 1]
     over = next(a for a in answers if a.filled == 0)
-    assert "the zoo would hold 12" in str(over.reason) and over.blocker is Blocker.GATE
+    assert "the zoo would hold 52" in str(over.reason) and over.blocker is Blocker.GATE
 
 
 def test_a_zoo_buy_of_a_line_the_desk_holds_stays_refused_until_shares_have_owners(
