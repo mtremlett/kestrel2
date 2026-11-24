@@ -5,6 +5,7 @@ beside the market's, to the penny, or the lines on which the book is not the bro
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import astuple, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -331,8 +332,16 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
         day.publish(tmp_path, MARKET, broker, capital, date(2025, 2, 6))
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
     first = next(iter(MARKET))  #: A, still held: its bar for the day is owed, not yesterday's
-    with pytest.raises(ValueError, match="no close of A for"):
-        day.publish(tmp_path, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    held = book.positions(tmp_path)
+    owing = {line: bars[:-1] if line.symbol in held else bars for line, bars in MARKET.items()}
+    with pytest.raises(ValueError, match="no held line has a close"):  #: all owed: still loud
+        day.publish(tmp_path, owing, broker, capital, DAYS[22])
+    one = Path(
+        shutil.copytree(tmp_path, tmp_path.parent / "refused")
+    )  #: one owed: named, the rest valued
+    refused = day.publish(one, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    assert (refused.profit, refused.mismatches) == (None, ("A: no close owed",))
+    assert refused.worth > 0, "the other lines were not valued"
     halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade
     rest = {line: bars for line, bars in MARKET.items() if line != first}
     missed = day.publish(tmp_path, {**rest, halted: MARKET[first][:-1]}, broker, capital, DAYS[22])

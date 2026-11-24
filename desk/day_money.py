@@ -14,17 +14,22 @@ from desk.orders import pennies
 from desk.store import Bar
 
 
-def worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
-    """What the book held at a day's end was worth, in pounds: each line at its close then,
-    at the rate kept for that very day."""
-    lines = {line.symbol: line for line in archive}
-    return sum(
-        (
-            shares * close(archive, lines[s], upto) * book.rate(root, lines[s].currency, upto)
-            for s, shares in book.positions(root, upto).items()
-        ),
-        Decimal(0),
-    )
+def worth(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date
+) -> tuple[Decimal, tuple[str, ...]]:
+    """What the book held at a day's end was worth, in pounds: each line at its close then, at
+    the rate kept for that very day. A held line owed a close is refused by name, its reason with
+    it, and left out: never priced by an older bar. No held line priced at all is still an error."""
+    lines, priced, refused = {line.symbol: line for line in archive}, [], []
+    for s, shares in book.positions(root, upto).items():
+        rate = book.rate(root, lines[s].currency, upto)  #: a missing rate stops the day
+        try:
+            priced.append(shares * close(archive, lines[s], upto) * rate)
+        except ValueError:  #: said in the day's record; the other lines are valued
+            refused.append(f"{s}: no close owed")  #: no comma: the record is a comma file
+    if refused and not priced:
+        raise ValueError(f"{upto}: no held line has a close, so no record")
+    return sum(priced, Decimal(0)), tuple(refused)
 
 
 def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal | None:
