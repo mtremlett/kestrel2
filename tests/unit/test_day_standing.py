@@ -273,11 +273,12 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         0,
         1,
     )
-    monkeypatch.setattr(orders, "HOLDINGS", 1)  # the zoo's line fills none of the desk's holdings
     book.send(
-        tmp_path, broker, Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))), ROOM
+        tmp_path,
+        broker,
+        Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))),
+        replace(ROOM, lines=1),  # the zoo's line fills none of the desk's holdings
     )
-    monkeypatch.setattr(orders, "HOLDINGS", 5)
     monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
     broker.open(wed)
     sessions, place = list[date | None](), broker.place
@@ -390,17 +391,17 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In, "desk_out": _Out})
     monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In, "zoo_out": _Out})
     monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
-    monkeypatch.setattr(orders, "HOLDINGS", 20)
+    room = replace(ROOM, lines=20)
     first, rates = {ln: (bars[ln][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
-    full, one = paper.MAX_ORDERS, replace(ROOM, new_lines=1)  #: one new desk line, 19 refused
+    full, one = paper.MAX_ORDERS, replace(room, new_lines=1)  #: one new desk line, 19 refused
     none, no, rest = frozenset[str](), dict[str, Fault](), ("desk_in", "zoo_in")
     shy = {lines[0].symbol: Fault.REJECT, lines[1].symbol: Fault.PARTIAL}  #: asked, short
     held = ("desk_out", "zoo_in", "zoo_out")  #: a desk sale, a zoo yield, a zoo sale, 2 strangers
     runs = (
-        (frozenset({"desk_in"}), ROOM, full, no, (), {"zoo_in"}),
+        (frozenset({"desk_in"}), room, full, no, (), {"zoo_in"}),
         (none, one, full, no, (), {"zoo_in"}),
-        (none, ROOM, 3, shy, (), set(rest)),
-        (none, ROOM, 1, no, held, {"stranger", *held, *rest}),
+        (none, room, 3, shy, (), set(rest)),
+        (none, room, 1, no, held, {"stranger", *held, *rest}),
     )
     for n, (killed, room, cap, faults, seeded, rules) in enumerate(runs):
         root, broker = tmp_path / str(n), Pretend(bars, faults)
@@ -411,7 +412,7 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
                 root,
                 broker,
                 Order(f"20251110-{rule}-{line.symbol}", line, 1, *map(Decimal, (5, 1, 4))),
-                ROOM,
+                room,
             )
         for line in lines[-2:] if seeded else ():
             broker.inject(line.symbol, 1)

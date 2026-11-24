@@ -75,7 +75,7 @@ class Settings:
             raise ValueError(f"a capital of {self.capital} pounds")
         if self.correlation <= 0:
             raise ValueError(f"a correlation cap of {self.correlation}")
-        if not (0 < self.day_loss <= self.week_loss <= 1) or self.new_lines < 1:
+        if not (0 < self.day_loss <= self.week_loss <= 1) or min(self.new_lines, self.lines) < 1:
             raise ValueError(f"limits of {self.day_loss}, {self.week_loss} and {self.new_lines}")
 
 

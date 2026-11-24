@@ -2427,3 +2427,5 @@ capital 5,000 pounds (was 1,000, so one share of MU, NVDA or MSTR fits). The zoo
 22 Nov); the desk's rules, the risk gate and the kill switch are unchanged. Golden numbers moved: none.
 Check: `tests/unit/test_orders.py` (the zoo refused at its 21st line, the desk still at its 6th, each setting
 pinned), seen red on main first; `tests/unit/test_day_standing.py`'s zoo-total test now prices at the new capital.
+The zoo's loss limits stay 2% a day and 5% a week of its capital, so they rise with it, to 100 and 250 pounds
+(was 20 and 50): decided by his "loosen ... portfolio sizes as required"; paper only, the desk's own are unchanged.
