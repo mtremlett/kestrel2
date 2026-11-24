@@ -29,15 +29,16 @@ SHORTER THAN A BLOCK. Measured over 3,000 edgeless cells of 1,500 days: 0.024 of
 passed, 0.03 of noise in runs of five days, 0.06 in runs of twenty, 0.15 in runs of sixty. A
 rule whose luck lasts for months is the folds' and the regimes' to catch, not this rung's.
 
-IT READS THE TAPE (`lab/tape.py`): it is handed a cell's record, the trades a tape holds, and
-simulates nothing. KEYED (`key`) by what keys the tape (the rule's code, the engine's, the
-bars, the window), by this module's code and all it reaches (the cost model and the capital
-with it), by the numpy that draws, and by each day's rate for a line not in pounds.
+IT READS THE FIRST RUNG'S VERDICT, as every declared rung does (`rung.Rung`): the trades a
+tape holds, priced once, beside the bars that made them; it prices and simulates nothing.
+KEYED (`bootstrap_key`) by what keys the tape (the rule's code, the engine's, the bars, the
+window), by this module's code and all it reaches (the cost model and the capital
+with it, named in the key), by the numpy that draws, and by each day's rate for a line not in pounds.
 
 FAILING FAIRLY (LAD-06). Where the first rung found too few trades, or none, the answer is the
 first rung's and nothing is drawn; days too few to fill BLOCKS blocks are THIN, never a fail.
 The draw is seeded by the cell's name, so a cell judged again is drawn the same. Nothing calls
-the bootstrap yet: the verdict's wiring is owed.
+the bootstrap yet: its one call, beside the declared rungs (`lab/ladder_parts.py`), is owed.
 """
 
 from __future__ import annotations
@@ -51,11 +52,9 @@ import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
 from desk.command import CAPITAL
-from desk.orders import Settings
 from desk.store import Bar
 from lab import cell, market, rung, tape
 from lab.cell import Record
-from lab.reproduce import Reproduction
 from lab.rung import MIN_TRADES, T_PASS, Answer, Rates, Rung
 
 
@@ -117,14 +116,14 @@ def redrawn(returns: Sequence[float], seed: int) -> Redrawn:
     return Redrawn(len(returns), part, Answer.PASS if part <= RATE else Answer.FAIL)
 
 
-def bootstrap(
-    record: Record, bars: Sequence[Bar], rates: Rates, reproduced: Sequence[Reproduction] = ()
-) -> Redrawn:
-    """The tape's trades priced by the first rung, and their days drawn again in blocks."""
-    first = rung.judge(record, bars, Settings(CAPITAL), rates, reproduced)
+def bootstrap(first: rung.Verdict, bars: Sequence[Bar], rates: Rates) -> Redrawn:
+    """The first rung's priced trades, as every declared rung reads them, their days drawn
+    again in blocks."""
     if first.answer in (Answer.FAULT, Answer.THIN):
         return Redrawn(0, None, first.answer)
-    c = record.key.cell
+    c = first.key.cell
+    if cell.key(c, bars).data != first.key.data:
+        raise ValueError(f"{c}: these bars did not make the first rung's verdict")
     made = market.daily(first.trades, cell.shown(c, bars), c.line, rates)
     begun, ended = min(made), max(made)  #: its first judged buy's fill, and its last sale's
     days = [float(made.get(bar.day, 0)) for bar in bars if begun <= bar.day <= ended]
@@ -137,5 +136,6 @@ def bootstrap_key(record: Record, rates: Rates) -> str:
     made, c = record.key, record.key.cell
     days = sorted(day for day in rates if day <= c.end and c.line.currency != "GBP")
     parts = [tape.rule_code(c.strategy), made.rung(ME).code, made.data, str(c), np.__version__]
+    parts += [f"capital {CAPITAL}"]  #: the first rung sized every trade at it
     parts += [f"{day} {rates[day]}" for day in days]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
