@@ -244,6 +244,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2060 R-RUNNER-459 done: cancel_all keeps no -stop id in cancels.csv.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2065 R-RUNNER-458 done: watch PARK words say parked by hand.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2084 R-RUNNER-456: one cap at one place over the whole round; every carried order is intended, chained and listed; golden re-pinned (11 Aug 2025, 9 carried). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2119 zoo-size-pins N1 (R-RUNNER-479): one test, pins #2105 (zoo buys sized on own side, desk holding five).
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2137 zoo-own-side: daily zoo round judged on the zoo's own room and total; intraday round remains.
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2152 zoo-own-side part: pounds-room part on main, held-already part blocked, one pinning test landed.
 
 
 ### DATA
@@ -556,6 +559,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2088 R-DATA-77 met: keeper withdraws only the refused bar; no scene moved. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2098 data-members: nightly reads FTSE members by date from the free page revisions. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2129 data-rollup-hot built; only his 08:00 look at data-hover remains. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2143 data-two-stores closed on evidence: 0 old-file rows missing from market_history.db bar a counted 156 refused. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

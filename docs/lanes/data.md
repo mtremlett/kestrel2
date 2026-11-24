@@ -29,19 +29,9 @@ before this fold: `git log -p docs/lanes/data.md`).
 - *The fast store* (#89): SQLite in WAL mode, whole rounds, exact decimals, benchmarks held.
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
 
-### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
+### 2026-11-14 to 15 — head start, currency, store rules, adjusted closes, folded (#175-#294)
 
-Settled and folded; git keeps every word. The old desk's five-minute bars, and later ibkr_store, Stooq and
-mark_the_trend files and the old database's daily rows, are read as a head start into the fast store, daily fill-only
-(#175, #236, #238, #245, #254). Currency steps are judged by the day's pound, with recorded splits and London-midnight
-dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked London lines came out clean (#222).
-Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
-(#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
-
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
-
-The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
-The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
+Old five-minute bars and ibkr_store, Stooq and mark_the_trend files are a fill-only head start (#175-#254); currency steps judged by the day's pound (#217, #220); every `desk/store.py` rule pinned by a synthetic table (#225-#230); adjusted stores never overwrite raw (#286); closes within 39 minutes of close kept (#294). Git keeps the words.
 
 ### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
 
@@ -796,3 +786,9 @@ Options: retitle #2088 to dodge the guard (rejected, a relabel); close #2088 (re
 ### 2026-11-23 — #2122 (data-disk-rolloff): a true duplicate is a byte-identical same-named copy (DATA)
 "Held in the one store" is read as a byte-identical, same-named copy under the store folder; anything else is listed for his yes, never deleted (his 23 Nov ruling).
 Options: a row-check against market.db (heavier, and a file with no byte twin may still be research); the byte check (chosen: the stricter proof of a true duplicate). The row-check stays open for files with no byte twin; the runner job calling `rolloff` is runner ops'.
+
+### 2026-11-24 — roll-up differences are told as FAULT lines in the round (DATA, #2129)
+A rolled bar that differs from a held one is a FAULT line in the keeper round's told lines, not an exit 1, as the box says "told". Checked after the roll so a fresh 30m-built hour is compared the same round.
+
+### 2026-11-24 — market.db and bars.db are recorded as already in, no importer (DATA, #2143)
+Options: A, build a market.db/bars.db importer; B, record that they are already in. Took B (recommended: every row is in market_history.db bar 156 of 32,124 mark_the_trend Stooq bars the store refused on entry; a copier would duplicate the writer and add code, no bars). His words: "please always go with recommended to avoid waiting for me to attend". Deleting the two files stays his alone.
