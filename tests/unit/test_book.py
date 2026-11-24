@@ -385,7 +385,7 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
         (Decimal(-30), Charges(*map(Decimal, ("4.8", "0.285", "0.555", "0", "1.5")))),
     ]
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
-    assert book.currency_gain(tmp_path, (share, dollar), trips) == Decimal(-25)
+    assert book.currency_gain((share, dollar), trips, book.pounds_per(tmp_path)) == Decimal(-25)
     #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
     #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
     kept, rates_read = book_parts.rates_kept, list[Path]()
@@ -395,12 +395,15 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
         return kept(root)
 
     monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
-    assert book.currency_gain(tmp_path, (share, dollar), trips * 20) == Decimal(-500)
+    pounds = book.pounds_per(tmp_path)
+    assert book.currency_gain((share, dollar), trips * 20, pounds) == Decimal(-500)
     assert (
-        book.open_currency_gain(tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON)
+        book.open_currency_gain(
+            tmp_path, (share, dollar), dict.fromkeys("AU", Decimal(50)), MON, pounds
+        )
         == 0
     )
-    assert len(rates_read) == 2, f"{len(rates_read)} reads of the rates, not one a call"
+    assert len(rates_read) == 1, f"{len(rates_read)} reads of the rates, not one for the trips"
     #: BIC-03: before any fill the whole 3650 pounds is idle, a tenth a year is a pound a day
     early = trips[0].buy.day - timedelta(days=2)
     assert (
