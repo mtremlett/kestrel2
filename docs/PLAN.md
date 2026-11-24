@@ -342,9 +342,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
       wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
-      Built (#2083, #2129): the keeper's five-minute round rolls each line's five-minute and daily bars up, and tells a rolled bar that differs from a held one as a FAULT line every round. Remains: his 08:00
+      Built (#2083, #2129): the keeper's five-minute round rolls each line's five-minute and daily bars up, and tells a rolled bar that differs from a held one as a FAULT line every round. Remains (the desk's, not his; coordinator 177, 24 Nov): the
       check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh
-      {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py; waits: operator}
+      {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py}
 - [ ] Every line's newest daily bar comes from IBKR when the broker answered that day (his 'IBKR always primary';
       coordinator 165, 23 Nov 21:4x): the data table says 'sources: archive 22' in both stores, so every newest daily
       bar is the free archive's though IBKR-first is ticked. The session first names the mechanism (the keeper's room
