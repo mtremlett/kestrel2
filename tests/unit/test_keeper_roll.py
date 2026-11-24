@@ -58,3 +58,15 @@ def test_a_round_writes_the_hour_the_five_minute_bars_complete_and_no_partial_sp
                          for n in range(12)])  # fmt: skip
     told = keeper.rolled(hot, [line], late + timedelta(hours=2))
     assert any(t.startswith("FAULT BBB 1h") for t in told)
+
+
+def test_a_round_leaves_each_rolled_span_as_fresh_as_its_base(tmp_path: Path) -> None:
+    hot, open_, price = tmp_path / keeper.HOT, datetime(2026, 11, 16, 8, tzinfo=UTC), Decimal(5)
+    line, ends = Line("BBB", "LSE", "GBP", 1), open_ + timedelta(hours=2)
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.five(line, [Five(open_ + timedelta(minutes=5 * n), price, price, price, price, 1)
+                         for n in range(24)])  # fmt: skip
+    keeper.rolled(hot, [line], ends)
+    for span, length in (("15m", 15), ("30m", 30), ("1h", 60)):
+        got = bars.timed(hot, line, span, open_, ends)
+        assert got[-1].start + timedelta(minutes=length) == ends  # the base's last bar is in it

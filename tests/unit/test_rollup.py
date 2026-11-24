@@ -81,3 +81,17 @@ def test_a_pulled_bar_wins_over_a_rolled_one_and_a_disagreement_is_a_fault() -> 
         (OPEN + timedelta(minutes=10), "rollup:1m"),
     ]
     assert faults == [(off, built[1])]  # the agreeing pulled bar is no fault
+
+
+def test_a_rolled_hour_equals_its_twelve_five_minute_bars() -> None:
+    fives = rollup("LSE", [minute(n) for n in range(60)], "5m")
+    (hour,) = rollup("LSE", fives, "1h", base="5m")
+    assert (hour.start, hour.open, hour.high, hour.low, hour.close, hour.volume) == (
+        OPEN,
+        fives[0].open,
+        max(c.high for c in fives),
+        min(c.low for c in fives),
+        fives[-1].close,
+        sum(c.volume for c in fives),
+    )
+    assert len(fives) == 12 and hour.source == "rollup:5m"
