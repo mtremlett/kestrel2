@@ -324,6 +324,16 @@ def test_a_step_as_large_as_the_pound_is_a_currency_only_if_it_lasts(run: int) -
     assert _prepared(bars, replace(US, leverage=3)) == []  # a real crash is as large
 
 
+def test_the_newest_bar_a_pound_step_from_the_day_before_is_kept_a_hundredfold_one_is_not() -> None:
+    """NVDA, 23 November 2026: no close follows the newest bar, so no step can be seen to last
+    (R-RUNNER-487); a normal move is kept, a bar of 100 times the day before is still refused."""
+    clean = _bars(US, LONG)
+    kept, _, reasons = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
+    assert reasons == [] and len(kept) == len(clean)
+    kept, faults, reasons = _priced((*clean[:-1], _scaled(clean[-1], Decimal(100))), US)
+    assert len(kept) == len(clean) - 1 and any("wrong unit" in f for f in faults) and reasons
+
+
 def test_a_dated_change_of_quote_currency_is_kept_not_refused() -> None:
     """HVPE, NBPE, VOF: the line master dates the change (R-RUNGS-20); the step day is kept."""
     clean = _bars(US, LONG)

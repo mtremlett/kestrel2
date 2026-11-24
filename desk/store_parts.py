@@ -62,8 +62,9 @@ def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> boo
 def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool:
     """Neighbouring bars could both be true: each one's range lies within a market's move of the
     other's close, or the line records this close. A step as large as the pound's that lasts, every
-    close of the next RECENT sessions still in the new unit, is a currency. onward: after, on."""
-    after, ahead = onward[0], onward[1:]
+    close of the next RECENT sessions still in the new unit, is a currency; the newest bar has no
+    next, no step. onward: after, on."""
+    after, ahead = onward[0], onward[1:][:RECENT]
 
     def near(bar: Bar, close: Decimal) -> bool:
         return close / JUMP <= bar.low and bar.high <= close * JUMP
@@ -75,7 +76,7 @@ def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool
         return True  # a dated change of quote currency: the unit changed, the market did not
     pound = pound_on(rates, after.day)
     step = line.leverage == 1 and same_as_pound(after.close / before.close, pound, FX_STEP)
-    if step and all(same_as_pound(b.close / before.close, pound, FX_FAR) for b in ahead[:RECENT]):
+    if step and ahead and all(same_as_pound(b.close / before.close, pound, FX_FAR) for b in ahead):
         return False  # every close stays in the new unit: a move that came back is the market's
     return near(after, before.close) and near(before, after.close)
 
