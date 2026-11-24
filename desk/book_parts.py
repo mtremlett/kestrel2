@@ -96,6 +96,11 @@ def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
         }
 
 
+def rates_of(root: Path, day: date) -> dict[str, Decimal]:
+    """The rates kept for a day, by currency: none before its first record."""
+    return {currency: pounds for (d, currency), pounds in rates_kept(root).items() if d == day}
+
+
 def pounds_per(root: Path) -> Callable[[str, date], Decimal]:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry),
     the rates read once for every question asked of it (22 Nov: once a trip hung SimCity)."""
