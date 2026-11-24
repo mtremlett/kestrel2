@@ -95,6 +95,18 @@ def test_ibkr_is_asked_first_for_every_line_its_bar_stands_and_each_newest_bar_i
     assert isinstance(refusal, Refused) and "not asked" in refusal.reason
 
 
+def test_a_line_the_broker_answered_keeps_its_newest_daily_bar_as_ibkr_not_the_archives(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(paper, "dial", _no_gateway)
+    hot = tmp_path / keeper.HOT
+    for _ in range(2):  # the second call asks the broker for nothing: the label stays
+        keeper.keep(
+            tmp_path, NOW, (UK,), _bars, lambda *_: (), lambda: 0.0, series=(), broker=_broker
+        )
+        assert bars.newest(hot, UK, bars.DAILY) == (TUE.toordinal() - 1, bars.Source.IBKR)
+
+
 def test_the_brokers_pence_reach_the_keeper_in_pounds_and_a_dollar_line_is_not_scaled(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

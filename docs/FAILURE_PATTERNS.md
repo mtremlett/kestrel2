@@ -147,12 +147,12 @@ Otherwise nothing yet; it is an open debt. The fix is one way to read and write 
 shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
-runs: the rehearsal barred on any trading date, then whenever the account held anything (16 Nov);
-`desk/running.py` set London's round in IBKR paper's dead window (08:00-09:00 UK); `desk/placing.py`
-judged an intraday order by a daily one's sessions (143 zoo orders refused); `desk/day.py` sized
-the zoo on the desk's holdings and capped its round's five order streams one call site at a
-time (#2036, #2084, #2105; 23 Nov): limits written for the desk's book, met by the zoo live.
-→ *Caught by:* #462; the London round's test; zoo-due-session's; `test_day_standing.py`'s round test. *Debt:* a rehearsal beside held lines; until then, the coordinator's go.
+runs: the rehearsal barred on any trading date or held line (16 Nov); `desk/running.py` set London
+in IBKR paper's dead window; `desk/placing.py` judged an intraday order by a daily one's sessions;
+`desk/day.py` sized and capped the zoo by the desk's book (#2036, #2084, #2105; 23 Nov); one line's
+missing close stopped the whole day, and `desk/simcity.py` and `desk/simcity_incidents.py`, whose
+promises pin a refusal's wording, were fixed with it each time (#1755, #1909, #2168).
+→ *Caught by:* #462; the London round's test; zoo-due-session's; `test_day_standing.py`'s round test. *Debt:* a rehearsal beside held lines; until then, the coordinator's go; SimCity's promises match text, not a type.
 
 **21. The claim that drifts.** A session that cannot finish inside its claim moves the work
 to a file outside it instead of stopping: #857 rewrote a lab test outside its card, and #902

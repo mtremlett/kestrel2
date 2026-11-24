@@ -37,8 +37,9 @@ trades were sized at, by the numpy that draws, and by each day's rate for a line
 
 FAILING FAIRLY (LAD-06). Where the first rung found too few trades, or none, the answer is the
 first rung's and nothing is drawn; days too few to fill BLOCKS blocks are THIN, never a fail.
-The draw is seeded by the cell's name, so a cell judged again is drawn the same. Nothing calls
-the bootstrap yet: its one call, beside the declared rungs (`lab/ladder_parts.py`), is owed.
+The draw is seeded by the cell's name, so a cell judged again is drawn the same. `RUNG.judge` is
+where it is called (decision e): a PASS of the interval stands only if the redrawn blocks pass
+too, else it is DOUBT, the interval holding nothing once the days' runs are kept.
 """
 
 from __future__ import annotations
@@ -78,8 +79,6 @@ def _judged(first: rung.Verdict) -> tuple[Answer, str]:
     _, low, high = rung.interval(first.gains)
     return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
 
-
-RUNG = Rung("ci", f"the mean gain is clear of nothing by {T_PASS} standard errors", _judged)
 
 ME = "lab.rung_ci"  #: this module as the cell knows it
 BLOCK = 20  #: days in a row to a block: a month of sessions, longer than most trades are held
@@ -139,3 +138,18 @@ def bootstrap_key(record: Record, rates: Rates) -> str:
     parts += [f"capital {CAPITAL}"]  #: the first rung sized every trade at it
     parts += [f"{day} {rates[day]}" for day in days]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+
+
+def _drawn(first: rung.Verdict, bars: Sequence[Bar], rates: Rates) -> tuple[Answer, str]:
+    """The interval rung's answer, its PASS held to the block bootstrap's: a share of redrawn
+    histories above RATE that made nothing turns it to DOUBT."""
+    answer, words = _judged(first)
+    if answer is not Answer.PASS:
+        return answer, words
+    drawn = bootstrap(first, bars, rates)
+    if drawn.answer is not Answer.FAIL:  #: THIN: too few days to draw, never a fail (LAD-06)
+        return answer, words
+    return Answer.DOUBT, f"{words}; but {drawn.share:.3f} of redrawn runs of days made nothing"
+
+
+RUNG = Rung("ci", f"the mean gain is clear of nothing by {T_PASS} standard errors", _judged, _drawn)
