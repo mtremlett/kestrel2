@@ -56,11 +56,8 @@ TRIES = 6  #: the calls at which a line parked for a fault is asked again (half 
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
 ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
-POLLED = {
-    5: (27, 270),
-    15: (81, 810),
-    60: (324, 3240),
-}  #: polled tickers by minutes: (floor, ceiling)
+#: polled tickers by minutes: (floor, ceiling)
+POLLED = {5: (27, 270), 15: (81, 810), 60: (324, 3240)}
 
 
 def pace(minutes: int, rate: int, refusals: int) -> int:
@@ -145,17 +142,26 @@ def _kept_in(
     standing: bool = True,
 ) -> tuple[list[Parked], tuple[str, ...]]:
     """Answers judged by the one store, kept as one round: lines parked, sources in words."""
-    parked, rates, named, said = [], pound_closes(hot), dict[str, list[str]](), []
+    parked, rates, named, said, ibkr = [], pound_closes(hot), dict[str, list[str]](), [], []
     with bars.writing(hot) as round_:
         for line, answer in answers.items():
             broker = first.get(line)
             shelf = bars.bridged(hot, line, day, None, answer, broker)
             stands = _standing(hot, line, day, broker) if standing else broker
             kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
-            round_.daily(line, kept, withdrawn=_dropped(_held(hot, line), answer, broker))
+            held, gave = _held(hot, line), broker if isinstance(broker, list | tuple) else ()
+            theirs = {(g.day, entered(g)) for g in gave}
+            ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
+            fresh = [b for b in kept if b not in held]  # a held bar keeps its label
+            round_.daily(
+                line, fresh, withdrawn=_dropped(held, answer, broker) - {b.day for b in kept}
+            )
             parked += [park] if park else []
             named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
             said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
+    with bars.writing(hot, bars.Source.IBKR) as round_:  # the broker's own bars, so labelled
+        for line, own in ibkr:
+            round_.days(line, own)
     return parked, (*(f"newest bar from {k}: {', '.join(v)}" for k, v in named.items()), *said)
 
 
@@ -191,9 +197,7 @@ def _refresh(
         return None
     answers = archive.gather(asked, readied, ask)
     ordered = order(asked, last.tried if last and same else ())
-    first = (
-        broker(ordered[:ROOM], readied) if broker else {}
-    )  # IBKR first, the yardstick before all
+    first = broker(ordered[:ROOM], readied) if broker else {}  # IBKR first, the yardstick first
     heard = {ln for ln, got in first.items() if isinstance(got, list | tuple)}
     unasked = frozenset(ln.symbol for ln in asked if broker and ln not in heard)
     refused = {ln.symbol for ln, a in answers.items() if isinstance(a, Refused) and ln not in heard}
@@ -307,10 +311,7 @@ def stale(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     for line in lines:
         ready = target(line.venue, now)
         due = venues.sessions(line.venue, ready - 10 * DAY, ready - DAY)[-1:]
-        try:
-            last = bars.daily(hot, line)[-1].day
-        except (LookupError, FileNotFoundError, IndexError):  # none held: stale
-            last = None
+        last = (days := _held(hot, line)) and days[-1].day or None  # none held: stale
         if due and (last is None or last < due[0]):
             told.append(f"{line.symbol}: daily bars end {last}, not the {line.venue} {due[0]}")
     return told
@@ -370,9 +371,8 @@ def keep(
                 told.append(
                     (f"FIRST-LIGHT FAULT: the yardstick {YARDSTICK.symbol} is parked: {why}", True)
                 )
-    spoken = [words for words, _ in told] + _reference(
-        home, now, _within(ancient, clock, ends), series
-    )
+    again = _within(ancient, clock, ends)
+    spoken = [words for words, _ in told] + _reference(home, now, again, series)
     return spoken, [words for words, miss in told if miss]
 
 
