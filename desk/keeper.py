@@ -42,9 +42,12 @@ from desk.store import Bar, Parked, Refused
 from desk.store_scope import judge as scoped_judge
 
 DAILY, HOT = "daily", bars.LIVE
-MARKS = "reference"  #: beside a venue's record, the day each reference series was last kept
-#: THE STORE RULES' VERSION (a hash of desk/store.py): a record of another is cleaned again.
-RULES = hashlib.sha256(Path(store.__file__).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+RULES = hashlib.sha256(  #: a hash of every desk/store*.py: a record of another is cleaned again
+    b"\0".join(
+        f.read_bytes().replace(b"\r\n", b"\n")
+        for f in sorted(Path(store.__file__).parent.glob("store*.py"))
+    )
+).hexdigest()
 SETTLED = timedelta(minutes=30)
 HELD = SETTLED + timedelta(minutes=5 + 4)  #: by this long after the auction the closes are held
 LATE = timedelta(minutes=15)  #: a line's five-minute bars are late, and it is parked, after this
@@ -52,18 +55,18 @@ ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two v
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
 DAY = timedelta(days=1)
+ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
 POLLED = {
     5: (27, 270),
     15: (81, 810),
     60: (324, 3240),
 }  #: polled tickers by minutes: (floor, ceiling)
-STEP = 1.25  #: the ramp's rise each clean round
 
 
 def pace(minutes: int, rate: int, refusals: int) -> int:
-    """The next round's tickers: a pacing refusal halves the rate, a clean round rises by STEP."""
+    """The next round's tickers: a refusal halves the rate, a clean round adds a quarter."""
     floor, ceiling = POLLED[minutes]
-    return max(floor, rate // 2) if refusals else min(ceiling, max(rate + 1, int(rate * STEP)))
+    return max(floor, rate // 2) if refusals else min(ceiling, max(rate + 1, int(rate * 1.25)))
 
 
 def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) -> str:
@@ -76,12 +79,10 @@ def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) ->
     return words
 
 
-ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
-#: The broker's daily bars for lines before a day: the store's first source (R-RUNNER-189).
-Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]
+Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]  #: the first source
 
 
 class Stale(LookupError):
@@ -132,9 +133,8 @@ def _held(hot: Path, line: Line) -> tuple[Bar, ...]:
 
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
     """The bars standing first: the broker's if given, else those the store holds (R-RUNNER-341)."""
-    if isinstance(broker, list | tuple):
-        return broker
-    return tuple(b for b in _held(hot, line) if b.day >= day - history.RECENT) or broker
+    held = tuple(b for b in _held(hot, line) if b.day >= day - history.RECENT)
+    return broker if isinstance(broker, list | tuple) else held or broker
 
 
 def _kept_in(
@@ -257,7 +257,7 @@ def _reference(
         return told
     for line in series:
         folder = home / DAILY / line.venue
-        mark = folder / MARKS / f"{line.symbol}.kept"
+        mark = folder / "reference" / f"{line.symbol}.kept"
         if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
             continue
         answer = archive.gather([line], day, ask)[line]
