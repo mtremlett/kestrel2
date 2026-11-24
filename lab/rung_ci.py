@@ -32,8 +32,8 @@ rule whose luck lasts for months is the folds' and the regimes' to catch, not th
 IT READS THE FIRST RUNG'S VERDICT, as every declared rung does (`rung.Rung`): the trades a
 tape holds, priced once, beside the bars that made them; it prices and simulates nothing.
 KEYED (`bootstrap_key`) by what keys the tape (the rule's code, the engine's, the bars, the
-window), by this module's code and all it reaches (the cost model and the capital
-with it, named in the key), by the numpy that draws, and by each day's rate for a line not in pounds.
+window), by this module's code and all it reaches (the cost model with it), by the capital the
+trades were sized at, by the numpy that draws, and by each day's rate for a line not in pounds.
 
 FAILING FAIRLY (LAD-06). Where the first rung found too few trades, or none, the answer is the
 first rung's and nothing is drawn; days too few to fill BLOCKS blocks are THIN, never a fail.
