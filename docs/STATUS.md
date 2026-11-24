@@ -125,6 +125,7 @@ money-census-book, money-door-writer and money-loss-words are done (#1983, #1991
 - [ ] R-MONEY-44 (blocking): `tests/scenes/rehearsal.py` Lines need `isa=True`, then `day._buy` refuses any line not recorded yes (#278).
 - [ ] R-MONEY-72 (later, opened 23 Nov): `desk/broker.py` fills a London ETF market buy at once; make it leave such a buy unfilled until the hour IBKR fills, once a probe pins that hour (tapes trades-london-20261123-0835.csv vs -0906.csv).
 ### Requests to RUNGS
+- [ ] R-RUNNER-485 (later, opened 2026-11-24 02:4x UK by runner ops 179, for money-epon-room): `lab/ladder.py` eponymous() reads a catalogue row with no Python rule through the rulebook's spec maker, never a KeyError, so MONEY can delete seven unused eponymous files for desk/ room; test first in `tests/unit/test_lab_ladder_epon.py`.
 - [ ] R-MONEY-65 (later, opened 2026-11-22, #1560, #1584): every Sharpe in lab/ subtracts `day.RISK_FREE` (BIC-03); `book.interest` is the cash side.
 - [ ] R-MONEY-33 (later): ladder, cells and fast grid also run `strategy.WIRING` names (a grid twin for `ema_9_21`) and the `EPONYMOUS` rules (R-RUNNER-87); promotion keeps refusing the first.
 - [ ] R-MONEY-34 (blocking): `lab/rung.py` and `lab/ladder.py` use `desk.carry.pounds_per_dollar` (R-RUNNER-45); F1: 32 US cells fail on 2025-04-21.
