@@ -107,7 +107,7 @@ def beside(life: _Life, on: date) -> None:
     """Shares the book never saw rest at the broker under their own stop. The desk must take
     them into the book (else its sale is refused, the desk being long only) and send the sale;
     after the day the book and the broker hold the same shares, a stop only under what is held."""
-    free = sorted({x.symbol for x in life.market} - set(book.positions(life.desk)))
+    free = sorted({x.symbol for x in life.begun(on)} - set(book.positions(life.desk)))
     symbol = life.rng.choice(free)
     level = min(b.low for x, bars in life.market.items() if x.symbol == symbol for b in bars)
     life.pretend.inject(symbol, life.rng.randint(1, 50))

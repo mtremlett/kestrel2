@@ -25,6 +25,7 @@ from desk import (
     store,
     watch,
 )
+from desk.lines import YARDSTICK
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
@@ -95,6 +96,16 @@ def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_cou
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
     assert not any(SOLD in broken for broken in result.broken)
     assert LEFT in result.census["day.run"]
+
+
+def test_shares_beside_the_book_are_put_only_on_a_line_with_bars(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    late = {x: b if x == YARDSTICK or x in list(SHORT)[:8] else b[30:] for x, b in SHORT.items()}
+    monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path, late, ROOM, RATES, NOW, (1, 2, 3, 4, 5))
+    assert not any(SOLD in broken for broken in result.broken)
 
 
 def test_without_taking_the_shares_in_the_scenario_is_red(
