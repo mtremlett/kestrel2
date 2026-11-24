@@ -12,8 +12,8 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows, _set
 
 from lab import ladder, rung
 
-#: The gate (rungs-each-rung): the rung modules off the ladder's path may only fall, never rise.
-OFF_PATH = tuple(f"lab.rung_{m}" for m in ("retail", "sample"))
+#: The gate (rungs-each-rung): no rung module is off the ladder's path; waiting is empty.
+OFF_PATH: tuple[str, ...] = ()
 #: Folded into a module that declares a rung, yet called by nothing in lab/: still off the path.
 FOLDED = ("rung_ci.bootstrap(",)
 PLANTED = """
