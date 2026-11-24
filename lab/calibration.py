@@ -28,7 +28,9 @@ WORLDS, WORLD_TRADES = 500, 120
 SPREAD, COST = 0.02, Decimal("0.004")  #: a trade's gain deviation, and the cost each pays
 PAID, ZERO, START = Decimal(1000), Decimal(0), date(2010, 1, 4)
 VUSA = next(x for x in LINES if x.symbol == "VUSA")
-DAYS = 5 * WORLD_TRADES + 3  #: a day to each of the world's, from the first buy to the last sale
+DAYS = (
+    6 * WORLD_TRADES + 3
+)  #: a day to each of the world's, 717: over the 600 the bootstrap draws on
 BARS = [Bar(START + timedelta(days=n), PAID, PAID, PAID, PAID, 1) for n in range(DAYS)]
 KEY = cell.key(Cell("breakout_20_10", VUSA, START, BARS[-1].day), BARS)
 
@@ -38,7 +40,7 @@ def world(seed: int) -> Verdict:
     rng = random.Random(seed)  # noqa: S311 - a repeatable draw, not a secret
     trades = []
     for n in range(WORLD_TRADES):
-        bought = START + timedelta(days=5 * n)
+        bought = START + timedelta(days=6 * n)
         gross = PAID * (1 + COST + Decimal(str(round(rng.gauss(0, SPREAD), 6))))
         trades.append(
             Priced(
