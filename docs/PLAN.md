@@ -520,13 +520,14 @@ each line's UK tax on the line: scenes 6 and 7 read the same record, so they pas
 (`docs/DECISIONS.md`, the money lane's). The pretend broker, the send path, the book, the
 day's trading and reconciliation are built, and any broker can stand behind them.
 
-- [ ] FIRST-LIGHT: the day's rate is kept once (coordinator 169, 22:1x; tag: the first governor slot, coordinator 173): desk-day FAILED 21:43 and 21:48 Mon 23 Nov,
+- [x] FIRST-LIGHT: the day's rate is kept once (coordinator 169, 22:1x; tag: the first governor slot, coordinator 173): desk-day FAILED 21:43 and 21:48 Mon 23 Nov,
       'USD was kept at 0.764701, not 0.764175': each step fetches the rate again and the day's record refuses
       a second figure, so no paper trade is placed. The day's rate is fixed at its first record and later steps
       price at the kept one; a different fetched rate later that day is neither an error nor an overwrite.
       Gate, written first: two steps of one day with different fetched rates both pass and both price at the
       first (a running-level test; claim narrowed off test_book*.py, which MONEY-s3 holds, coordinator
       173). Money path: A6 blind review
+      Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
 - [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
