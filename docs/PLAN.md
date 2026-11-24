@@ -314,7 +314,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as rollup:<from>; #780: a rolled bar differing from a held one is a FAULT line on stderr; #797: `python -m desk.quality` audits, backfills and re-audits the daily timeframe; remains the other timeframes, market_live.db, local Stooq and rollup sources, the runner job; #930: backfill.fill takes one ordered source list, the rollup step needs Source.ROLLUP_5M in desk/bars_schema.py, outside the box's claim; #935: the audit counts a closed session of today), the long database for daily and up
       Re-carded (coordinator 54, 22 Nov: claim scope, not his: the claim now holds desk/bars_schema.py, which the rollup step's Source.ROLLUP_5M needs; inside the desk/ ceiling)
       Remainder (runner ops 106, 23 Nov, coordinator 103's D1: the rollups and both audits are on main, #1832; the runner reads the alarm every 5 min since runner c2dd0be): the five-minute parquet, market.db and bars.db imported with per-source counts, in `lab/headstart.py`, now claimed
-      Met (#2143, 23 Nov, read-only on market_history.db): every market.db and bars.db row is in the history database bar 156 the store refused on entry; per-source counts in #2143; no importer built (runner ops 172 folds the tick)
+      Met (#2143, 23 Nov, read-only on market_history.db): every market.db and bars.db row is in the history database bar 156 the store refused on entry; per-source counts in #2143; no importer built; ticked on #2143's evidence
       {id: data-two-stores; files: desk/coverage.py, desk/history_write.py, desk/quality.py, tests/unit/test_coverage.py, tests/unit/test_history_write.py, tests/unit/test_quality.py, desk/bars.py, tests/unit/test_bars*.py, desk/keeper.py, tests/unit/test_keeper*.py, desk/bars_schema.py, lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-ingest}
 - [ ] **THE DATA MONITOR, FIRST (his priority, 22 Nov: "data quality needs to be top priority"; "the data monitor
       should always be running"):** measured 22 Nov 09:4x, both databases: daily 1,083 of 1,084 lines fresh and
@@ -342,10 +342,9 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
       wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
-      Built (#2083): the keeper's five-minute round rolls each line's five-minute and daily bars up. Remains: his 08:00
-      check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh; and a rolled bar that differs
-      from a held one told as a FAULT on every keeper round (the comparison exists in the history writer, nothing calls it)
-      {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py}
+      Built (#2083, #2129): the keeper's five-minute round rolls each line's five-minute and daily bars up, and tells a rolled bar that differs from a held one as a FAULT line every round. Remains: his 08:00
+      check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh
+      {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py; waits: operator}
 - [ ] Every line's newest daily bar comes from IBKR when the broker answered that day (his 'IBKR always primary';
       coordinator 165, 23 Nov 21:4x): the data table says 'sources: archive 22' in both stores, so every newest daily
       bar is the free archive's though IBKR-first is ticked. The session first names the mechanism (the keeper's room

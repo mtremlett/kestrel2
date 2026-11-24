@@ -556,6 +556,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2088 R-DATA-77 met: keeper withdraws only the refused bar; no scene moved. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2098 data-members: nightly reads FTSE members by date from the free page revisions. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2129 data-rollup-hot built; only his 08:00 look at data-hover remains. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2143 data-two-stores closed on evidence: 0 old-file rows missing from market_history.db bar a counted 156 refused. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
