@@ -23,7 +23,7 @@ from desk.bars import Five, Source
 from desk.lines import LINES, Line
 from desk.store import Bar, Refused
 from lab import headstart
-from lab.headstart import Adopted
+from lab.headstart import Adopted, Tally
 
 US, UK = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1)  #: one symbol, two companies
 NOON = datetime(2026, 11, 13, 12, 0, tzinfo=UTC)  #: a Friday; the Thursday has no daily bar
@@ -352,3 +352,20 @@ def test_a_bar_before_the_hours_are_known_is_refused_by_name_not_dropped_silentl
     got = headstart.adopt(tmp_path / "bars.db", Source.DATABASE, {UK: [_five(old)]}, {UK: [day]})
     why = f"{old:%Y-%m-%d %H:%M} is outside the trading hours of the LSE calendar"
     assert got == {UK: Adopted(0, 0, 0, (why,))}
+
+
+def test_the_old_store_is_checked_against_the_one_store_and_a_restore_is_drilled(
+    tmp_path: Path,
+) -> None:
+    store = tmp_path / "bars.db"
+    old = [_at(0), _at(5), _at(10)]
+    with bars.writing(store) as round_:
+        round_.five(UK, [old[0], old[2]])
+    answers: Mapping[Line, Iterable[Five] | Refused] = {UK: old, US: Refused("x")}
+    got = headstart.compare(store, answers)
+    short = got[UK]
+    assert (short.old, short.held, short.same, short.missing) == (3, 2, True, (old[1].start,))
+    assert headstart.compare(store, {UK: [old[0], old[2]]})[UK].missing == ()
+    assert headstart.compare(store, {UK: [_at(0, "10 11 9 9.5")]})[UK].same is False
+    assert US not in got
+    assert headstart.drill(store, tmp_path / "scratch", [UK, US]) == {UK: Tally(2, 2, True, ())}
