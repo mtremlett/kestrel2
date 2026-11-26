@@ -85,7 +85,7 @@ jobs:
         run: |
           git fetch --no-tags --depth=50 origin "${{ github.base_ref }}"
           changed=$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)
-          guards=$(echo "$changed" | grep -E '^(BUDGET.json|manifest.toml|pyproject.toml|check.py|tests/guards/|\.github/)' || true)
+          guards=$(echo "$changed" | grep -E '^(BUDGET.json|manifest.toml|manifest/|pyproject.toml|check.py|tests/guards/|\.github/)' || true)
           if [ -n "$guards" ]; then
             echo "::warning title=This change touches a guard::$guards"
             echo "THIS CHANGE TOUCHES A GUARD - the operator approves it or it does not merge:"
