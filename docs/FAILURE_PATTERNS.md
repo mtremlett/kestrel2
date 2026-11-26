@@ -97,10 +97,10 @@ again; #427, the "rungs built" count read from a docstring). Each review found a
 in the one 400-line module that judges, counts, keeps tapes and writes the table, and each
 fix was true; no rung had a golden verdict pinned, so nothing showed a judgement drift
 until a reviewer read the code.
-→ *Caught by:* the rung registry (a `lab/rung_*.py` module declares its rung, so a new rung
-never edits the judge), the split of the module (`lab/ladder_parts.py`), and the churn
-guard. → *Debt:* a golden verdict per rung on the fixture, before and after every change,
-lands with the easing cards of 16 November (B5).
+→ *Caught by:* the rung registry, the module split, the churn guard. Twin, `lab/ladder_sets.py`
+(#1992, 9db3dee8, #2218): 'stopped part-way' reaches the table writer as text, not a typed
+result. → *Caught by:* `test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected`.
+→ *Debt:* a typed pass outcome (A2); a golden verdict per rung on the fixture (B5).
 
 **15. The broker the pretend never met.** `desk/conformance.py` is the only code that
 cancels, re-sends and trades beside the desk's book at the real broker, so each live run
