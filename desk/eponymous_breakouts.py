@@ -53,6 +53,7 @@ class _Darvas:
     its own bottom, and the stop never falls. On daily closes, as the template reads
     them: buy a close over the top; sell a close under the stop. A high over the top that closes
     inside the box, or a box left by a close under its bottom unheld, begins a new box.
+    No holding period: his sale is the stop alone, and a rising stock is held while it rises.
     Simplification: he boxed only stocks making new highs; this rule boxes at any level."""
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)

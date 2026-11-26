@@ -55,4 +55,6 @@ def test_fade_in_chop_leaves_a_trend_alone() -> None:
 def test_declares_a_daily_rule_on_every_line() -> None:
     for rule in (DonchianChannelBreakout, DonchianFadeChop):
         declared = rule.declared
-        assert (declared.bar, declared.hold, declared.universe) == (Timeframe.DAILY, None, LINES)
+        assert (declared.bar, declared.universe) == (Timeframe.DAILY, LINES)
+    assert DonchianChannelBreakout.declared.hold is None
+    assert DonchianFadeChop.declared.hold is None

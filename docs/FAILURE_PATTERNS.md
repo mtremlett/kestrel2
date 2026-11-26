@@ -43,7 +43,7 @@ attempt does not restore it the commit is reverted, never patched over.
 which then disagree. The predecessor had three stop levels per position and two different
 figures for the pot.
 → *Caught by:* the manifest names one owner per concept; duplicates are merged on sight.
-→ *Debt:* no automatic check finds two homes. Human discipline, for now.
+→ *Caught by:* `test_constants_with_two_homes_never_rise`: a constant name in two modules may fall, never rise.
 
 **9. Documents breeding.** Summaries, notes, handovers and reports accumulate until no
 one knows which is true. The predecessor had 728.
