@@ -1140,8 +1140,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
-        whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold
-        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py; after: rungs-blind-review}
+        whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
+        Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
+        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; after: rungs-blind-review; waits: 2026-11-27}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
@@ -1207,10 +1208,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules}
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
-        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks, rungs-known-answer-kit}
+        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
-        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
+        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate}
 - [x] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Retired (coordinator 100, 22 Nov 23:0x): Supertrend's carried band and a fresh-low table, for which no free printed worked example was found; no paid data before profit (his 22 Nov), not a hard line. Supertrend stays held to its reference script's carried bands (lab/published.py, supertrend_10_3)
@@ -1241,13 +1242,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       written down; where sources disagree, the range is written down and reproduction must
       land inside it. RSI-2 goes first this way; variants of each rule are tested later on
       the ladder, never chosen by eye (BT-15)
-      {id: rungs-secondary-figures; files: lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-epon-first}
+      {id: rungs-secondary-figures; files: lab/published_epon.py, tests/unit/test_lab_published_epon.py}
 - [ ] **The ladder in sets, each published as it finishes:** set 1, the eponymous strategies;
       set 2, the grid's transfer study over the research universe; then sets of variants
       around any plateau found, each family named before it runs. After each set, one
       Telegram summary and a results file: every strategy, every rung's verdict with its
       reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
-      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; after: rungs-epon-first}
+      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py}
 - [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
       set's full trial count (and its reproduction, if published); it is named in this plan,
       with its kill condition, before its first paper day; it then trades paper side by side

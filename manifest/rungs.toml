@@ -27,7 +27,7 @@
 "lab/regime.py" = "periods and regimes: a strategy replayed in each period and each regime of the weather, kept for the regimes it earns in, and its trades outside them tagged"
 "lab/weather.py" = "the market weather: each session's regime named from the closes known at that session's close only; first layer, the trend state against the long average"
 "lab/rung_regimes.py" = "the ladder's fifth rung: a cell's priced trades judged in two regime windows apart by the first rung's rule, and passed only when both pass; read from the tape"
-"lab/stress.py" = "the stress scenarios: a strategy's trades taken through the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
+"lab/stress.py" = "the stress scenarios: a strategy's trades taken through the 2008 crash, the flash crashes and the 2020 crash, and what a black swan's overnight gap would cost it at its leverage, in pounds and never a pass"
 "lab/market.py" = "the market's rung: a strategy's days set beside its market's, its beta measured, and its excess over the market risk it took judged by its confidence interval"
 "lab/holding.py" = "each strategy beside simply holding its market: its pounds after costs and the market held through the same window after the same costs, and the difference (Q6)"
 "lab/feasibility.py" = "before A-GATE paper: the count of ladder-passed rules (three asked) and the feasibility number, their summed net pounds a day against the A-GATE's hundred, each shortfall named"
