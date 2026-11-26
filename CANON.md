@@ -61,8 +61,8 @@ a new rule replaces or merges one, or becomes a check. The first desk forgot 56 
   special-case a test input. Merging redundant tests is its own commit, coverage kept.
 
 ## A4. Structure
-- `manifest.toml` lists every module, the one thing it owns and what it may import.
-  Register a module before creating it. A guard enforces it.
+- `manifest.toml` says what each package may import; `manifest/<lane>.toml` lists each
+  lane's modules and the one thing each owns. Register a module before creating it. Guarded.
 - **One owner per concept:** one model, one config loader, one client per external
   system, one home per business rule, one source of truth for names, symbols, ids,
   thresholds, calendars and configuration. Search before you create; merge duplicates.
