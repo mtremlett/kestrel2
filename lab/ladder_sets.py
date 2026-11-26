@@ -152,8 +152,8 @@ def epon(
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
     kept = [last.get(tuple(batch.row(c))) for c in todo]
-    if None in kept:  #: the runner's STOP ended the pass early: no table of cells never judged
-        return counts
+    if counts.startswith(ladder_pool.STOPPED) or None in kept:  #: no table of a pass cut short
+        return counts  #: by STOP, nor of cells never judged: older rows would stand as this pass
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     rows = [cast(verdict.Row, row) for row in kept]
     stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
