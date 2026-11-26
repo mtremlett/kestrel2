@@ -19,6 +19,7 @@ from desk import (
     book,
     conformance,
     conformance_parts,
+    day_money,
     halt,
     keeper,
     keeper_live,
@@ -81,16 +82,10 @@ def hole(life: _Life, on: date) -> None:
         return
     line, whole = held[0], life.market[held[0]]
     life.market[line] = tuple(bar for bar in whole if bar.day != on)
-    try:
-        record = life.live(on)
-    except ValueError as refusal:  #: no held line had a close: the desk's word, no record
-        life.promise(PROMISE, "no held line" in str(refusal))
-        life.market[line] = whole
-        life.live(on)
-    else:  #: the record names the line owed, or a stop or sale ended it: no close was owed
-        life.market[line] = whole
-        owed = f"{line.symbol}: no close owed" in record.mismatches
-        life.promise(PROMISE, owed or line.symbol not in book.positions(life.desk))
+    record = life.live(on)
+    life.market[line] = whole  #: the record names the line owed, or a stop or sale ended it
+    owed = line.symbol + day_money.OWED in record.mismatches
+    life.promise(PROMISE, owed or line.symbol not in book.positions(life.desk))
 
 
 def beside(life: _Life, on: date) -> None:

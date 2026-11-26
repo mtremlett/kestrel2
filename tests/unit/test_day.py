@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, halt, venues
+from desk import book, day, day_money, halt, venues
 from desk.broker import Crash, Fault, Pretend, Report, Restopping
 from desk.halt import Blocker
 from desk.lines import YARDSTICK, Line
@@ -334,13 +334,18 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     first = next(iter(MARKET))  #: A, still held: its bar for the day is owed, not yesterday's
     held = book.positions(tmp_path)
     owing = {line: bars[:-1] if line.symbol in held else bars for line, bars in MARKET.items()}
-    with pytest.raises(ValueError, match="no held line has a close"):  #: all owed: still loud
-        day.publish(tmp_path, owing, broker, capital, DAYS[22])
-    one = Path(
-        shutil.copytree(tmp_path, tmp_path.parent / "refused")
-    )  #: one owed: named, the rest valued
+    one = Path(shutil.copytree(tmp_path, tmp_path.parent / "refused"))
+    every = day.publish(one, owing, broker, capital, DAYS[22])  #: all owed: named, published
+    assert every.profit is None and every.worth == 0
+    assert every.mismatches == tuple(sorted(s + day_money.OWED for s in held))
+    assert all(day_money.is_owed(m) for m in every.mismatches)
+    with pytest.raises(day_money.CloseOwed):
+        day_money.close(owing, first, DAYS[22])
+    #: the held lines but A have theirs: A is named, the rest valued, the profit withheld
+    shutil.rmtree(one)
+    one = Path(shutil.copytree(tmp_path, tmp_path.parent / "refused"))
     refused = day.publish(one, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
-    assert (refused.profit, refused.mismatches) == (None, ("A: no close owed",))
+    assert (refused.profit, refused.mismatches) == (None, ("A" + day_money.OWED,))
     assert refused.worth > 0, "the other lines were not valued"
     halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade
     rest = {line: bars for line, bars in MARKET.items() if line != first}
