@@ -106,6 +106,25 @@ def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
     assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
 
 
+def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The side figure of a buy over 300 held lines asks for the fills once (pattern 26)."""
+    names = [f"L{n}" for n in range(300)]
+    ids = ("d-zoo_a-1", "d-rule-1")
+    planted = [Fill(f"x-{n}", ids[n % 2], s, 1, Decimal(5), MON) for n, s in enumerate(names)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    asked, real = list[int](), book.fills
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        asked.append(1)
+        return real(root)
+
+    monkeypatch.setattr(book, "fills", counted)
+    mine = book.side(tmp_path, dict.fromkeys(names, 1), "d-rule-2")
+    assert len(mine) == 150 and len(asked) == 1, f"{len(asked)} reads of the fills, not one"
+
+
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
