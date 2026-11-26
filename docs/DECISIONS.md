@@ -2456,3 +2456,66 @@ closes; `CAPITAL` in `desk/command.py` and `lab/stop_rules.py` among them).
 5 to 6, unused 0 to 2, both failing; the two-homes test, first written to count names, did NOT
 fail (CAPITAL already had two homes), so it was rewritten to count every extra home and driven
 again: 168 to 169, failing. With the plants removed all pass.
+
+## 26 Nov - the manifest split into one file per lane (guard restructured, stricter)
+
+**His words** (Thu 26 Nov 17:5x, to chat seat 215): "check if you still agree that this fix is
+the best one and them implement now. no more prose. build it." and "yes to all. now implement and
+build and wire." The fix is the one recommended on 15 Nov (`kestrel2_notes/after-first-light.md`
+:222 and :232): "manifest -> one fragment per lane", "split by lane, joined at read time by the one
+loader, never rejoined on disk". Why now: on 26 Nov the runner's cards name `manifest.toml` 56
+times, and one file is held by one lane at a time, so every card that registers a module waited
+behind every other lane's (the governor's 'claims N').
+
+**Shape.** `manifest.toml` keeps `[packages.*]`, `[lanes]` and the two package markers;
+`manifest/<lane>.toml` holds each lane's `[modules]`, exactly the lines once under its heading
+(174 modules: data 36, money 49, paper 25, grid 8, rungs 54; checked equal before and after).
+One loader, `manifest()` in `tests/guards/test_guards.py`, merges them for every reader
+(`test_guards.py`, `test_lanes.py`); `check.py`, `test_one_price_door.py` and `test_ratchets.py`
+only name the manifest in prose, so they needed no change.
+
+**Every rule as strict or stricter.** A module's lane is the file it sits in, not a comment
+heading. The loader fails on a module listed twice, a file in `manifest/` not named for a lane, a
+lane without its file, a fragment holding anything but `[modules]`, and a lane module in
+`manifest.toml` (all new refusals). A lane branch may change only its own fragment, and there only
+module lines (as before); `manifest.toml` itself, once open to a lane's module lines, is now
+refused to every lane branch, and the claim test excuses only the lane's own fragment where it
+excused all of `manifest.toml`. The guard-change warning on GitHub names `manifest/` too.
+
+**Driven (A7)**, on a clone whose main was this change, each plant alone on a `lane/money-` branch:
+1. `desk/book.py` also listed in `manifest/paper.toml`: "manifest/paper.toml lists ['desk/book.py'],
+   listed already: one home each".
+2. the money branch edits `manifest/paper.toml`: "the money lane may not change
+   ['manifest/paper.toml']".
+3. the money branch edits `manifest.toml`: "the money lane may not change ['manifest.toml']".
+4. `desk/zzdrive.py` with no line: "not in the manifest: ['desk/zzdrive.py']".
+5. a comment added to `manifest/money.toml`: "may only register or fold away modules: ['+# a note']".
+6. `manifest/zoo.toml`: "manifest/ holds [... 'zoo.toml']; exactly one file per lane".
+7. a lane module in `manifest.toml`: "manifest.toml lists lane modules ['desk/zzdrive.py']".
+Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml` passes both tests.
+Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
+runner's card claims are renamed by runner ops after this lands.
+
+## 26 Nov - the one progress number has one function, `lab/progress.py` (his order, ~20:1x)
+
+CANON Part C marked it OWED: the Telegram counted ticked boxes in the runner's own code and
+STATUS and SCOREBOARD by hand. `lab/progress.py` is now the one count: boxes `- [x]` in
+`docs/PLAN.md` at a window's end that were not ticked at its start (main's last first-parent
+commit before each moment), per lane book and OTHER; `python -m lab.progress` prints it as one
+JSON line. Decided by rule, with the options:
+- **Where.** `desk/` holds 100 files, its ceiling (`BUDGET.json`), and the count is not the
+  trading core; `lab/` had about 6,100 lines of room. So `lab/`.
+- **Whose.** Every lane and the runner read it, but `manifest.toml` refuses any module that is
+  not a package marker (the 26 Nov split), and widening that is loosening a guard. So a lane
+  holds it: RUNGS, which already keeps the other outcome count beside it in CLAUDE.md
+  (strategies through the ladder), registered in `manifest/rungs.toml`.
+- **One parser.** None existed in `desk/` or `lab/`; the only ones are the guards' note reader
+  (`tests/guards/test_lanes.py`) and the runner's `slots.boxes`, outside the repository. The
+  runner reads this module instead of counting (runner ops wires it); the guards' reader is
+  left as found, not fixed.
+- **Which boxes.** Every box counts, umbrellas and boxes outside the books too, as CLAUDE.md
+  says "plan boxes"; a box is known by its note's id, else its words, so a box without an id
+  whose words change as it is ticked counts once, and one whose words change while already
+  ticked would count again (none seen; boxes with work carry ids).
+Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
+printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.

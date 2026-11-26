@@ -82,9 +82,55 @@ def _budget() -> dict[str, Any]:
     return data
 
 
-def _manifest() -> dict[str, Any]:
-    data: dict[str, Any] = tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))
-    return data
+def _read(path: str, at: str) -> str:
+    """A file of the tree: from the commit `at` when given, else from the working tree."""
+    if not at:
+        return (ROOT / path).read_text(encoding="utf-8")
+    return subprocess.run(  # noqa: S603
+        ["git", "show", f"{at}:{path}"],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def _fragments(at: str) -> list[str]:
+    """Every file in manifest/, at the commit `at` when given, untracked ones too if not."""
+    if not at:
+        return sorted(p.name for p in (ROOT / "manifest").iterdir())
+    names = subprocess.run(  # noqa: S603
+        ["git", "ls-tree", "--name-only", f"{at}:manifest"],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sorted(names.split())
+
+
+def manifest(at: str = "") -> dict[str, Any]:
+    """THE ONE LOADER of the manifest: manifest.toml (packages, lanes, the package markers)
+    and one manifest/<lane>.toml per lane holding only that lane's [modules]. It returns them
+    merged, with `owner`, each lane module's lane: the file it sits in. It fails loudly on a
+    file in manifest/ not named for a lane, a lane without its file, a fragment holding more
+    than [modules], a lane module in manifest.toml, and a module listed twice."""
+    data: dict[str, Any] = tomllib.loads(_read("manifest.toml", at))
+    lanes, modules = data["lanes"], dict(data["modules"])
+    owner: dict[str, str] = {}
+    loose = sorted(m for m in modules if Path(m).name != "__init__.py")
+    assert not loose, f"manifest.toml lists lane modules {loose}: move each to its lane's file"
+    names = _fragments(at)
+    want = sorted(f"{lane}.toml" for lane in lanes)
+    assert names == want, f"manifest/ holds {names}; exactly one file per lane: {want}"
+    for name in names:
+        lane, part = name.removesuffix(".toml"), tomllib.loads(_read(f"manifest/{name}", at))
+        assert set(part) == {"modules"}, f"manifest/{name} holds {sorted(part)}; only [modules]"
+        twice = sorted(set(part["modules"]) & set(modules))
+        assert not twice, f"manifest/{name} lists {twice}, listed already: one home each"
+        modules |= part["modules"]
+        owner |= dict.fromkeys(part["modules"], lane)
+    return {**data, "modules": modules, "owner": owner}
 
 
 # ---------------------------------------------------------------- bloat
@@ -178,13 +224,13 @@ def test_the_rulebooks_stay_short() -> None:
 def test_every_module_is_registered_in_the__manifest() -> None:
     """SPRAWL. Register the module, then write it. 'No new file without a search and a
     removal' was prose on the first desk; here the check refuses the file."""
-    listed = set(_manifest()["modules"])
+    listed = set(manifest()["modules"])
     actual = {str(p.relative_to(ROOT)).replace("\\", "/") for p in _product()}
     assert actual - listed == set(), (
-        f"not in manifest.toml: {sorted(actual - listed)}. "
-        "Add the module and the one thing it owns, in the same change."
+        f"not in the manifest: {sorted(actual - listed)}. "
+        "Add it and the one thing it owns to manifest/<lane>.toml, in the same change."
     )
-    assert listed - actual == set(), f"in manifest.toml but absent: {sorted(listed - actual)}"
+    assert listed - actual == set(), f"in the manifest but absent: {sorted(listed - actual)}"
 
 
 def _imports(path: Path) -> set[str]:
@@ -201,7 +247,7 @@ def test_the_wall_holds() -> None:
     """SPRAWL. desk/ sees the standard library and nothing else; it may never import
     lab/. This is the exact leak that absorbed the first desk's clean core back into
     352,000 lines: its day runner was put OUTSIDE the walled folder."""
-    packages = _manifest()["packages"]
+    packages = manifest()["packages"]
     assert isinstance(packages, dict)
     breaches: dict[str, set[str]] = {}
     for path in _product():
@@ -237,7 +283,7 @@ def test_no_versioned_copies_and_no_session_named_files() -> None:
 
 def _lane_docs() -> set[str]:
     """One document per lane the manifest knows, for its own decisions: docs/lanes/<lane>.md."""
-    return {f"docs/lanes/{lane}.md" for lane in _manifest()["lanes"]}
+    return {f"docs/lanes/{lane}.md" for lane in manifest()["lanes"]}
 
 
 def test_the_document_set_is_fixed() -> None:

@@ -247,6 +247,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2119 zoo-size-pins N1 (R-RUNNER-479): one test, pins #2105 (zoo buys sized on own side, desk holding five).
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2137 zoo-own-side: daily zoo round judged on the zoo's own room and total; intraday round remains.
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2152 zoo-own-side part: pounds-room part on main, held-already part blocked, one pinning test landed.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2149 money-door-pound step 1: currency maths takes an injected rate; SimCity off rates.csv.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2181 R-RUNNER-512 met, one pinning test, no behaviour change.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2184 four rules' holding periods settled; fade's 20-session hold waits on its spec.
 
 
 ### DATA
@@ -561,6 +564,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2129 data-rollup-hot built; only his 08:00 look at data-hover remains. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2143 data-two-stores closed on evidence: 0 old-file rows missing from market_history.db bar a counted 156 refused. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2144 hourly data table names each database's golden-line status. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2167 R-RUNNER-487: a newest bar the size of the pound's step is judged as a normal move, not a wrong unit. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2170 R-RUNNER-493: keeper re-cleans on a change to any store module. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2171 R-RUNNER-501: rolled spans pinned equal to their bases and fresh; no product change. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2172 R-RUNNER-502: a newest daily bar the broker answered is stored as IBKR's. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2191 R-RUNNER-508: one-minute and daily history asks no longer held by the small-bar count. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -750,6 +759,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2021 GRID: held() skips faults notes again (R-RUNNER-451). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2104 R-RUNNER-474 catalogue-only rows served by the rule book. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2190 R-RUNNER-364 part 2 of 5: lab/chain.py makes a published set's variants; fast check and mypy green. |
 
 ### RUNGS
 
@@ -1146,3 +1156,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2164 PAPER R-MONEY-73 done: a zoo buy is judged by ZOO_DAY and the zoo's total; desk/ at the 18,000 ceiling. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2166 PAPER R-RUNNER-486 done: the day's exchange rate is kept once; blind review, no blocking finding. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |

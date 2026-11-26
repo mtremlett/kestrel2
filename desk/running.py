@@ -186,13 +186,18 @@ def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = Tr
 
 def _again(root: Path, now: datetime, seen: watch.Look | None) -> dict[str, set[str]]:
     """THE ROUND OWED ONCE MORE (R-RUNNER-395): of a venue still trading whose round is on the
-    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled
-    with nothing filled under the id or its -r1; only those go again, as <id>-r1."""
+    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled,
+    or the round cap carried (the morning's list), with nothing filled under the id or its -r1;
+    only those go again, as <id>-r1."""
     path = root / book.CANCELS
-    if seen is None or not path.exists():
+    if seen is None:
         return {}
-    with path.open(newline="", encoding="utf-8") as rows:
-        mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
+    mine = set[str]()
+    if path.exists():
+        with path.open(newline="", encoding="utf-8") as rows:
+            mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
+    if (root / halt.BLOCKED / f"{now.date()}.csv").exists():  #: R-RUNNER-473: the round cap's own
+        mine |= {b.order_id for b in halt.morning(root, now.date())[halt.Blocker.CARRIED]}
     done = {note.what for note in notes(root) if note.at.date() == now.date()}
     filled = {fill.order_id for fill in book.fills(root) if fill.day == now.date()}
     out = dict[str, set[str]]()
@@ -288,17 +293,20 @@ def _rules(desk: Desk) -> Rules:
     return {**desk.rules, **(intraday.ZOO_RULES if desk.zoo else {})}
 
 
-def _intraday(desk: Desk, broker: placing.Paper, venue: str, now: datetime) -> None:
+def _intraday(
+    desk: Desk, broker: placing.Paper, venue: str, now: datetime, placed: list[book.Sent]
+) -> None:
     """THE INTRADAY ROUND (R-RUNNER-202): each rule decides on each line of the venue at its
     latest whole bar (a zoo rule, on the zoo's lines); its orders go by the one send path, each
     id dated with its bar's start, so a bar seen twice sends once. A buy is refused as the
     daily one is (day.refusal). The day's rates are kept first, so every fill can be priced.
-    Stops are then moved; a round sending nothing is unkept."""
+    Stops are then moved; a round sending nothing is unkept. `placed` is the step's orders put to
+    the broker, shared by its venues: capped at MAX_ORDERS."""
     book.record_rates(desk.root, now.date(), desk.rates(now.date()))
     said: dict[bool, list[str]] = {False: [], True: []}  #: the desk's rules' words; the zoo's
     for name, make in _rules(desk).items():
         machine = name in intraday.ZOO_RULES
-        said[machine] += _rule_round(desk, broker, venue, now, name, make)
+        said[machine] += _rule_round(desk, broker, venue, now, name, make, placed)
     if said[False] or said[True]:
         restop.move(desk.root, broker, LINES)
     _bar_notes(desk.root, now, venue, said)
@@ -311,9 +319,11 @@ def _rule_round(
     now: datetime,
     name: str,
     make: Callable[[], intraday.IntradayRule],
+    placed: list[book.Sent],
 ) -> list[str]:
     """One rule's orders at the bar, each said, the book read afresh. A zoo rule decides on the
-    zoo's lines and buys one share on ZOO_DAY, its total within day._zoo_full's pounds."""
+    zoo's lines and buys one share on ZOO_DAY, its total within day._zoo_full's pounds. An order
+    the broker has not seen counts in `placed`; past MAX_ORDERS it is carried to the next round."""
     root, today, said = desk.root, now.date(), list[str]()
     machine, held = name in intraday.ZOO_RULES, book.positions(desk.root)
     owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
@@ -333,7 +343,10 @@ def _rule_round(
         if isinstance(order, str):
             said.append(order)
             continue
-        sent = day._send(root, broker, order, room, None, day.standing(root, today, machine))
+        new = broker.report(order.order_id) is None
+        stand = day.standing(root, today, machine)
+        sent = day._send(root, broker, order, room, None, stand, round_=placed)
+        placed += [sent] * new
         tag = f" ({MACHINERY})" * machine
         said.append(f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}")
     return said
@@ -465,8 +478,9 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
         _round(desk, broker, venue, now)
     for venue, symbols in again.items():  #: once more, the same check, gate and send
         _round(desk, broker, venue, now, symbols)
+    placed: list[book.Sent] = []
     for venue in live:  #: the intraday rounds, after the day's own, their orders due today
-        _intraday(desk, bar, venue, now)
+        _intraday(desk, bar, venue, now, placed)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have
         book.record_rates(root, on, desk.rates(on))
         day.publish(root, desk.held(on + DAY)[0], broker, desk.room, on)

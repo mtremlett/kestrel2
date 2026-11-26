@@ -25,6 +25,7 @@ from desk import (
     store,
     watch,
 )
+from desk.lines import YARDSTICK
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
@@ -279,3 +280,13 @@ def test_a_closed_gateway_port_is_refused_by_name_and_without_the_refusal_is_red
     monkeypatch.setattr(gateway, "known", lambda *_a, **_k: gateway.Known(gateway.State.READY, ""))
     with pytest.raises(ConnectionRefusedError, match="4002"):  #: the run goes on to a dead door
         simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1,))
+
+
+def test_a_session_the_store_withdrew_is_no_end_of_the_world(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    gone = sorted({b.day for bs in SHORT.values() for b in bs})[20:40:2]
+    archive = {x: [b for b in bs if x != YARDSTICK or b.day not in gone] for x, bs in SHORT.items()}
+    monkeypatch.setattr(simcity, "EVENTFUL", 1_000_000)  # no scenario: the plain days alone
+    result = simcity.run(tmp_path, archive, ROOM, RATES, NOW, (1, 2, 3))
+    assert not [b for b in result.broken if "stops on" in b], result.broken

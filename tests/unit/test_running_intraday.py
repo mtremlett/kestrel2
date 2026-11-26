@@ -45,7 +45,7 @@ def test_a_step_at_each_bar_makes_its_round_once_and_a_restart_sends_nothing_twi
     live = running.Desk(**{**desk.__dict__, "rules": {"flip": _Flip}})
     sent = []
     for minutes in (0, 5, 5, 10, 10, 15):  # the bar's close; a restart re-runs the same moment
-        running._intraday(live, broker, "LSE", open_ + timedelta(minutes=minutes))  # type: ignore[arg-type]
+        running._intraday(live, broker, "LSE", open_ + timedelta(minutes=minutes), [])  # type: ignore[arg-type]
         sent.append(book.positions(tmp_path).get("VUAG", 0))
     assert sent[0] == 0 and sent[1] == sent[2] > 0 and sent[3] == sent[4] == 0 and sent[5] > 0
     assert [f.order_id.split("-")[-1] for f in book.fills(tmp_path) if f.quantity != 0][:3] == [
@@ -70,14 +70,14 @@ def test_the_zoo_is_off_by_default_and_trades_one_share_labelled_only_behind_its
     broker.open(today)
     assert len(intraday.ZOO_RULES) == 7 and all(is_zoo(f"d-{n}-L") for n in intraday.ZOO_RULES)
     monkeypatch.setattr(intraday, "ZOO_RULES", {"zoo_flip": _Flip})
-    running._intraday(desk, broker, "LSE", open_ + timedelta(minutes=5))  # type: ignore[arg-type]
+    running._intraday(desk, broker, "LSE", open_ + timedelta(minutes=5), [])  # type: ignore[arg-type]
     assert book.positions(tmp_path).get("VUAG", 0) == 0  # switch off: the zoo sends nothing
     zoo, parked = replace(desk, zoo=True), tmp_path / handpark.FILE
     parked.write_text("symbol,who,why\nVUAG,him,a test\n", encoding="utf-8")
-    running._intraday(zoo, broker, "LSE", open_ + timedelta(minutes=5))  # type: ignore[arg-type]
+    running._intraday(zoo, broker, "LSE", open_ + timedelta(minutes=5), [])  # type: ignore[arg-type]
     assert "parked by hand" in running.notes(tmp_path)[-1].words  # the daily buy's refusals
     parked.unlink()
-    running._intraday(zoo, broker, "LSE", open_ + timedelta(minutes=5))  # type: ignore[arg-type]
+    running._intraday(zoo, broker, "LSE", open_ + timedelta(minutes=5), [])  # type: ignore[arg-type]
     assert book.positions(tmp_path)["VUAG"] == 1  # tiny: one share, through the one gate
     assert [f.order_id for f in book.fills(tmp_path)][0].split("-")[1] == "zoo_flip"
     assert running.MACHINERY in running.notes(tmp_path)[-1].words
@@ -151,5 +151,37 @@ def test_a_dear_zoo_buy_is_judged_by_the_zoo_day_and_its_total_never_passes_the_
     monkeypatch.setattr(day, "_zoo_full", lambda *_: "over the zoo's pounds")
     sent = Mock()
     monkeypatch.setattr(day, "_send", sent)
-    words = running._rule_round(desk, Mock(), "LSE", at, "zoo_flip", _Flip)
+    words = running._rule_round(desk, Mock(), "LSE", at, "zoo_flip", _Flip, [])
     assert words == ["over the zoo's pounds"] and not sent.called
+
+
+def test_a_round_sends_only_the_orders_that_fit_the_step_and_the_next_sends_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    desk, at = replace(_desk(tmp_path)[0], zoo=True), venues.hours("LSE", MON.date()).open
+    lines = tuple(replace(YARDSTICK, symbol=f"Z{i}") for i in range(20))
+    placed: list[str] = []  # R-RUNNER-507: 20 zoo buys at one bar, each waiting up to 120 s
+    candle = Mock(close=Decimal(40))
+    monkeypatch.setattr(intraday, "ZOO_RULES", {"zoo_flip": _Flip})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: lines)
+    monkeypatch.setattr(running, "_latest", lambda *_: {ln.symbol: [candle] for ln in lines})
+    monkeypatch.setattr(
+        intraday,
+        "today",
+        lambda *_: [
+            intraday.IntradayDecision("zoo_flip", ln.symbol, at, Action.BUY) for ln in lines
+        ],
+    )
+
+    def fake(_root: Path, _broker: object, order: Order, *_: object) -> book.Sent:
+        placed.extend({order.order_id} - set(placed))
+        return book.Sent(order.order_id, 1, None, None)
+
+    class Broker:
+        def report(self, order_id: str) -> object | None:
+            return object() if order_id in placed else None
+
+    monkeypatch.setattr(book, "send", fake)
+    for want in (paper.MAX_ORDERS, 2 * paper.MAX_ORDERS, 20):
+        running._intraday(desk, Broker(), "LSE", at, [])  # type: ignore[arg-type]
+        assert len(placed) == want and len(set(placed)) == want  # the rest wait, none twice
