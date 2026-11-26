@@ -143,10 +143,10 @@ USED_IN = ("desk", "lab", "tests", "check.py")
 def _sources(ref: str | None, dirs: tuple[str, ...] = ROOT_DIRS) -> dict[str, str]:
     """Each Python file under dirs, at a commit, or in the working tree when ref is None."""
     if ref is not None:
-        files = _git("ls-tree", "-r", "--name-only", ref, "--", *dirs).splitlines()
-        return {p: _git("show", f"{ref}:{p}") for p in files if p.endswith(".py")}
-    files = _git("ls-files", "--cached", "--others", "--exclude-standard", "--", *dirs)
-    paths = [ROOT / p for p in files.splitlines() if p.endswith(".py")]
+        listed = _git("ls-tree", "-r", "--name-only", ref, "--", *dirs).splitlines()
+        return {p: _git("show", f"{ref}:{p}") for p in listed if p.endswith(".py")}
+    tracked = _git("ls-files", "--cached", "--others", "--exclude-standard", "--", *dirs)
+    paths = [ROOT / p for p in tracked.splitlines() if p.endswith(".py")]
     return {
         p.relative_to(ROOT).as_posix(): p.read_text(encoding="utf-8") for p in paths if p.exists()
     }
