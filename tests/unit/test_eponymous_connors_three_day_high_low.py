@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_connors_three_day_high_low
 from desk.eponymous_connors_three_day_high_low import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -42,3 +43,10 @@ def test_waits_for_the_third_day_the_uptrend_and_two_hundred_days() -> None:
     assert _trades([*range(100, 300), 297, 295, 299, 297, 295]) == {}  # the run was broken
     assert _trades([*range(400, 200, -1), 150, 140, 130]) == {}  # below the 200-day average
     assert _trades([*range(100, 150), 147, 145, 143]) == {}  # under 200 days of history
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: the sale is the rule's own sell logic alone, no time stop; stated
+    assert "Holding period: none" in eponymous_connors_three_day_high_low.__doc__
+    rules = eponymous_connors_three_day_high_low.EPONYMOUS.values()
+    assert all(r.declared.hold is None for r in rules)
