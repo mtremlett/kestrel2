@@ -4,21 +4,27 @@ row is tried at settings fixed here, before any result, and written once (canon 
 `ranges` puts each parameter of a row at its published value and one step either side (x2/3
 and x3/2, whole numbers rounded half up), held inside its block's range; a parameter left with
 under three values is not ranged. `cells` makes every variant (`lab.variants`) of each such
-rule on each line the rule's rows name, over the row's own window.
+rule on each line the rule's rows name, over the row's own window. `sweep` runs them by the
+ladder's engine under the set's own plan, so they sit in its register beside its rows and the
+count every row is judged against includes them all.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import json
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
+from pathlib import Path
 from typing import Any
 
 from desk.lines import LINES
-from lab import basket, rulebook, variants
+from lab import basket, ladder, ladder_pool, ladder_sets, rulebook, variants
+from lab.batch import Bars
 from lab.blocks import BLOCKS
 from lab.cell import Cell
+from lab.rung import Rates
 from lab.spec import PLACES, Ranges, Spec
 
 _CENT = Decimal("0.0001")
@@ -63,3 +69,17 @@ def cells(table: Mapping[str, Any]) -> tuple[Cell, ...]:
             window = date.fromisoformat(start), date.fromisoformat(end)
             made += [Cell(v.spec.name, line, *window) for v in found]
     return tuple(made)
+
+
+def sweep(
+    home: Path,
+    bars: Bars,
+    pounds: Rates,
+    tag: str,
+    go: Callable[..., str] = ladder_pool.run,
+) -> str:
+    """The set `tag`'s variants run under its own plan, kept beside its rows: the engine's line."""
+    plan = next(p for p in (ladder_sets.EPON, ladder_sets.LEV) if p.tag == tag)
+    path = home / ladder.FOLDER / "sets" / f"{tag}.json"
+    table = json.loads(path.read_text("utf-8"))  # bounded: one set table, written whole
+    return go(home, bars, pounds, cells(table), plan=plan)
