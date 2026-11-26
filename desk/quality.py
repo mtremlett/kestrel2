@@ -358,6 +358,9 @@ def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple
         for db, path in paths.items()
         for name, line, why in _cells(path, held, now)
     ]
+    behind = sorted(
+        {n.split("/")[0] + "/" + n.split("/")[-1] for n, _, w in cells if w and kind(w) != "gap"}
+    )
     bad = [(name, line, why) for name, line, why in cells if why]
     gap = sum(why == "holds no bar" for _, _, why in bad)
     first = next((b for b in bad if b[1].symbol in GOLDEN), bad[0]) if bad else None
@@ -366,6 +369,7 @@ def hover(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> tuple
     )  # a golden line's fault leads
     share = 100 * (len(cells) - len(bad)) // max(len(cells), 1)
     said = f"data quality: {share}% fresh, {len(bad) - gap} faults, {gap} gaps, worst {worst}"
+    said += f"; stale spans {', '.join(behind)}" if behind else ""
     return said, not any(line.symbol in GOLDEN for _, line, _ in bad)
 
 
