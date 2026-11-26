@@ -267,6 +267,8 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
         "luck": (Answer.FAIL, ""),
     }
     assert verdict.gates(weak | {"regimes": (Answer.THIN, "")}), "the declared regime rung: soft"
+    assert verdict.gates(weak | {"fit": (Answer.DOUBT, "")}), "fit with the book (#2233): soft"
+    assert not verdict.gates(weak | {"fit": (Answer.FAIL, "")}), "its FAIL still holds a cell"
     for no in ({"regimes": weak["luck"]}, {"stress": weak["luck"]}, {"costs": weak["regime"]}):
         assert not verdict.gates(weak | no), "a soft FAIL, or any hard rung short, holds a cell"
     monkeypatch.setattr(shuffle, "share", lambda *_: 0.0)  #: a WEAK market never skips it
