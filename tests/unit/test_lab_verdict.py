@@ -216,6 +216,7 @@ def test_the_scorecard_grades_every_rung_after_a_soft_fail_and_stops_at_a_negati
 
     def judged(t: str) -> dict[str, Any]:
         failed = replace(first, answer=Answer.FAIL, t=Decimal(t))
+        monkeypatch.setattr(verdict, "ready", lambda *_: failed)  #: planted, and run again
         return verdict.judge(CELL, EDGE, ISF, NOISE, {}, 6, (), lambda: pooled, failed)
 
     soft = judged("1.5")  #: failing only the confidence interval, its mean above nothing
