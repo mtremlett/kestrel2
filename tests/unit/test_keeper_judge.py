@@ -14,12 +14,13 @@ import pytest
 from desk import bars, keeper
 from desk.lines import LINES
 from desk.store import Bar
+from desk.store_scope import judge as judged
 
 
 def test_a_writer_begins_its_round_while_the_daily_refresh_is_still_judging(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    real: Callable[..., Any] = keeper.scoped_judge
+    real: Callable[..., Any] = judged
     begun: list[int] = []
 
     def judge(*args: Any, **kwargs: Any) -> Any:
