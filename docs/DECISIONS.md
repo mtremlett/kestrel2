@@ -2548,8 +2548,8 @@ institution's participation, not a family's market order); the median leg (a thi
 times 1% over the worst leg's share, since shares grow with the pot.
 
 **Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
-already trading on paper on that line: the desk's five (`strategy.STRATEGIES`), less any of the
-cell's own class, and later any rule the ladder promotes (none yet). NOT the zoo (decided by chat
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`), less the cell's
+own rule's family (the rule, or the one a variant moves a setting of), and later any rule the ladder promotes (none yet). NOT the zoo (decided by chat
 seat 215, 26 Nov, by canon B6): the zoo trades only as a paper MACHINERY TEST, one share, never
 evidence, and a rule must never be graded down for resembling a machinery test. A day's return is the line's
 close-to-close move when the rule held after the close before, else nothing, the same formula for
