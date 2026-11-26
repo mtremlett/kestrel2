@@ -2548,3 +2548,10 @@ rung; the breakout on a walk PASSes
 
 **The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a reproduce rung, PASS on
 determinism; no answer and no other rung changes. Its noise row stops at its hard fail first.
+
+**Blind review (26 Nov, Fable, CANON A6 step 6): one blocking finding, fixed.** Determinism stood in
+for every rule with no figure, Faber's too, whose author's test binds (`published_epon.TESTED`,
+`candidate`): his printed figure would never have been asked, and `promotion.Candidate` would have
+let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
+that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
+first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
