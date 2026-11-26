@@ -1143,3 +1143,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2161 RUNGS: block bootstrap reads the first rung's verdict, one call from wired (rungs-each-rung, not ticked). |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2173 RUNGS R-RUNNER-503 built: bootstrap on the ci rung's judge path; no golden moved. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2174 RUNGS L15 blind review done, 2 non-blocking defects fixed, 0 blocking (R-RUNNER-495). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2164 PAPER R-MONEY-73 done: a zoo buy is judged by ZOO_DAY and the zoo's total; desk/ at the 18,000 ceiling. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2166 PAPER R-RUNNER-486 done: the day's exchange rate is kept once; blind review, no blocking finding. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |

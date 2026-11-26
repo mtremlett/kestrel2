@@ -957,7 +957,7 @@ his PC with the desk's own client id (222), never 4001.
       net profit each week (MSG-13, NS-14) (coordinator 54, 22 Nov: it comes after paper-cards and edits the same messenger file; not his)
       Remains: blocked signals and weekly cost beside net profit landed (#1940); missed winners wait on a record of signals not taken (R-PAPER-41, MONEY's `desk/day*.py`: runner ops 122, 23 Nov,
       after two PAPER sessions stopped at their claim)
-      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py}
+      {id: paper-extras; files: desk/messenger.py, tests/unit/test_messenger.py; waits: R-PAPER-41}
 
 - [x] **ONE DOOR FOR PRICES, the command's pound** (his 22 Nov ~10:00, "paramount": every price is read from market_history.db or market_live.db alone): `command_parts.rates` asks `keeper.pound`, never
       `rates.csv` first nor IBKR or the archive directly (desk/command_parts.py:36-64); conformance never falls back
