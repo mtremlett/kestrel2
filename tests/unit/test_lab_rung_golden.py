@@ -37,8 +37,8 @@ GOLDEN = [
             ),
             "liquidity": (
                 "PASS",
-                "its worst leg took 0.0213% of the day's volume on 2016-02-11, needs at most 1%; "
-                "capacity 469,484 pounds",
+                "its worst leg took 0.0213% of VUSA's volume on 2016-02-11, needs at most 1%; "
+                "capacity about 469,484 pounds",
             ),
             "luck": (
                 "PASS",

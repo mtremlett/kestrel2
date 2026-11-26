@@ -5,10 +5,12 @@ The first rung (`lab/rung.py`) sizes every trade by the desk's one sizing home (
 the one capital). This rung reads those shares and sets each leg against the line's volume on the
 day it filled. A rule that needs more than `orders.LIQUIDITY` of a day's volume (1%, the desk's own
 SIZ-10 number: one home) on any leg FAILS: its fills are not the market's prices but its own
-impact. A leg on a day of no volume is more than any share. Its reason names the worst leg's day.
+impact. A leg on a day of no volume is more than any share. Its reason names the worst leg's day,
+and whose volume it read: the judged bars' line, a proxy's where one stands in (`ladder_parts`).
 
-CAPACITY, in the reason: the largest pot at which the worst leg is still at the share, the capital
-times the share over the worst leg's part of its day, since the shares grow with the pot.
+CAPACITY, in the reason: about the largest pot at which the worst leg is still at the share, the
+capital times the share over the worst leg's part of its day, as the shares grow with the pot
+(whole shares and a fifth of the pot a holding, so near enough, never exact).
 
 IT ONLY LOWERS A PASS (as the costs rung does): a cell the first rung did not pass keeps the first
 rung's answer, FAIL, THIN or FAULT, and nothing is read for it (LAD-06). The bars and reasons are
@@ -67,8 +69,8 @@ def _judged(first: rung.Verdict, bars: Sequence[Bar], _rates: Rates) -> tuple[An
         return depth.answer, f"a leg on {depth.on}, a day of no volume; capacity no pounds"
     return (
         depth.answer,
-        f"its worst leg took {depth.worst:.4%} of the day's volume on {depth.on}, needs at most"
-        f" {LIQUIDITY:.0%}; capacity {depth.capacity:,.0f} pounds",
+        f"its worst leg took {depth.worst:.4%} of {first.key.cell.line.symbol}'s volume on"
+        f" {depth.on}, needs at most {LIQUIDITY:.0%}; capacity about {depth.capacity:,.0f} pounds",
     )
 
 
