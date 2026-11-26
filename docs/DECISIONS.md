@@ -2496,6 +2496,30 @@ Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml`
 Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
 runner's card claims are renamed by runner ops after this lands.
 
+## 26 Nov - the one progress number has one function, `lab/progress.py` (his order, ~20:1x)
+
+CANON Part C marked it OWED: the Telegram counted ticked boxes in the runner's own code and
+STATUS and SCOREBOARD by hand. `lab/progress.py` is now the one count: boxes `- [x]` in
+`docs/PLAN.md` at a window's end that were not ticked at its start (main's last first-parent
+commit before each moment), per lane book and OTHER; `python -m lab.progress` prints it as one
+JSON line. Decided by rule, with the options:
+- **Where.** `desk/` holds 100 files, its ceiling (`BUDGET.json`), and the count is not the
+  trading core; `lab/` had about 6,100 lines of room. So `lab/`.
+- **Whose.** Every lane and the runner read it, but `manifest.toml` refuses any module that is
+  not a package marker (the 26 Nov split), and widening that is loosening a guard. So a lane
+  holds it: RUNGS, which already keeps the other outcome count beside it in CLAUDE.md
+  (strategies through the ladder), registered in `manifest/rungs.toml`.
+- **One parser.** None existed in `desk/` or `lab/`; the only ones are the guards' note reader
+  (`tests/guards/test_lanes.py`) and the runner's `slots.boxes`, outside the repository. The
+  runner reads this module instead of counting (runner ops wires it); the guards' reader is
+  left as found, not fixed.
+- **Which boxes.** Every box counts, umbrellas and boxes outside the books too, as CLAUDE.md
+  says "plan boxes"; a box is known by its note's id, else its words, so a box without an id
+  whose words change as it is ticked counts once, and one whose words change while already
+  ticked would count again (none seen; boxes with work carry ids).
+Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
+printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.
+
 ## 26 Nov - the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
 
 The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
