@@ -313,3 +313,8 @@ stopped 15-21 Nov (no log), held lines from the history database alone.
 A catalogue row with no `desk/eponymous_*.py` twin was refused by `specs()`. Options: make the rule through
 `variants.rule` (takes bracketed names only, outside the claim), or a tiny `SpecRule` subclass in `lab/rulebook.py`.
 **Decided** the subclass, inside the claim. `specs()` keeps an unused `folder` argument for `lab/ladder.py:384`.
+
+### 2026-11-26 — chain.py skips the pooled BASKET row (#2190)
+
+A catalogue row for the pooled BASKET is no tradable line. Options: skip it, or refuse it. **Decided** skip.
+Ranges ignore a row's own catalogue ranges and use the published value (x2/3, x3/2).

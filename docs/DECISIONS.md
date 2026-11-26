@@ -2432,3 +2432,27 @@ stays and still fails one line past the new ceiling; files stay under 800 lines 
 **Why.** The desk stood at 18,000 of 18,000, so every money feature had first to delete as
 much as it added; his rulings of the same hour (risk-based sizing, trend and market filters,
 TP1/TP2/TP3 take-profits: R-RUNNER-543 to 545) and the money fixes need room to land.
+
+## 26 Nov - doom loops, bloat and sprawl held by code, not prose (his ruling)
+
+**His words.** In chat, Thursday 26 November 2026, about 14:10 UK: "we have updated the claude.md
+file and other md files to watch for doom loops, bloat and sprawl. it is clear that this is just
+prose. i want you to add code wherever is needed to control doom loops, bloat and sprawl. this is
+a must."
+
+**What already held each.** Doom loops: `tests/guards/test_churn.py` and the runner's halt on a
+second `fix` to the same file. Sprawl: the file and function size guards, the manifest's register
+and wall, the versioned-copy and document-set guards. Bloat: the undocumented and whole-file-read
+ratchets and the 300-line change cap.
+
+**Added** (three ratchets in `tests/guards/test_ratchets.py`, each may fall and never rise against
+main): duplicate function bodies in `desk/` and `lab/` (5 on main), top-level definitions that
+nothing in `desk/`, `lab/`, `tests/` or `check.py` uses (0 on main), and constant names assigned
+in two or more modules, every extra home counted (168 on main: failure pattern 8, whose debt this
+closes; `CAPITAL` in `desk/command.py` and `lab/stop_rules.py` among them).
+
+**Driven (A7).** On a copy of main whose ratchets passed, `desk/halt.py` was given a copy of
+`desk/strategy.py`'s `_run`, an unused `planted_dead_function` and `CAPITAL = 3`: duplicates rose
+5 to 6, unused 0 to 2, both failing; the two-homes test, first written to count names, did NOT
+fail (CAPITAL already had two homes), so it was rewritten to count every extra home and driven
+again: 168 to 169, failing. With the plants removed all pass.
