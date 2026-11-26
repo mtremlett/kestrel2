@@ -38,9 +38,9 @@ def test_a_planted_edge_goes_forward_and_planted_noise_is_refused(
     assert "error" not in {k for row in edge + noise for k in row}
     #: the edge is heard, the noise is not: most edge lines are THIN alone (too few trades to be
     #: judged, the rule's lines pooled PASS the folds); plateau (L17) is judged, NOT APPLICABLE
-    #: to the breakout, which carries no settings; only the author's figure stays unrun.
+    #: to the breakout, which carries no settings; reproduce is judged on determinism.
     said = [row["answer"] for row in edge]
     assert said.count("THIN") > len(said) // 2 and not any(r["every"] for r in edge)
     assert {row["rungs"]["folds"][0] for row in edge} == {"PASS"}
-    assert set(edge[0]["unrun"]) == {"reproduce"}
+    assert edge[0]["unrun"] == {}  #: no author's figure: judged on determinism
     assert {row["rungs"]["plateau"][0] for row in edge} == {"PASS"}

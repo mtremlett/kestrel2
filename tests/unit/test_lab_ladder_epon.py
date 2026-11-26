@@ -18,7 +18,7 @@ from test_lab_reproduce import _bars as _author
 import desk
 from desk import strategy
 from desk.lines import LINES
-from lab import grid, ladder, ladder_sets, published, reproduce, rulebook
+from lab import grid, ladder, ladder_sets, published, reproduce, rulebook, verdict
 from lab.cell import Cell
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
@@ -60,7 +60,8 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     assert "against the author's 2" in vusa["reproduction"][0] and "reproduce" not in vusa["unrun"]
     assert (
         "reproduction" not in plain_vusa
-        and "no author's figure" in plain_vusa["unrun"]["reproduce"]
+        and plain_vusa["unrun"] == {}
+        and plain_vusa["rungs"]["reproduce"][1].startswith(verdict.DETERMINED)
     )
     #: the trend rule made no trade at all in 2022 over the two lines it was pooled on: a
     #: year with none is a FAULT, and the worst year is the verdict's
