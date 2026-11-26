@@ -56,3 +56,7 @@ def test_darvas_a_high_over_the_top_that_closes_inside_voids_the_box() -> None:
         for n, (h, lo, c) in enumerate(rows)
     ]
     assert {d.action for d in decide({"X": bars})} == {Action.HOLD}
+
+
+def test_darvas_declares_no_holding_period() -> None:
+    assert RULES["darvas_box"].declared.hold is None  # his sale is the stop alone
