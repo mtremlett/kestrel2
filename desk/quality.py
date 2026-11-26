@@ -325,8 +325,9 @@ def _cells(
 
 
 def table(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> str:
-    """The hourly table: per database and span, the share fresh, the faults and the gaps, then each
-    database's register of sources (each newest daily bar's source, lines on a replacement)."""
+    """The hourly table: per database and span, the share fresh, the faults and the gaps, its golden
+    lines (green, or each red cell with why), then its register of sources (each newest daily
+    bar's source, lines on a replacement)."""
     held, rows = list(lines), []
     for db, path in paths.items():
         for span in HOVER_SPANS:
@@ -335,6 +336,8 @@ def table(paths: dict[str, Path], lines: Iterable[Line], now: datetime) -> str:
             bad = sum(w is not None for w in why)
             fresh = 100 * (len(why) - bad) // max(len(why), 1)
             rows.append(f"{db}/{span}: {fresh}% fresh, {bad - gap} faults, {gap} gaps")
+        red = [f"{n} ({w})" for n, ln, w in _cells(path, held, now) if w and ln.symbol in GOLDEN]
+        rows.append(f"{db} golden: {', '.join(red) or 'green'}")
         counts, replaced = register(path, held)
         rows.append(f"{db} sources: {counts}; replaced: {', '.join(replaced) or 'none'}")
     return "\n".join(rows)
