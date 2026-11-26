@@ -66,7 +66,9 @@ def test_the_zoo_trades_nine_plain_london_lines_and_seven_us_securities_all_isa(
     assert len(us) == 7 and all(line.isin for line in us)
 
 
-def test_a_line_the_master_marks_not_isa_never_reaches_the_zoo(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_a_line_the_master_marks_not_isa_never_reaches_the_zoo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     plain = intraday.zoo_lines()[0]
     banned = dataclasses.replace(plain, symbol="NOISA", isa=False)
     monkeypatch.setattr(intraday, "LINES", (plain, banned))
