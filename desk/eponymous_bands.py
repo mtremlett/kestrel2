@@ -28,7 +28,7 @@ DONCHIAN FADE IN CHOP.
   Reading here: long only; buy a close at or under the lowest low of the 20 sessions before,
                when that channel is a range (high less low at most a tenth of its midpoint);
                sell a close at or over the channel's midpoint. On the close.
-  Holding period: 20 sessions, the channel's own window (the source gives none).
+  Holding period: none declared; the source gives none (a 20-session time stop is open).
 """
 
 from __future__ import annotations
@@ -74,7 +74,7 @@ class DonchianFadeChop:
     """In a 20-session range, buy a close at or under the channel's low, and sell a close at or
     over its midpoint. Nothing is bought until 20 sessions are seen."""
 
-    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, WEEKS_4, LINES, RANGES)
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 
     def __init__(self) -> None:
         self._highs, self._lows = _Window(WEEKS_4), _Window(WEEKS_4)
