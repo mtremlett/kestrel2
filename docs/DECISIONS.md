@@ -2515,6 +2515,10 @@ code at other settings, so it is held to its row's publication; a variant of a r
 still refused (`test_a_variant_is_held_to_its_rows_publication_and_refused_without_one`). A basket
 keeps its own unrun line, so its pass is still no pass of the whole ladder.
 
+**The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a plateau rung, PASS as NOT
+APPLICABLE (the breakout has no settings); no answer and no other rung changes. The noise row
+stops at its hard fail before plateau, so it is unchanged.
+
 **Cost, measured** on a 2,400-bar walk: 0.4 s a variant, about 3.6 s for a passing cell (9
 variants on average). EPON's ~21,000 cells: at most ~21 CPU hours were every cell to pass, under
 four hours on the pool's six workers; in practice only passing cells pay, a small share.
