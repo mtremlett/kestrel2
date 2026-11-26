@@ -239,7 +239,7 @@ Open: members' FTSE Russell announcement reader (lseg.com has no stable machine-
 - **The one door (22 Nov):** 172 lines differ from the old CSVs beyond rounding (GOOG on 3,398 days, AAPL 270 CSV-only days, most on one day); the database is read.
 ## GRID
 
-Last updated: 23 November 2026.
+Last updated: 26 November 2026.
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -247,6 +247,7 @@ the desk's), a key per rung that ignores the modules that run it, auto-tune, the
 book (with each rule's variants swept as cells, #1487) with the catalogue's specs (catalogue-only rows served by `rulebook.rule`, #2104; `ladder.py:384` can drop `specs()`'s unused `folder`), the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
 pass runs each strategy on its declared universe (22 lines); all-on-all is `--transfer`, never a verdict. A pass reports
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
+`lab/chain.py` (#2190, R-RUNNER-364 part 2 of 5): a published set's variants at x2/3 and x3/2 of each value, one Cell per rule line; the pooled BASKET row is skipped. Remains: `rulebook.rule`/`variants.find` refuse a chain variant outside the catalogue row's ranges until they follow `chain.ranges` (next part).
 
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
