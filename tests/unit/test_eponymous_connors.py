@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_connors
 from desk.eponymous_connors import decide, decide_percent_b
 from desk.store import Bar
 from desk.strategy import Action
@@ -48,3 +49,10 @@ def test_percent_b_buys_after_three_low_days_and_sells_over_point_eight() -> Non
     }
     two_low = decide_percent_b({"X": _bars([*range(100, 300), 280, 275, 285])})
     assert all(d.action is Action.HOLD for d in two_low)  # only two low days: no buy
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: the sale is the rule's own sell logic alone, no time stop; stated
+    assert "Holding period: none" in eponymous_connors.__doc__
+    rules = eponymous_connors.EPONYMOUS.values()
+    assert all(r.declared.hold is None for r in rules)
