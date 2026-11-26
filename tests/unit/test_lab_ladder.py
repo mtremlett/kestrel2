@@ -141,12 +141,11 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
 
 
 def test_a_planted_edge_is_judged_by_its_years_pooled_over_the_rules_lines_not_found_thin(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     """Sixteen lines with the edge planted in the last 2,400 days of each: a line alone makes
     two or three trades a year, too few to be heard, and the rule's sixteen together make over
     thirty. So the fold of each of the five years PASSES, and the one answer is every line's."""
-    monkeypatch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))  #: a hundred runs each
     names = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
     lines = [next(line for line in LINES if line.symbol == name) for name in names]
     walks = {line: _walk(n, 0.012, 0.012, days=3100)[-2400:] for n, line in enumerate(lines, 1)}
