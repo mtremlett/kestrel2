@@ -1,19 +1,8 @@
 """simcity_incidents - SCENARIOS SimCity lives because a night met them: each is a morning the
-desk was put in, a promise it must keep there, and the day it then runs. R-RUNNER-246: a held
-line has no bar for a session (a hole in the saved data), so the day has no record.
-R-RUNNER-247: shares at the broker with a stop resting, bought beside the book (the 16 November
-conformance run's), which the desk's sale refused as "the desk is long only". R-RUNNER-314: the
-keeper's job failed on 17 November with a venue's daily bars a session short. R-RUNNER-323: the
-18 November London run, whose buy the broker cancelled with nothing filled, so none were held.
-R-RUNNER-315: the 16 November session the yardstick has no bar for, so the line is parked.
-R-RUNNER-248: the 16 November afternoon the crash watch heard nothing of the market.
-R-RUNNER-317: the keeper's live job failed on 17 November, its one-minute lines all stale.
-R-RUNNER-316: the keeper's live job asked for one-minute bars of lines the store never held.
-R-RUNNER-318: the 17 November conformance job, a London line with no bar of the session before.
-R-RUNNER-319: the keeper's live job, 17 November, met "database is locked" on its store.
-R-RUNNER-324: the desk's day job, 18 November, met "TimeoutError: timed out" from the broker.
-R-RUNNER-347: the desk's day job, 19 November, had no end after 240 seconds (120 s a order).
-R-RUNNER-325: 18 November, the paper Gateway's port closed outside its restart: conformance-us."""
+desk was put in, a promise it must keep there, and the day it then runs. Each carries its
+request (R-RUNNER-246 to 248, 314 to 319, 323 to 325, 347: a held line with no bar for a
+session, shares beside the book under a stop, a halt, a silent broker or Gateway, a locked
+store, a stale keeper) in `git log` and `docs/DECISIONS.md`."""
 
 from __future__ import annotations
 

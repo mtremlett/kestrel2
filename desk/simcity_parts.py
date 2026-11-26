@@ -14,7 +14,7 @@ from decimal import Decimal
 from itertools import chain, pairwise
 from typing import TYPE_CHECKING
 
-from desk import book, kill, orders
+from desk import book, kill, orders, venues
 from desk.broker import Fault
 from desk.lines import Line
 from desk.orders import pennies
@@ -88,8 +88,18 @@ def _market(archive: Archive, rng: random.Random) -> dict[Line, tuple[Bar, ...]]
             start, high, low, close = (pennies(p * level / before.close) for p in shape)
             made.append(Bar(kept.day, start, high, low, close, bar.volume))
             level *= bar.close / before.close
-        market[line] = tuple(made)
+        market[line] = _restored(line, made)
     return market
+
+
+def _restored(line: Line, bars: Sequence[Bar]) -> tuple[Bar, ...]:
+    """The line with each session the store withdrew (#2088, VUAG 2019-05-23) lived as a still
+    day at the close before it: the world goes on; HOLE and PARKED prove the day's refusal."""
+    have = {bar.day: bar for bar in bars}
+    for d in venues.sessions(line.venue, bars[0].day, bars[-1].day):
+        if d not in have and d not in line.suspended:
+            have[d] = Bar(d, *(have[max(k for k in have if k < d)].close,) * 4, 0)
+    return tuple(have[d] for d in sorted(have))
 
 
 def _behind(life: _Life, on: date) -> None:
