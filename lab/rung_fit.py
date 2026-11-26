@@ -18,7 +18,8 @@ hold it beside the other. Across lines is the desk's gate's and `lab/bets.py`'s,
 
 IT ONLY LOWERS A PASS (as the costs rung does): a cell the first rung did not pass keeps its
 answer, FAIL, THIN or FAULT, and no running rule is run for it (LAD-06). A running rule's days
-on a line's bars are run once a process, by the rule and the bars' own hash.
+on a line's bars are run once a process, by the rule and the bars' own hash. A passed cell
+whose line never moved on the days it held has nothing to set beside a rule: THIN.
 """
 
 from __future__ import annotations
@@ -82,8 +83,8 @@ def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Fit:
     mine = [any(t.bought <= bar.day < t.sold for t in trades if t.sold) for bar in read]
     start = max(1, next(n for n, bar in enumerate(read) if bar.day >= c.start))
     ours = days(mine, read, start)
-    if not ours.std() > 0:
-        raise ValueError(f"{c}: its held days never moved, so nothing can be set beside them")
+    if not ours.std() > 0:  #: no swing to set beside any rule: too little to judge (LAD-06)
+        return Fit(None, None, Answer.THIN)
     found = _beside(first, ours, read, start)
     if not found:
         return Fit(None, None, Answer.PASS)
@@ -113,6 +114,8 @@ def _beside(
 def _judged(first: rung.Verdict, bars: Sequence[Bar], _rates: Rates) -> tuple[Answer, str]:
     """The fit rung as the ladder reads it: its answer, and the closest running rule in words."""
     fit = judge(first, bars)
+    if first.answer is Answer.PASS and fit.answer is Answer.THIN:
+        return fit.answer, "its line never moved on the days it held: nothing to set beside it"
     if fit.answer is not Answer.PASS and fit.correlation is None:
         return fit.answer, "the first rung did not pass it, so no running rule is set beside it"
     if fit.correlation is None:

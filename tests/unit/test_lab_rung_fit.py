@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Sequence
+from dataclasses import replace
 from decimal import Decimal
 
 import pytest
@@ -83,6 +84,15 @@ def test_a_variant_of_a_book_rule_is_not_set_beside_its_own_family(
     moved = cell.run(Cell("breakout_20_10[entry=15]", VUSA, BARS[0].day, BARS[-1].day), BARS)
     got, why = rung_fit.RUNG.judge(_first(moved, [t for t in moved.trades if t.sold]), BARS, {})
     assert got is Answer.PASS and "no rule running on paper" in why, why
+
+
+def test_a_line_that_never_moved_on_its_held_days_is_thin_never_a_fault_or_a_nan() -> None:
+    """Flat closes give no day-to-day swing to set beside any rule: too little to judge."""
+    flat = [replace(bar, close=BARS[0].close) for bar in BARS]
+    record = cell.run(Cell("breakout_20_10", VUSA, flat[0].day, flat[-1].day), flat)
+    first = _first(record, [t for t in RECORD.trades if t.sold])
+    got, why = rung_fit.RUNG.judge(first, flat, {})
+    assert got is Answer.THIN and "never moved" in why, why
 
 
 def test_a_rule_the_first_rung_did_not_pass_keeps_its_answer() -> None:
