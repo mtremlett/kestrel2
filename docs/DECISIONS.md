@@ -2416,3 +2416,15 @@ DOUBT, by canon LAD-08: FAIL is for an interval wholly below nothing; a PASS the
 not bear out is a doubt about the rule, never proof of a loss. Too few days to draw (THIN) leaves
 the PASS standing (LAD-06). Golden verdicts moved: none (the ladder's golden and the registry
 tests pass unchanged); calibration worlds now carry daily bars, as the bootstrap reads them.
+
+## 26 Nov - the desk's ceiling raised from 18,000 to 22,000 lines (his ruling)
+
+**His words.** In chat, Thursday 26 November 2026, about 13:45 UK, offered 20,000 (recommended),
+22,000 or 18,000 kept, he chose "Raise to 22,000".
+
+**Decided.** `BUDGET.json`'s phase 3 `product_lines` goes from 18,000 to 22,000. The guard
+stays and still fails one line past the new ceiling; files stay under 800 lines each.
+
+**Why.** The desk stood at 18,000 of 18,000, so every money feature had first to delete as
+much as it added; his rulings of the same hour (risk-based sizing, trend and market filters,
+TP1/TP2/TP3 take-profits: R-RUNNER-543 to 545) and the money fixes need room to land.
