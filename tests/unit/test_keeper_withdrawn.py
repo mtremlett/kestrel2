@@ -5,11 +5,13 @@ from __future__ import annotations
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 import test_keeper as tk
 
-from desk import bars, keeper
+from desk import bars, keeper, store_scope
+from desk.lines import Line
 
 
 def test_a_day_the_judge_later_drops_is_withdrawn_not_deleted_and_no_line_shrinks(
@@ -41,10 +43,10 @@ def test_a_day_the_judge_refuses_is_unserved_and_a_true_bar_brings_it_back(
     pretend, hot = tk.Archive(), tmp_path / keeper.HOT
     pretend.keep(tmp_path, tk._at(6))
     before = bars.daily(hot, tk.UK)
-    judged = keeper.scoped_judge
+    judged = store_scope.judge
     monkeypatch.setattr(keeper, "RULES", "an older set of rules")
 
-    def refusing(line, *a, **k):  # type: ignore[no-untyped-def]
+    def refusing(line: Line, *a: Any, **k: Any) -> Any:
         kept, faults, park = judged(line, *a, **k)
         return (kept[:-1] if line == tk.UK else kept), faults, park
 
