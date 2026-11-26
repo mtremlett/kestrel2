@@ -195,8 +195,10 @@ def _stand_down(
     from the stop's fill against its buy's price, in the pounds of the buy's day."""
     book.collect(root, broker)  #: the stops the open sold
     lines, fills = {line.symbol: line for line in archive}, book.fills(root)
-    buys = {f.order_id: f for f in fills if f.quantity > 0}
-    since = max((r.day for r in records(root)), default=date.min)
+    buys, since = (
+        {f.order_id: f for f in fills if f.quantity > 0},
+        max((r.day for r in records(root)), default=date.min),
+    )
     for sale in fills:
         buy = buys.get(sale.order_id.removesuffix("-stop"))
         if sale.quantity >= 0 or sale.day <= since or buy is None or sale.symbol not in lines:
@@ -246,8 +248,11 @@ def _currency(
 ) -> None:
     """BIC-04: what the closed trades so far owe to the currency's move, told apart from what
     they made by trading, and what the open holdings owe it; told only when there is some."""
-    if tell is None or (split := day_money.fx_split(root, archive, day)) is None:
-        return  #: nobody to tell, nothing has traded, or a fill's day's rate was never kept
+    if tell is None:
+        return
+    split = day_money.fx_split(root, archive, day)
+    if split is None:
+        return  #: nothing has traded, or a fill's day's rate was never kept
     gain, trading, held = split
     if gain or held:
         tell(
@@ -360,7 +365,8 @@ def _answer(root: Path, day: date, sent: book.Sent) -> book.Sent:
     if sent.blocker is None or sent.reason is None:
         halt.note(root, day, (), (sent.order_id,))
     else:
-        halt.note(root, day, (halt.Blocked(sent.order_id, sent.blocker, sent.filled, sent.reason),))
+        blocked = halt.Blocked(sent.order_id, sent.blocker, sent.filled, sent.reason)
+        halt.note(root, day, (blocked,))
     return sent
 
 

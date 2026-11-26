@@ -100,7 +100,8 @@ def hole(life: _Life, on: date) -> None:
         life.live(on)
     else:  #: the record names the line owed, or a stop or sale ended it: no close was owed
         life.market[line] = whole
-        life.promise(PROMISE, f"{line.symbol}: no close owed" in record.mismatches)
+        owed = f"{line.symbol}: no close owed" in record.mismatches
+        life.promise(PROMISE, owed or line.symbol not in book.positions(life.desk))
 
 
 def beside(life: _Life, on: date) -> None:
