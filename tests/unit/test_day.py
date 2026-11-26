@@ -339,7 +339,7 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     shutil.copytree(tmp_path, one, dirs_exist_ok=True)
     every = day.publish(one, owing, broker, capital, DAYS[22])  #: all owed: named, published
     assert every.profit is None and every.worth == 0
-    assert every.mismatches == tuple(sorted(s + day_money.OWED for s in held))
+    assert every.mismatches == tuple(sorted(s + day_money.NO_CLOSE_OWED for s in held))
     assert all(day_money.is_owed(m) for m in every.mismatches)
     with pytest.raises(day_money.CloseOwed):
         day_money.close(owing, first, DAYS[22])
@@ -347,7 +347,7 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     shutil.rmtree(one)
     shutil.copytree(tmp_path, one)
     refused = day.publish(one, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
-    assert (refused.profit, refused.mismatches) == (None, ("A" + day_money.OWED,))
+    assert (refused.profit, refused.mismatches) == (None, ("A" + day_money.NO_CLOSE_OWED,))
     assert refused.worth > 0, "the other lines were not valued"
     assert day.records(one)[-1] == refused, "the named line reads back from the comma file"
     halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade

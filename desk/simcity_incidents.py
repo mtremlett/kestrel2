@@ -85,7 +85,7 @@ def hole(life: _Life, on: date) -> None:
     life.market[line] = tuple(bar for bar in whole if bar.day != on)
     record = life.live(on)
     life.market[line] = whole  #: the record names the line owed, or a stop or sale ended it
-    owed = line.symbol + day_money.OWED in record.mismatches and record.profit is None
+    owed = line.symbol + day_money.NO_CLOSE_OWED in record.mismatches and record.profit is None
     life.promise(PROMISE, owed or line.symbol not in book.positions(life.desk))
 
 

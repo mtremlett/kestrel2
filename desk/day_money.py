@@ -13,7 +13,7 @@ from desk.lines import Line
 from desk.orders import pennies
 from desk.store import Bar
 
-OWED = ": no close owed"  #: no comma: the record is a comma file; one home for the wording
+NO_CLOSE_OWED = ": no close owed"  #: no comma: the record is a comma file; one home for the wording
 
 
 class CloseOwed(ValueError):
@@ -22,7 +22,7 @@ class CloseOwed(ValueError):
 
 def is_owed(mismatch: str) -> bool:
     """Whether a record's mismatch names a line owed its close (not a book that differs)."""
-    return mismatch.endswith(OWED)
+    return mismatch.endswith(NO_CLOSE_OWED)
 
 
 def worth(
@@ -30,7 +30,7 @@ def worth(
 ) -> tuple[Decimal, tuple[str, ...]]:
     """What the lines held at a day's end that have their close were worth, in pounds: each at
     its close then, at the rate kept for that very day. A held line owed its close is named
-    (OWED) and left out, never priced by an older bar: the day's profit is withheld, and the
+    (NO_CLOSE_OWED) and left out, never priced by an older bar: the day's profit is withheld, and the
     next record opens from the last that carried one. A missing rate still stops the day."""
     lines, priced, refused = {line.symbol: line for line in archive}, [], []
     for s, shares in book.positions(root, upto).items():
@@ -38,7 +38,7 @@ def worth(
         try:
             priced.append(shares * close(archive, lines[s], upto) * rate)
         except CloseOwed:
-            refused.append(s + OWED)
+            refused.append(s + NO_CLOSE_OWED)
     return sum(priced, Decimal(0)), tuple(refused)
 
 
