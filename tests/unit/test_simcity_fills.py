@@ -58,3 +58,7 @@ def test_an_honest_ledger_replays_the_same_and_a_planted_difference_names_fill_a
     (wrong,) = replay(CLEAN, fills, low, ROOM, RATES)
     assert (wrong.fill, wrong.field) == (fills[i].execution_id, "stop")
     assert fills[i].execution_id in wrong.words()
+    day_, _, line = fills[i].order_id.split("-", 2)
+    zoo = [*fills[:i], replace(fills[i], order_id=f"{day_}-zoo-{line}"), *fills[i + 1 :]]
+    (unruled,) = replay(CLEAN, zoo, {}, ROOM, RATES)
+    assert (unruled.fill, unruled.field) == (fills[i].execution_id, "rule")

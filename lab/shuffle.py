@@ -1,11 +1,12 @@
 """shuffle - THE LADDER'S SHUFFLE RUNG (Monte Carlo): did the rule time its line, or only ride it?
 
-Each day a cell is shown after its first is kept whole, as its moves from the close before,
-and SHUFFLES times the days are put in a random order and the rule run on the history that
-makes, priced by the first rung (`lab/rung.py`). Every shuffle has the line's whole rise and
-no order in it: a rule that earns as much there has timed nothing. The share of a trial is
-the shuffles whose standard errors are its own or more, and itself, over SHUFFLES + 1. The
-order is drawn from the trial's name, so a trial run again is shuffled the same.
+Each day a cell is shown after its first (none after its end) is kept whole, as its moves
+from the close before, and SHUFFLES times the days are put in a random order and the rule run
+on the history that makes, priced by the first rung (`lab/rung.py`). Every shuffle has the
+line's whole rise and no order in it: a rule that earns as much there has timed nothing. The
+share of a trial is the shuffles whose standard errors are its own or more, and itself, over
+SHUFFLES + 1. The order is drawn from the trial's name, so a trial run again is shuffled the
+same.
 """
 
 from __future__ import annotations
@@ -34,11 +35,12 @@ def share(
     if own is None:
         return Decimal(1)
     rng = random.Random(trials.name(c))  # noqa: S311 - a repeatable draw, not a secret
-    moves = _moves(bars)
+    shown = cell.shown(c, bars)  #: only the cell's own days are drawn: none after its end (B3)
+    moves = _moves(shown)
     as_good = 1  #: the trial itself
     for _ in range(SHUFFLES):
         rng.shuffle(moves)
-        got = _t(c, _history(bars, moves), settings, rates, made)
+        got = _t(c, _history(shown, moves), settings, rates, made)
         as_good += got is not None and got >= own
     return Decimal(as_good) / (SHUFFLES + 1)
 
