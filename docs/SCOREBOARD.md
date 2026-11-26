@@ -1157,3 +1157,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2166 PAPER R-RUNNER-486 done: the day's exchange rate is kept once; blind review, no blocking finding. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L17 ticked: plateau judged on every cell (#2226), reproduce on determinism (#2232), the kit's paid edge goes forward; the rest of the answer key (drift-rider, 160 noise cells, edges at t 1-4, a delisted line) each driven red. |

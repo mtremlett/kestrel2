@@ -58,6 +58,8 @@ SECONDS = {
     "test_lab_tune.py": 284,
     "test_lab_sweep.py": 226,
     "test_lab_ladder_epon.py": 222,
+    "test_lab_rung_known_answer.py": 220,  #: measured on the PC, 26 Nov
+    "test_lab_rung_known_answer_noise.py": 205,  #: measured on the PC, 26 Nov
     "test_simcity.py": 168,
     "test_simcity_incidents.py": 162,
     "test_lab_shuffle.py": 51,

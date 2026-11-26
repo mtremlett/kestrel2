@@ -28,14 +28,16 @@ from desk.store import Bar
 from desk.strategy import CLOSES, Declared, Rule, Timeframe
 from lab import ladder, ladder_sets, rulebook, tape, verdict
 from lab.cell import Cell
-from lab.published_case import Published, known
+from lab.published_case import FIRST, Published, known
 from lab.published_epon import EPONYMOUS_PUBLISHED
+from lab.verdict_parts import goes
 
 NAMES = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
 SIXTEEN = [next(line for line in LINES if line.symbol == name) for name in NAMES]
 US = SIXTEEN[-4:]  #: the churner's lines, beside SPY
 DAYS = 6200  #: 2010 to the end of 2026: the window's last five whole years (2021-25) are folded
 LUCKY = 2023  #: case e's one year of profit
+DART = 0.1  #: the drift-rider's chance a day of going in, or out
 Rows = Sequence[Mapping[str, Any]]
 BOOK = frozenset(rulebook.rules())  #: the book as the desk holds it, read before any plant
 
@@ -82,6 +84,8 @@ KIT = (
     Known(11, "paid", "ci", "PASS", "the ci's PASS is held to the block bootstrap's"),
     Known(12, "paid basket", "retail", "PASS", "the basket beats holding its market"),
     Known(12, "noise basket", "retail", "FAIL", "a basket of noise does not"),
+    Known(9, "drift", "shuffle", "FAIL", "random entries on a rising line", "share among them"),
+    Known(6, "drift", "market", "FAIL", "they earn only their own line's rise", "its own line's"),
 )
 
 
@@ -103,6 +107,44 @@ class Churner:
 
     def step(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the Rule interface
         return not holding
+
+
+class Dart:
+    """The drift-rider: in or out at random, a chance of a tenth a day, by the day's own seed.
+    On a rising line it earns, and only what holding the line earns: no edge of its own."""
+
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
+
+    def step(self, bar: Bar, holding: bool) -> bool:
+        return holding != _flip(bar.day)
+
+
+def _flip(day: date) -> bool:
+    return random.Random(day.toordinal()).random() < DART  # noqa: S311 - a repeatable coin
+
+
+def _darts(days: int) -> tuple[tuple[int, int | None], ...]:
+    """The drift-rider's known trades on `days` bars from the cases' first day, worked from
+    its coin alone, never by running it."""
+    out: list[tuple[int, int | None]] = []
+    bought: int | None = None
+    for n in (n for n in range(days) if _flip(FIRST + timedelta(n))):
+        if bought is None:
+            bought = n
+        else:
+            out.append((bought, n))
+            bought = None
+    return (*out, *([(bought, None)] if bought is not None else []))
+
+
+def _rising(seed: int) -> tuple[Bar, ...]:
+    """A line flat, then rising 0.1% a day under 1% of noise through the 2,400 days judged, 100
+    to about 1,100: a holder at random is paid the rise, at a price the desk's room can buy."""
+    rng, closes = random.Random(seed), [100.0]  # noqa: S311 - a repeatable test walk
+    while len(closes) < DAYS:
+        rise = 1.001 if len(closes) >= DAYS - 2400 else 1.0
+        closes.append(closes[-1] * (rise + rng.gauss(0, 0.01)))
+    return _bars(closes)[-2400:]
 
 
 def _drift(seed: int) -> tuple[Bar, ...]:
@@ -155,7 +197,21 @@ CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
     "lucky": ("breakout_20_10", _lucky),
     "thin": ("breakout_20_10", _thin),
     "noise": ("breakout_20_10", _noise),
+    "drift": ("dart", lambda: {line: _rising(n) for n, line in enumerate(US, 1)}),
 }
+
+
+def plant(patch: pytest.MonkeyPatch) -> None:
+    """The kit's planted rules in the book, each with its own known answers, so the ladder's
+    door lets them in: the churner and the drift-rider."""
+    book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner, "dart": Dart}
+    patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
+    churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
+    patch.setitem(EPONYMOUS_PUBLISHED, "churner", Published("the kit's churner", (churns,)))
+    darts = known("its coin's days", [10] * 60, _darts(60))
+    patch.setitem(EPONYMOUS_PUBLISHED, "dart", Published("the kit's drift-rider", (darts,)))
+    real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
+    patch.setattr(tape, "code_of_rule", lambda s: s if s in ("churner", "dart") else real(s))
 
 
 @pytest.fixture(scope="module")
@@ -164,12 +220,7 @@ def judged(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Callable[[str],
     set's basket row, read with the retail rung (EASED); the churner is planted in the book
     with its own known answers, so the ladder's door lets it in."""
     with pytest.MonkeyPatch.context() as patch:
-        book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner}
-        patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
-        churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
-        patch.setitem(EPONYMOUS_PUBLISHED, "churner", Published("the kit's churner", (churns,)))
-        real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
-        patch.setattr(tape, "code_of_rule", lambda s: "planted" if s == "churner" else real(s))
+        plant(patch)
 
         @cache
         def rows(case: str) -> Rows:
@@ -179,7 +230,7 @@ def judged(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Callable[[str],
             spy = _walk(99, 0, 0, days=DAYS // 2)
             door, pounds = _door(dict(walks) | {SPY: spy}), {bar.day: Decimal("0.8") for bar in spy}
             todo = [Cell(rule, line, ladder.START, ladder.END) for line in walks]
-            patch.setattr(verdict, "EASED", basket)
+            patch.setattr(verdict, "EASED", basket or name == "drift")  #: as EPON runs it
             if basket:  #: the US lines, beside SPY: a proxied London line's US days are not ISF's
                 walks = {line: bars for line, bars in walks.items() if line in US}
                 todo = [Cell(rule, line, ladder.START, ladder.END) for line in walks]
@@ -249,3 +300,13 @@ def test_the_churners_edge_is_real_and_the_lucky_year_is_the_whole_profit(
     lucky = judged("lucky")
     assert all("above nothing" in r["rungs"]["first"][1] for r in lucky), "the whole is profit"
     assert all(f"folds, {LUCKY}:" not in r["rungs"]["folds"][1] for r in lucky)
+
+
+def test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it(
+    judged: Callable[[str], Rows],
+) -> None:
+    """L17's gate: with plateau and reproduce judged, a planted edge goes forward on every
+    line, and a rule with no settings is NOT APPLICABLE for plateau, never blocked by it."""
+    rows = judged("paid")
+    assert rows and all(goes(row) for row in rows), [row.get("unrun") for row in rows]
+    assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in rows)
