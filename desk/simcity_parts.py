@@ -96,7 +96,7 @@ def _restored(line: Line, bars: Sequence[Bar]) -> tuple[Bar, ...]:
     """The line with each session the store withdrew (#2088, VUAG 2019-05-23) lived as a still
     day at the close before it: the world goes on; HOLE and PARKED prove the day's refusal."""
     have = {bar.day: bar for bar in bars}
-    for d in venues.sessions(line.venue, bars[0].day, bars[-1].day):
+    for d in venues.sessions(line.venue, bars[0].day, bars[-1].day) if bars else ():
         if d not in have and d not in line.suspended:
             have[d] = Bar(d, *(have[max(k for k in have if k < d)].close,) * 4, 0)
     return tuple(have[d] for d in sorted(have))
