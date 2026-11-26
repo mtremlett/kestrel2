@@ -1,15 +1,21 @@
-"""The known-answer kit, cases c to f (the 21 Nov plan, R-RUNNER-496; a and b are in
-`test_lab_ladder_known_answer.py`): a look-ahead cheat, a cost churner, one lucky year and a
-thin line in a full basket, each on fixture data through the real future-blind check or the
-real ladder, against one table of the verdicts each must give."""
+"""The known-answer kit (the 21 Nov plan, R-RUNNER-496): a goal per rung and one overall, every
+rung of the ladder's map holding a row of known answers that passes, read from the map as
+`ladder.rungs_built` reads it, never a hand list. The rows are the plan's cases on fixture data
+through the real ladder: a paid edge (+0.4% a trade after costs) goes forward on every rung; a
+cost churner, one lucky year and noise are refused, each by the rung that should; a line too thin
+alone is judged on its basket, not faulted; a look-ahead cheat is refused by the future-blind
+check. Kit a and b on the breakout are in `test_lab_ladder_known_answer.py`."""
 
 from __future__ import annotations
 
 import json
+import math
 import random
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from dataclasses import dataclass
+from datetime import date, timedelta
 from decimal import Decimal
-from pathlib import Path
+from functools import cache
 from typing import Any, ClassVar
 
 import pytest
@@ -20,22 +26,63 @@ from test_lab_rung import _bars, _walk
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import CLOSES, Declared, Rule, Timeframe
-from lab import ladder, rulebook, shuffle, tape, verdict
+from lab import ladder, ladder_sets, rulebook, shuffle, tape, verdict
 from lab.cell import Cell
 from lab.published_case import Published, known
 from lab.published_epon import EPONYMOUS_PUBLISHED
 
 NAMES = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
 SIXTEEN = [next(line for line in LINES if line.symbol == name) for name in NAMES]
+US = SIXTEEN[-4:]  #: the churner's lines, beside SPY
 DAYS = 6200  #: 2010 to the end of 2026: the window's last five whole years (2021-25) are folded
 LUCKY = 2023  #: case e's one year of profit
+Rows = Sequence[Mapping[str, Any]]
+BOOK = frozenset(rulebook.rules())  #: the book as the desk holds it, read before any plant
 
-#: The table: each case's rungs and the one answer the real ladder must give, on every line.
-WANT: dict[str, dict[str, str]] = {
-    "d churner": {"first": "FAIL", "costs": "FAIL", "answer": "FAIL"},
-    "e lucky year": {"folds": "FAIL", "answer": "FAIL"},
-    "f thin line": {"first": "THIN", "folds": "PASS", "answer": "THIN"},
-}
+
+@dataclass(frozen=True)
+class Known:
+    """One row of the kit: on every line of the case, the rung (a row key of the ladder's, or
+    `answer`, the one rule over them) gives `want`, and its reason says `says`."""
+
+    rung: int  #: its number in the ladder's map; 0 is the one answer, no rung's
+    case: str
+    key: str
+    want: str
+    why: str
+    says: str = ""
+
+
+KIT = (
+    Known(0, "churner", "answer", "FAIL", "d: the cost churner is refused"),
+    Known(0, "lucky", "answer", "FAIL", "e: one lucky year is refused"),
+    Known(0, "thin", "answer", "THIN", "f: a line too thin alone is THIN, never a fault"),
+    Known(1, "thin", "first", "THIN", "f: too few trades to pass or to fail", "30 trades"),
+    Known(2, "churner", "costs", "FAIL", "d: a gross edge a tenth of its costs", "0.1 times"),
+    Known(10, "lucky", "folds", "FAIL", "e: its worst year is not its lucky one", "2022"),
+    Known(10, "thin", "folds", "PASS", "f: judged on the basket", "over 16 lines"),
+    Known(0, "paid", "answer", "PASS", "a: the paid edge goes forward on every rung run"),
+    Known(1, "paid", "first", "PASS", "1,100 trades of a planted edge are heard"),
+    Known(1, "noise", "first", "FAIL", "b: noise after costs earns nothing"),
+    Known(2, "paid", "costs", "PASS", "the edge holds to over twice its costs"),
+    Known(3, "paid", "ci", "PASS", "the interval of the mean gain lies above nothing"),
+    Known(3, "churner", "ci", "FAIL", "the interval lies below nothing"),
+    Known(4, "paid", "market", "PASS", "it earns beyond its market's moves", "SPY's moves"),
+    Known(4, "churner", "market", "FAIL", "it loses beyond its market's moves", "SPY's moves"),
+    Known(5, "paid", "regimes", "PASS", "it earns in both regime windows"),
+    Known(5, "churner", "regimes", "FAIL", "it loses in both", "first window FAIL"),
+    Known(6, "paid", "market", "PASS", "beyond its own line's moves", "its own line's"),
+    Known(6, "noise", "market", "FAIL", "noise earns nothing beyond them", "its own line's"),
+    Known(7, "paid", "deflated", "PASS", "its Sharpe survives the trials it was one of"),
+    Known(7, "churner", "deflated", "FAIL", "a Sharpe of nothing", "0.00"),
+    Known(8, "paid", "cpcv", "PASS", "chosen in-sample and kept out of it"),
+    Known(8, "noise", "cpcv", "FAIL", "noise is not chosen where it is not kept"),
+    Known(9, "paid", "shuffle", "PASS", "the days in order earn more than shuffled", "shuffles"),
+    Known(10, "paid", "folds", "PASS", "every one of the five years earns"),
+    Known(11, "paid", "ci", "PASS", "the ci's PASS is held to the block bootstrap's"),
+    Known(12, "paid basket", "retail", "PASS", "the basket beats holding its market"),
+    Known(12, "noise basket", "retail", "FAIL", "a basket of noise does not"),
+)
 
 
 class Cheat:
@@ -49,7 +96,8 @@ class Cheat:
 
 
 class Churner:
-    """Case d: in the market every other bar, so a trade every two bars."""
+    """In the market every other bar: case d on a line with a tiny gross edge, case a on one
+    that pays it on each held day."""
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
 
@@ -65,72 +113,140 @@ def _drift(seed: int) -> tuple[Bar, ...]:
     return _bars(closes)[-2400:]
 
 
-def _rows(
-    home: Path, walks: Mapping[Line, Sequence[Bar]], rule: str = "breakout_20_10"
-) -> list[dict[str, Any]]:
-    """The real ladder's rows for the rule on each line, beside a market of noise."""
-    spy = _walk(99, 0, 0, days=DAYS // 2)
-    pounds = {bar.day: Decimal("0.8") for bar in spy}
-    todo = [Cell(rule, line, ladder.START, ladder.END) for line in walks]
-    ladder.run(home, _door(dict(walks) | {SPY: spy}), pounds, todo)
-    path = home / "ladder" / "set1.jsonl"
-    return [json.loads(line) for line in path.read_text().splitlines()]
+def _paid(seed: int) -> tuple[Bar, ...]:
+    """Case a's line: from each odd bar's open to the next it gains 0.75%, from each even bar's
+    it gives it back, under 5.5% of noise a day, pulled back towards 100. The churner, bought at
+    bar 0's close (bar 1's open) and out a bar later, is paid the gain on every trade."""
+    rng, opens = random.Random(seed), [100.0]  # noqa: S311 - a repeatable test walk
+    while len(opens) < 4801:
+        tilt = 0.0075 if len(opens) % 2 == 0 else -0.0075  #: opens[k] to opens[k + 1]
+        pull = 0.05 * math.log(opens[-1] / 100)
+        opens.append(opens[-1] * (1 + tilt + rng.gauss(0, 0.055) - pull))
+    out = []
+    for k in range(4800):
+        o, c = Decimal(f"{opens[k]:.2f}"), Decimal(f"{opens[k + 1]:.2f}")
+        high, low = max(o, c) * Decimal("1.005"), min(o, c) * Decimal("0.995")
+        out.append(Bar(date(2013, 12, 1) + timedelta(k), o, high, low, c, 1))
+    return tuple(out)
 
 
-def _said(rows: Sequence[dict[str, Any]], case: str) -> None:
-    """Every row judged, none in error, and each gives the table's verdicts."""
-    assert rows and not [r for r in rows if "error" in r], rows
-    for row in rows:
-        got = {k: row["answer"] if k == "answer" else row["rungs"][k][0] for k in WANT[case]}
-        assert got == WANT[case], (row["cell"], row["rungs"])
+def _lucky() -> Mapping[Line, Sequence[Bar]]:
+    """A breakout that loses a little every year but one, and earns its whole profit there."""
+    pushes = [0.03 if year == LUCKY else -0.003 for year in range(2010, 2027)]
+    return {line: _walk(n, *pushes, days=365)[-2400:] for n, line in enumerate(SIXTEEN, 1)}
 
 
-@pytest.fixture(autouse=True)
-def _off(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A hundred shuffles a run, and the ladder's off answers, not its eased ones."""
-    monkeypatch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))
-    monkeypatch.setattr(verdict, "EASED", False)
+def _thin() -> Mapping[Line, Sequence[Bar]]:
+    """The breakout's edge on sixteen lines, AMD holding only its last 2,000 days of it."""
+    walks: dict[Line, Sequence[Bar]] = {
+        line: _walk(n, 0.012, 0.012, days=DAYS // 2)[-2400:] for n, line in enumerate(SIXTEEN)
+    }
+    return walks | {US[-1]: walks[US[-1]][-2000:]}
+
+
+def _noise() -> Mapping[Line, Sequence[Bar]]:
+    """The breakout on sixteen walks with nothing planted."""
+    return {line: _walk(n, 0, 0, days=DAYS // 2)[-2400:] for n, line in enumerate(SIXTEEN, 1)}
+
+
+CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
+    "paid": ("churner", lambda: {line: _paid(n) for n, line in enumerate(US, 1)}),
+    "churner": ("churner", lambda: {line: _drift(n) for n, line in enumerate(US, 1)}),
+    "lucky": ("breakout_20_10", _lucky),
+    "thin": ("breakout_20_10", _thin),
+    "noise": ("breakout_20_10", _noise),
+}
+
+
+@pytest.fixture(scope="module")
+def judged(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Callable[[str], Rows]]:
+    """Each case's rows from the real ladder, run once for the module: a basket case is its
+    set's basket row, read with the retail rung (EASED); the churner is planted in the book
+    with its own known answers, so the ladder's door lets it in."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))  #: a hundred runs each
+        book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner}
+        patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
+        churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
+        patch.setitem(EPONYMOUS_PUBLISHED, "churner", Published("the kit's churner", (churns,)))
+        real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
+        patch.setattr(tape, "code_of_rule", lambda s: "planted" if s == "churner" else real(s))
+
+        @cache
+        def rows(case: str) -> Rows:
+            name, basket = case.removesuffix(" basket"), case.endswith(" basket")
+            rule, make = CASES[name]
+            walks = make()
+            spy = _walk(99, 0, 0, days=DAYS // 2)
+            door, pounds = _door(dict(walks) | {SPY: spy}), {bar.day: Decimal("0.8") for bar in spy}
+            todo = [Cell(rule, line, ladder.START, ladder.END) for line in walks]
+            patch.setattr(verdict, "EASED", basket)
+            if basket:  #: the US lines, beside SPY: a proxied London line's US days are not ISF's
+                walks = {line: bars for line, bars in walks.items() if line in US}
+                todo = [Cell(rule, line, ladder.START, ladder.END) for line in walks]
+                return ladder_sets.baskets(door, pounds, todo, [rule], ladder.FIRST)
+            home = tmp_path_factory.mktemp(name)
+            ladder.run(home, door, pounds, todo)
+            lines = (home / "ladder" / "set1.jsonl").read_text().splitlines()
+            got = [json.loads(line) for line in lines]
+            return got[-1:] if name == "thin" else got  #: case f is AMD's row alone
+
+        yield rows
+
+
+def _failed(row: Known, rows: Rows) -> str:
+    """Why the row's known answer is not given, or nothing when it is on every line."""
+    if not rows or any("rungs" not in r for r in rows):
+        return f"no judged row: {[r.get('error') or r.get('refused') for r in rows][:2]}"
+    for r in rows:
+        said = ["", ""] if row.key == "answer" else r["rungs"].get(row.key, ["absent", ""])
+        got = r["answer"] if row.key == "answer" else said[0]
+        if got != row.want or row.says not in said[1]:
+            return f"{r['cell'][1]}: {row.key} {got}, not {row.want}: {said[1][:120]}"
+    return ""
+
+
+def _map() -> dict[int, str]:
+    """The ladder's map of rungs, number to name, read from its docstring as `rungs_built` reads
+    it (pattern 18: the registry, never a list kept here)."""
+    paragraph = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    rows = [line.strip() for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
+    return {int(r.split()[0]): r.split(":")[0] for r in rows}
+
+
+def test_every_rung_of_the_map_has_a_known_answer_row_that_passes(
+    judged: Callable[[str], Rows],
+) -> None:
+    """THE GOAL, per rung and overall: every rung the map registers holds a row of the kit, and
+    every row passes; the failure lists each rung that lacks one or fails one."""
+    rungs, owed = _map(), []
+    assert len(rungs) == ladder.rungs_built()[1], "the map read is not the ladder's"
+    for number, name in sorted(rungs.items()):
+        mine = [row for row in KIT if row.rung == number]
+        wrong = [f"{row.case}: {why}" for row in mine if (why := _failed(row, judged(row.case)))]
+        if not mine or wrong:
+            owed.append(f"{name}: " + ("no known-answer row" if not mine else "; ".join(wrong)))
+    assert not owed, "rungs still owed a passing known answer:\n" + "\n".join(owed)
+
+
+@pytest.mark.parametrize("row", [row for row in KIT if row.rung == 0], ids=lambda r: r.case)
+def test_each_case_gives_its_one_answer(judged: Callable[[str], Rows], row: Known) -> None:
+    """The one answer over the rungs, case by case: the overall goal's half of the table."""
+    assert not (why := _failed(row, judged(row.case))), why
 
 
 def test_c_a_look_ahead_cheat_is_refused_by_the_future_blind_check() -> None:
     """The check every rule of the book passes (`test_lab_spec_blind.py`) refuses the cheat,
     and every rule the ladder can be handed is one it checks."""
     assert blind._blind(Cheat, blind._bars(), seed=3), "the cheat went unseen"
-    assert set(rulebook.rules()) <= set(blind.RULES)
+    assert set(blind.RULES) >= BOOK
 
 
-def test_d_a_cost_churner_fails_the_cell_on_its_costs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_the_churners_edge_is_real_and_the_lucky_year_is_the_whole_profit(
+    judged: Callable[[str], Rows],
 ) -> None:
-    """Planted in the book with its own known answers, so the ladder's door lets it in."""
-    book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner}
-    monkeypatch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
-    case = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
-    planted = Published("the kit's planted churner", (case,))
-    monkeypatch.setitem(EPONYMOUS_PUBLISHED, "churner", planted)
-    real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
-    monkeypatch.setattr(tape, "code_of_rule", lambda s: "planted" if s == "churner" else real(s))
-    rows = _rows(tmp_path, {line: _drift(n) for n, line in enumerate(SIXTEEN[-4:], 1)}, "churner")
-    _said(rows, "d churner")
-    #: the gross edge is real and small: positive, a tenth or so of what the broker takes
-    assert all("the edge holds to 0.1 times the costs" in r["rungs"]["costs"][1] for r in rows)
-
-
-def test_e_one_lucky_year_fails_the_folds(tmp_path: Path) -> None:
-    """A breakout that loses a little every year but one, and earns its whole profit there."""
-    pushes = [0.03 if year == LUCKY else -0.003 for year in range(2010, 2027)]
-    walks = {line: _walk(n, *pushes, days=365)[-2400:] for n, line in enumerate(SIXTEEN, 1)}
-    rows = _rows(tmp_path, walks)
-    _said(rows, "e lucky year")
-    assert all("above nothing" in r["rungs"]["first"][1] for r in rows), "the whole is profit"
-    assert all(f"folds, {LUCKY}:" not in r["rungs"]["folds"][1] for r in rows)
-
-
-def test_f_a_line_too_thin_alone_is_judged_on_its_basket_not_faulted(tmp_path: Path) -> None:
-    """AMD holds only the last 2,000 days of the edge: too few trades alone, its fifteen
-    siblings' years pooled with its own give the folds enough."""
-    walks = {line: _walk(n, 0.012, 0.012, days=DAYS // 2)[-2400:] for n, line in enumerate(SIXTEEN)}
-    walks[SIXTEEN[-1]] = walks[SIXTEEN[-1]][-2000:]
-    thin = _rows(tmp_path, walks)[-1]
-    _said([thin], "f thin line")
-    assert thin["cell"][1] == "AMD" and "over 16 lines" in thin["rungs"]["folds"][1]
+    """Case d's gross edge is above nothing, only small; case e's whole history earns."""
+    assert all("the edge holds to 0.1 times" in r["rungs"]["costs"][1] for r in judged("churner"))
+    lucky = judged("lucky")
+    assert all("above nothing" in r["rungs"]["first"][1] for r in lucky), "the whole is profit"
+    assert all(f"folds, {LUCKY}:" not in r["rungs"]["folds"][1] for r in lucky)
