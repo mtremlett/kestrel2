@@ -367,6 +367,8 @@ def keep(
     told += keeper_live.rounds(  # the fast round first, under half the call's time
         home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
     )
+    if (home / HOT).is_file():
+        keeper_live.roll(home / HOT)  # the long database holds this round's bars, not tonight's
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         ask = _within(daily, clock, ends)

@@ -4,8 +4,9 @@ these refuse it in the check, on GitHub, before anything merges:
 
 - a lane's branch (named `lane/<lane>-...` by the runner: money, paper, data, grid,
   rungs) may change only its own lane's files (its decisions in `docs/lanes/<lane>.md`
-  among them), the shared documents, and add its own modules to the manifest or remove
-  the line of one it owned on main (folding it away, R-RUNGS-29); a branch
+  among them), the shared documents, and add its own modules to its own manifest file,
+  `manifest/<lane>.toml`, or remove the line of one it owned on main (folding it away,
+  R-RUNGS-29); `manifest.toml` itself and another lane's file are refused; a branch
   naming a lane the manifest does not know fails;
 - no branch grows `desk/` and `lab/` together by more than 300 lines in one change;
 - up to twelve sessions run at once, so each lane session holds a claim: the files it
@@ -25,13 +26,13 @@ import json
 import os
 import re
 import subprocess
-import tomllib
 from fnmatch import fnmatch
 from pathlib import Path
 
+from test_guards import manifest
+
 ROOT = Path(__file__).resolve().parents[2]
 LANE_BRANCH = re.compile(r"lane/([a-z]+)-")  #: every lane branch; an unknown lane fails
-HEADING = re.compile(r"# the ([a-z]+) lane")
 MODULE = re.compile(r'"([^"]+)" = ".*"')
 #: Every lane writes in its own part of these (docs/PLAN.md says which part).
 SHARED = ("docs/STATUS.md", "docs/PLAN.md", "docs/SCOREBOARD.md", "docs/DECISIONS.md")
@@ -78,46 +79,30 @@ def _changes() -> dict[str, tuple[int, int]]:
 
 
 def _owned(lane: str, at: str = "") -> list[str]:
-    """A lane's files: its modules (under its heading in manifest.toml), their unit tests,
-    its own decisions (docs/lanes/<lane>.md) and what manifest.toml's [lanes] table adds;
-    read from the commit `at` when given (main's, so a module the lane folds away is still its
-    own), else from the working tree."""
-    text = (
-        _git("show", f"{at}:manifest.toml")
-        if at
-        else (ROOT / "manifest.toml").read_text(encoding="utf-8")
-    )
-    patterns: list[str] = []
-    current = None
-    for line in text.splitlines():
-        if heading := HEADING.fullmatch(line.strip()):
-            current = heading[1]
-        elif line.startswith("["):
-            current = None
-        elif (module := MODULE.fullmatch(line.strip())) and current == lane:
-            stem = Path(module[1]).stem
-            prefix = "test_lab_" if module[1].startswith("lab/") else "test_"
-            patterns += [
-                module[1],
-                f"tests/unit/{prefix}{stem}.py",
-                f"tests/unit/{prefix}{stem}_*.py",
-            ]
-    lanes = tomllib.loads(text)["lanes"]
+    """A lane's files: its modules (those in manifest/<lane>.toml), their unit tests, its own
+    decisions (docs/lanes/<lane>.md) and what manifest.toml's [lanes] table adds; read from
+    the commit `at` when given (main's, so a module the lane folds away is still its own),
+    else from the working tree. Its manifest file is its own only through the line check."""
+    spec = manifest(at)
+    lanes = spec["lanes"]
     assert lane in lanes, f"no lane called {lane!r} in manifest.toml's [lanes]: {sorted(lanes)}"
+    patterns: list[str] = []
+    for module in sorted(m for m, owner in spec["owner"].items() if owner == lane):
+        stem = Path(module).stem
+        prefix = "test_lab_" if module.startswith("lab/") else "test_"
+        patterns += [module, f"tests/unit/{prefix}{stem}.py", f"tests/unit/{prefix}{stem}_*.py"]
     return [*patterns, f"docs/lanes/{lane}.md", *lanes[lane]]
 
 
-def _manifest_own_lines_only(owned: list[str], was: list[str], base: str) -> list[str]:
-    """A lane may only add lines registering its own modules, and remove the line of a module
-    it owned on main (folding it away, R-RUNGS-29, his yes 22 Nov); any other edit is refused."""
+def _module_lines_only(fragment: str, base: str) -> list[str]:
+    """A lane may only add or remove module lines in its own manifest file (registering one,
+    or folding one away, R-RUNGS-29, his yes 22 Nov); any other edit is refused. Its lines are
+    its modules by where they sit, and a module another lane lists fails the loader."""
     wrong = []
-    for line in _git("diff", "-U0", base, "--", "manifest.toml").splitlines():
+    for line in _git("diff", "-U0", base, "--", fragment).splitlines():
         if not line.startswith(("+", "-")) or line.startswith(("+++", "---")) or line in "+-":
             continue  # only the lines added or removed, not git's headers
-        module = MODULE.fullmatch(line[1:].strip())
-        if not module or not any(
-            fnmatch(module[1], p) for p in (was if line.startswith("-") else owned)
-        ):
+        if not MODULE.fullmatch(line[1:].strip()):
             wrong.append(line)
     return wrong
 
@@ -129,23 +114,21 @@ def test_a_lane_changes_only_its_own_files() -> None:
     if lane is None:
         return  # not a lane's branch: a session the operator started, under his eye
     base = _git("merge-base", "HEAD", "origin/main").strip()
-    owned, was = _owned(lane[1]), _owned(lane[1], base)
+    owned, was, fragment = _owned(lane[1]), _owned(lane[1], base), f"manifest/{lane[1]}.toml"
     foreign = sorted(
         path
         for path in _changes()
         if path not in SHARED
-        and path != "manifest.toml"
+        and path != fragment
         and not any(fnmatch(path, p) for p in (*owned, *was))
     )
     assert not foreign, (
         f"the {lane[1]} lane may not change {foreign}: another lane's, or no lane's "
         "(docs/PLAN.md). Write the need in your lane's section of docs/STATUS.md instead."
     )
-    if "manifest.toml" in _changes():
-        wrong = _manifest_own_lines_only(owned, was, base)
-        assert (
-            not wrong
-        ), f"the {lane[1]} lane may only register or fold away its own modules: {wrong}"
+    if fragment in _changes():
+        wrong = _module_lines_only(fragment, base)
+        assert not wrong, f"the {lane[1]} lane may only register or fold away modules: {wrong}"
 
 
 def test_no_change_grows_the_product_by_more_than_300_lines() -> None:
@@ -201,7 +184,7 @@ def test_a_lane_changes_only_what_it_claimed() -> None:
     outside = sorted(
         path
         for path in _changes()
-        if path != "manifest.toml" and not any(fnmatch(path, p) for p in patterns)
+        if path != f"manifest/{lane[1]}.toml" and not any(fnmatch(path, p) for p in patterns)
     )
     assert not outside, (
         f"the {lane[1]} lane's session claimed {claim} and may not change {outside}. "

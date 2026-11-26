@@ -472,3 +472,18 @@ def test_a_trade_is_told_with_its_strategy_and_the_bar_its_signal_read(tmp_path:
     assert (story.strategy, story.held, story.bar) == ("rsi", 0, friday)
     with pytest.raises(ValueError, match="no bar before"):
         book.told(trips, {A: WEEK[A]})
+
+
+def test_a_fill_the_broker_reports_and_the_send_path_never_recorded_is_booked_by_the_next_reconcile(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-533 (SMGB, 25 Nov): the desk's and the zoo's orders filled at the broker, no fill
+    reached the ledger, and every later send refused 'the book is not the broker's'."""
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    for name in ("o-1", "zoo-bollinger-2"):  #: placed at the broker, the send path never saw them
+        broker.place(Order(name, A, 5, *map(Decimal, (50, 1, 45))))
+    assert book.positions(tmp_path) == {}, "nothing booked before the reconcile"
+    assert book.reconcile(tmp_path, broker) == (), "the book is the broker's once it has collected"
+    assert book.positions(tmp_path) == {"A": 10} and book.fills(tmp_path) == broker.fills()
+    assert _send(tmp_path, broker, "o-3", n=1).filled == 1, "the next send is not refused"
