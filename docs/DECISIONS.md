@@ -2519,3 +2519,10 @@ JSON line. Decided by rule, with the options:
   ticked would count again (none seen; boxes with work carry ids).
 Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
 printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.
+
+## 26 Nov - a WEAK fit with the book is graded, not held back (RUNGS)
+
+Ruled by chat seat 215, asked by the fit rung's session (#2233): the fit rung is a soft rung, so its
+WEAK is a scorecard mark like the regime rung's and its FAIL still holds a cell back. `verdict.GRADED`
+names "fit" (`rung_fit.RUNG.name` once #2233 lands). Seen red first: a WEAK fit held a cell back in
+`test_lab_verdict.py`'s scorecard test.
