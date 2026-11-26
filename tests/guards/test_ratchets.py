@@ -132,3 +132,121 @@ def test_whole_file_reads_never_rise() -> None:
         f"files that grew (main, now): {grown}. Read a file that grows a line at a time; "
         "for one that cannot grow, say why on the same line: `# bounded: <why>`."
     )
+
+
+#: the smallest function body, in syntax nodes, whose copy counts as a duplicate
+DUPLICATE_NODES = 25
+#: where a name defined in desk/ or lab/ may be used
+USED_IN = ("desk", "lab", "tests", "check.py")
+
+
+def _sources(ref: str | None, dirs: tuple[str, ...] = ROOT_DIRS) -> dict[str, str]:
+    """Each Python file under dirs, at a commit, or in the working tree when ref is None."""
+    if ref is not None:
+        files = _git("ls-tree", "-r", "--name-only", ref, "--", *dirs).splitlines()
+        return {p: _git("show", f"{ref}:{p}") for p in files if p.endswith(".py")}
+    files = _git("ls-files", "--cached", "--others", "--exclude-standard", "--", *dirs)
+    paths = [ROOT / p for p in files.splitlines() if p.endswith(".py")]
+    return {
+        p.relative_to(ROOT).as_posix(): p.read_text(encoding="utf-8") for p in paths if p.exists()
+    }
+
+
+def _duplicates(sources: dict[str, str]) -> list[str]:
+    """Each function whose body, docstring aside, is node for node another's: the second
+    and later copies, as path:name. Names, line numbers and the docstring never count."""
+    seen: dict[str, str] = {}
+    copies: list[str] = []
+    for path, source in sorted(sources.items()):
+        for node in ast.walk(ast.parse(source)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                continue
+            body = node.body[1:] if ast.get_docstring(node) is not None else node.body
+            if sum(1 for stmt in body for _ in ast.walk(stmt)) < DUPLICATE_NODES:
+                continue
+            key = "\n".join(ast.dump(s, annotate_fields=False) for s in body)
+            if key in seen:
+                copies.append(f"{path}:{node.name} (a copy of {seen[key]})")
+            else:
+                seen[key] = f"{path}:{node.name}"
+    return copies
+
+
+def _top_names(source: str) -> list[str]:
+    """The names a module defines at its top level: functions, classes and assignments."""
+    names: list[str] = []
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            names.append(node.name)
+        elif isinstance(node, ast.Assign | ast.AnnAssign):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names += [t.id for t in targets if isinstance(t, ast.Name)]
+    return [n for n in names if not (n.startswith("__") and n.endswith("__"))]
+
+
+def _unused(ref: str | None) -> list[str]:
+    """Each top-level name in desk/ and lab/ written nowhere but its own definition, in
+    desk/, lab/, tests/ or check.py: code that nothing runs, as path:name."""
+    product = _sources(ref)
+    text = "\n".join(_sources(ref, USED_IN).values())
+    words: dict[str, int] = {}
+    for word in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", text):
+        words[word] = words.get(word, 0) + 1
+    return [
+        f"{p}:{n}"
+        for p, s in sorted(product.items())
+        for n in _top_names(s)
+        if words.get(n, 0) <= 1
+    ]
+
+
+def _two_homes(sources: dict[str, str]) -> list[str]:
+    """Each home past the first of an UPPER_CASE constant assigned at the top level of two or
+    more modules: one fact with two homes (failure pattern 8), as name: path. A third home
+    counts again."""
+    homes: dict[str, list[str]] = {}
+    for path, source in sorted(sources.items()):
+        for name in set(_top_names(source)):
+            if name.isupper() and len(name) > 1:
+                homes.setdefault(name, []).append(path)
+    return [f"{n}: {p}" for n, ps in sorted(homes.items()) for p in ps[1:]]
+
+
+def _never_rise(what: str, before: list[str], now: list[str], fix: str) -> None:
+    new = sorted(set(now) - set(before))
+    assert len(now) <= len(
+        before
+    ), f"{what} rise from {len(before)} on main to {len(now)}; new: {new[:10]}. {fix}"
+
+
+def test_duplicate_function_bodies_never_rise() -> None:
+    """BLOAT, the copy: the same body written twice drifts apart the first time one is
+    fixed. A change may merge copies; it may not add one."""
+    _never_rise(
+        "duplicate function bodies",
+        _duplicates(_sources(_base())),
+        _duplicates(_sources(None)),
+        "Call the one that exists instead of writing it again.",
+    )
+
+
+def test_unused_definitions_never_rise() -> None:
+    """BLOAT, the dead: a definition nothing uses still has to be read, kept and moved. A
+    change may delete dead code; it may not add a definition that nothing uses."""
+    _never_rise(
+        "top-level definitions nothing uses",
+        _unused(_base()),
+        _unused(None),
+        "Use it, or delete it: git is the archive.",
+    )
+
+
+def test_constants_with_two_homes_never_rise() -> None:
+    """SPRAWL, the second home (failure pattern 8): the same constant name assigned in two
+    modules, which then disagree. A change may merge homes; it may not add one."""
+    _never_rise(
+        "constants defined in two modules",
+        _two_homes(_sources(_base())),
+        _two_homes(_sources(None)),
+        "Import the constant from the one module that owns it (manifest.toml).",
+    )
