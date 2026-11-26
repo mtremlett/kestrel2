@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from itertools import product
+from typing import Any
 
 import pytest
 from test_lab_luck import DAY
@@ -222,7 +223,12 @@ def test_the_verdict_builds_the_plateau_itself_from_the_rules_variants_on_the_ce
     monkeypatch.setattr(cell, "STRATEGIES", strategy.STRATEGIES)  #: the real rules, run for real
     asked: list[Cell] = []
     ready = verdict.ready
-    monkeypatch.setattr(verdict, "ready", lambda c, *rest: asked.append(c) or ready(c, *rest))
+
+    def told(c: Cell, *rest: Any) -> Verdict:
+        asked.append(c)
+        return ready(c, *rest)
+
+    monkeypatch.setattr(verdict, "ready", told)
     fixed = verdict._plateaued(replace(c, strategy="breakout_20_10"), own, {}, won, None)
     assert fixed[0] is Answer.PASS and fixed[1].startswith("NOT APPLICABLE: breakout_20_10")
     failed = verdict._plateaued(c, own, {}, lost, None)
