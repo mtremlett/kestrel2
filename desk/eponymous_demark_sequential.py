@@ -16,6 +16,8 @@ itself, after costs, on the desk's own data. Secondary sources (undated here) di
 countdown's compare (close against the low two bars back, or against the close) and on its
 exact cancel rules; this port takes the book's low-two-bars-back reading, so the RANGE of the
 setting is those two compares with the 9 and 13 fixed.
+Holding period: none. The sale is the nine-bar sell setup alone; the book gives no day limit,
+so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """
