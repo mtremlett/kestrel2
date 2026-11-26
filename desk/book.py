@@ -254,9 +254,15 @@ _write = keep  # old name, for other lanes' callers until they move
 
 def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
-    the book, and those shares (whole ones; a part share is for a hand to look at)."""
+    the book, and those shares (whole ones; a part share is for a hand to look at). Shares
+    already under a working stop of the desk's own at the broker are not named: a sale sent on
+    top of that stop would sell them twice (R-RUNNER-517)."""
+    stopped = Counter[str]()
+    for name, shares in broker.stops():
+        stopped[name] += int(shares)
     more = differences(positions(root), broker.holdings())
-    return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
+    left = ((d.name, int(d.broker) - d.book - stopped[d.name]) for d in more if d.broker > d.book)
+    return tuple((name, shares) for name, shares in left if shares > 0)
 
 
 def collect(root: Path, broker: Broker) -> None:

@@ -60,3 +60,15 @@ def test_a_place_that_disagrees_halts_buying_tells_him_once_and_a_sale_still_goe
         book.send(tmp_path, broker, Order("o-2", A, 1, *map(Decimal, (50, 1, 45))), room)
     book.send(tmp_path, broker, Sale("s-1", A, sent.filled), room)
     assert broker.submitted() == ("o-1", "s-1")
+
+
+def test_a_stranger_under_a_working_broker_stop_is_not_sold_on_top_of_it() -> None:
+    """R-RUNNER-517: shares the book lacks that sit under the desk's stop at the broker are left
+    to it (deep SimCity's world 4 sold them twice); one share more than the stop covers is not."""
+    broker = Pretend({A: ()}, {})
+    broker.inject("Z", 5)
+    broker.inject("Y", 7)
+    broker.put_stop_back("Z", Decimal(40))
+    broker.put_stop_back("Y", Decimal(40))
+    broker.inject("Y", 2)
+    assert dict(book.strangers(Path("none"), broker)) == {"Y": 2}, "Z is stopped, Y's 2 are bare"
