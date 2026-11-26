@@ -247,6 +247,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2119 zoo-size-pins N1 (R-RUNNER-479): one test, pins #2105 (zoo buys sized on own side, desk holding five).
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2137 zoo-own-side: daily zoo round judged on the zoo's own room and total; intraday round remains.
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2152 zoo-own-side part: pounds-room part on main, held-already part blocked, one pinning test landed.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2149 money-door-pound step 1: currency maths takes an injected rate; SimCity off rates.csv.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2181 R-RUNNER-512 met, one pinning test, no behaviour change.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2184 four rules' holding periods settled; fade's 20-session hold waits on its spec.
 
 
 ### DATA
