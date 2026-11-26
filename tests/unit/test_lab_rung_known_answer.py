@@ -135,8 +135,17 @@ def _paid(seed: int) -> tuple[Bar, ...]:
     return tuple(out)
 
 
-#: The desk's breakout under another name: a rule that only repeats one running on paper.
-Clone = type("Clone", (STRATEGIES["breakout_20_10"],), {})
+#: The desk's breakout copied under another name, not a subclass (which is its family, a
+#: variant): a rule that only repeats one the book already trades.
+Clone = type(
+    "Clone",
+    (),
+    {
+        k: v
+        for k, v in vars(STRATEGIES["breakout_20_10"]).items()
+        if k not in ("__dict__", "__weakref__", "__module__", "__qualname__")
+    },
+)
 
 
 def _deep() -> Mapping[Line, Sequence[Bar]]:
