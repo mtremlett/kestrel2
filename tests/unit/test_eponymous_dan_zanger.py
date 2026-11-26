@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_dan_zanger
 from desk.eponymous_dan_zanger import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -30,3 +31,10 @@ def test_buys_the_heavy_volume_breakout_and_sells_under_the_ten_day_average() ->
 def test_waits_for_fifty_days_and_for_a_breakout_on_heavy_volume() -> None:
     assert _trades([(100, 101, 1000)] * 49 + [(110, 110, 9000)]) == {}  # under 50 days seen
     assert _trades([*BASE, (100, 100, 9000)]) == {}  # heavy volume, no breakout
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: the sale is the rule's own sell logic alone, no time stop; stated
+    assert "Holding period: none" in eponymous_dan_zanger.__doc__
+    rules = eponymous_dan_zanger.EPONYMOUS.values()
+    assert all(r.declared.hold is None for r in rules)
