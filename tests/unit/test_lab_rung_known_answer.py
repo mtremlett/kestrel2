@@ -133,8 +133,8 @@ def _paid(seed: int) -> tuple[Bar, ...]:
     return tuple(out)
 
 
-class Clone(STRATEGIES["breakout_20_10"]):  # type: ignore[misc,valid-type]
-    """The desk's breakout under another name: a rule that only repeats one running on paper."""
+#: The desk's breakout under another name: a rule that only repeats one running on paper.
+Clone = type("Clone", (STRATEGIES["breakout_20_10"],), {})
 
 
 def _deep() -> Mapping[Line, Sequence[Bar]]:
