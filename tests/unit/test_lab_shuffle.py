@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from test_lab_rung import POUND, TEN_K, _walk
@@ -60,7 +61,12 @@ def test_a_cell_ending_before_later_bars_draws_none_of_their_days(
     c = Cell("breakout_20_10", VUSA, bars[0].day, end)
     seen: list[Sequence[Bar]] = []
     real = shuffle._t
-    monkeypatch.setattr(shuffle, "_t", lambda c, b, *rest: (seen.append(b), real(c, b, *rest))[1])
+
+    def spied(c: Cell, b: Sequence[Bar], *rest: Any) -> Decimal | None:
+        seen.append(b)
+        return real(c, b, *rest)
+
+    monkeypatch.setattr(shuffle, "_t", spied)
     shuffle.share(c, bars, TEN_K, POUND, ())
     top = max(bar.close for bar in bars if bar.day <= end)
     for history in seen[1:]:
