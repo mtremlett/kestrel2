@@ -49,8 +49,13 @@ _ONE = Decimal(1)
 
 def score(closes: Sequence[Decimal]) -> Decimal:
     """The annualised slope of the exponential regression of `closes`, times its R-squared."""
-    n = len(closes)
-    xs, ys = range(n), [c.ln() for c in closes]
+    return _scored([c.ln() for c in closes])
+
+
+def _scored(ys: Sequence[Decimal]) -> Decimal:
+    """`score` of the closes whose natural logs are `ys`, in the same order of arithmetic."""
+    n = len(ys)
+    xs = range(n)
     mx, my = Decimal(n - 1) / 2, sum(ys, ZERO) / n
     sxx = sum(((x - mx) ** 2 for x in xs), ZERO)
     sxy = sum(((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)), ZERO)
@@ -68,19 +73,23 @@ class ClenowMomentum:
 
     def __init__(self) -> None:
         self._average = _Window(TREND)
-        self._closes: deque[Decimal] = deque(maxlen=REGRESSION)
+        self._last: Decimal | None = None
+        #: each close's log, taken once as it arrives, not 90 times over (2.1 s a 6,500-bar run);
+        #: a close at or under 0 now raises here, never reached: the store refuses such a bar
+        self._logs: deque[Decimal] = deque(maxlen=REGRESSION)
         self._gapped: deque[bool] = deque(maxlen=REGRESSION)
 
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
         close = bar.close
-        if self._closes:
-            self._gapped.append(abs(close / self._closes[-1] - _ONE) > GAP)
-        self._closes.append(close)
+        if self._last is not None:
+            self._gapped.append(abs(close / self._last - _ONE) > GAP)
+        self._last = close
+        self._logs.append(close.ln())
         self._average.add(close)
         if not self._average.full or any(self._gapped) or close <= self._average.mean():
             return False
-        return holding or score(self._closes) > ZERO
+        return holding or _scored(self._logs) > ZERO
 
 
 def decide(bars: Mapping[str, Sequence[Bar]]) -> tuple[Decision, ...]:

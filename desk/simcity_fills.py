@@ -27,7 +27,7 @@ class Mismatch:
     """One field of one fill the replay decides otherwise."""
 
     fill: str  #: the fill's execution id
-    field: str  #: signal, size, stop, refusal or correlation
+    field: str  #: rule, signal, size, stop, refusal or correlation
     recorded: str
     replayed: str
 
@@ -75,11 +75,10 @@ def _one(
 
     line = next(x for x in before if x.symbol == f.symbol)
     now = {x.symbol: bars for x, bars in before.items() if x.symbol == f.symbol}
-    decision = next(
-        d
-        for d in strategy.today(now, {s: h for s, h in holders.items() if s in held and s in now})
-        if d.strategy == name
-    )
+    decided = strategy.today(now, {s: h for s, h in holders.items() if s in held and s in now})
+    decision = next((d for d in decided if d.strategy == name), None)
+    if decision is None:
+        return differs("rule", name, "no decision from today()")
     if decision.action is not Action.BUY:
         return differs("signal", Action.BUY.name, decision.action.name)
     price, fx = before[line][-1].close, rates[line.currency]
