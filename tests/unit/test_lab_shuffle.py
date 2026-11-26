@@ -168,3 +168,57 @@ def test_a_cells_shuffles_are_one_tape_read_back_with_no_simulation(
     assert bare == first == again == Decimal(1) / 101
     assert cold == shuffle.SHUFFLES + 1 and runs[0] == cold, "the second shuffle simulated"
     assert len(list(tmp_path.glob("*.tape"))) == 1 and len(list(tmp_path.glob("*.shuffles"))) == 1
+
+
+def test_a_kept_shuffle_is_never_served_for_another_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S5: each kept entry answers only the history that made it; shuffled in another order
+    (here a new seed) under the same tapes, every entry is run again and the share is the one
+    that order gives with no tapes at all."""
+    bars = _walk(1, 0.012, days=3000)
+    c = Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
+    with tape.on(tmp_path):
+        kept = shuffle.share(c, bars, TEN_K, POUND, ())
+    monkeypatch.setattr(trials, "name", lambda c: f"another order for {c}")
+    other = shuffle.share(c, bars, TEN_K, POUND, ())
+    runs, engine = [0], cell.run
+
+    def counted(*args: Any) -> cell.Record:
+        runs[0] += 1
+        return engine(*args)
+
+    monkeypatch.setattr(cell, "run", counted)
+    with tape.on(tmp_path):
+        assert shuffle.share(c, bars, TEN_K, POUND, ()) == other
+    assert runs[0] == shuffle.SHUFFLES and kept == Decimal(1) / 101  #: all but the trial's own
+
+
+def test_a_shuffle_broken_off_keeps_the_resamples_it_finished(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S5: a pass stopped mid-shuffle keeps what it ran, so the next runs only the rest."""
+    bars = _walk(1, 0.012, days=3000)
+    c = Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
+    real, asked = shuffle._t, [0]
+
+    def broken(*args: Any) -> Decimal | None:
+        asked[0] += 1
+        if asked[0] > 51:  #: the trial and fifty shuffles done
+            raise KeyboardInterrupt
+        return real(*args)
+
+    with tape.on(tmp_path):
+        monkeypatch.setattr(shuffle, "_t", broken)
+        with pytest.raises(KeyboardInterrupt):
+            shuffle.share(c, bars, TEN_K, POUND, ())
+        monkeypatch.setattr(shuffle, "_t", real)
+        runs, engine = [0], tape._ON[-1][1]
+
+        def counted(*args: Any) -> cell.Record:
+            runs[0] += 1
+            return engine(*args)
+
+        tape._ON[-1] = (tmp_path, counted)  #: the engine the tapes keep, counted; popped at the end
+        assert shuffle.share(c, bars, TEN_K, POUND, ()) == Decimal(1) / 101
+    assert runs[0] == shuffle.SHUFFLES - 50

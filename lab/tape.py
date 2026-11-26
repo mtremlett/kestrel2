@@ -1,6 +1,7 @@
 """tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one file
-each, stored compressed, keyed by what made them (rule's code, engine's, bars), so an edited
-rung runs no simulation. Written whole or not at all: aside, forced to disk, renamed.
+each (a cell's shuffles, one file for all of them: `resamples`), stored compressed, keyed by
+what made them (rule's code, engine's, bars), so an edited rung runs no simulation. Written
+whole or not at all: aside, forced to disk, renamed.
 
 ONE SIMULATION PER LINE (R-RUNNER-169): a rule is run once on a line, from its first bar to its
 last, and every window (the first rung's, each fold's) is cut from that tape by date. A rule sees
@@ -118,7 +119,8 @@ def _write(path: Path, held: object) -> None:
     aside.replace(path)
 
 
-#: The tapes' folder and the engine they keep, while `on` holds: the innermost block's last.
+#: The tapes' folder and the engine they keep, while `on` holds: the innermost block's last,
+#: the bare engine the outermost one's (a nested block's engine is a kept one).
 _ON: list[tuple[Path, Run]] = []
 
 
@@ -127,12 +129,13 @@ def resamples(c: Cell, bars: Sequence[Bar]) -> Iterator[Run]:
     """A run for the cell's resampled histories (the shuffle rung's), its n-th call answered
     from the n-th of one tape for the cell (S5): keyed by the rule's code, the engine's and the
     cell's own bars, each entry kept with the data version of the history that made it, so a
-    history not the same is run again. Written whole as the block ends, if it grew; with no
-    tapes on, each history is run."""
+    history not the same is run again on the bare engine. Written whole as the block ends, if
+    it grew, even when the block is broken off, so what was run is kept; with no tapes on, each
+    history is run."""
     if not _ON:
         yield lambda c, history: cell.run(c, history)
         return
-    folder, run = _ON[-1]
+    folder, run = _ON[-1][0], _ON[0][1]
     now = cell.key(c, bars)
     text = "\n".join(("resamples", rule_code(c.strategy), now.code, now.data, str(c)))
     path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.shuffles"
@@ -152,9 +155,11 @@ def resamples(c: Cell, bars: Sequence[Bar]) -> Iterator[Run]:
         grew[0] = True
         return made
 
-    yield resampled
-    if grew[0]:
-        _write(path, held)
+    try:
+        yield resampled
+    finally:
+        if grew[0]:  #: every entry answers only its own history, so a part is safe to keep
+            _write(path, held)
 
 
 @contextmanager
