@@ -1,13 +1,14 @@
 """rung_fit - FIT WITH THE BOOK: does the rule bring new return, or only more of a rule the
 desk already trades on paper?
 
-The rules it is set beside are the book's: the desk's five (`strategy.STRATEGIES`), less any of
-the cell's own class; never the zoo, a MACHINERY TEST and never evidence (canon B6), so a rule is
-not graded down for resembling one. Each is run on the cell's own bars and
-its days set beside the cell's. A day's return is the line's close-to-close move when the rule
-held after the close before, and nothing when it did not: the same for both, so the costs, a
-level and not a co-movement, do not enter. The cell's days are its judged trades' (the first
-rung's); a running rule that never held over the cell's window says nothing and is passed over.
+The rules it is set beside are the book's: the desk's five (`strategy.STRATEGIES`), less the
+cell's own rule's family (a variant moves one of their settings); never the zoo, a MACHINERY
+TEST and never evidence (canon B6), so a rule is not graded down for resembling one. Each is
+run on the cell's own bars and its days set beside the cell's. A day's return is the line's
+close-to-close move when the rule held after the close before, and nothing when it did not:
+the same for both, so the costs, a level and not a co-movement, do not enter. The cell's days
+are its judged trades' (the first rung's); a book rule that never held over the cell's window
+says nothing and is passed over.
 
 THE BARS (`docs/DECISIONS.md`, 26 Nov, before any EPON result): Pearson's correlation with the
 closest running rule above HALF_SHARED (0.70, about half its day-to-day swings already in the
@@ -65,7 +66,8 @@ def days(holding: Sequence[bool], bars: Sequence[Bar], first: int) -> np.ndarray
     """Each day's return from bar `first` on: the close's move when held after the one before."""
     closes = np.array([float(bar.close) for bar in bars])
     moves = closes[first:] / closes[first - 1 : -1] - 1
-    return moves * np.array(holding[first - 1 : -1], dtype=float)
+    made: np.ndarray = moves * np.array(holding[first - 1 : -1], dtype=float)
+    return made
 
 
 def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Fit:
@@ -76,24 +78,36 @@ def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Fit:
     read = cell.shown(c, bars)
     if cell.key(c, bars).data != first.key.data:
         raise ValueError(f"{c}: these bars did not make the first rung's verdict")
-    own = STRATEGIES.get(c.strategy) or rulebook.rule(c.strategy)
     trades = [p.trade for p in first.trades]
     mine = [any(t.bought <= bar.day < t.sold for t in trades if t.sold) for bar in read]
     start = max(1, next(n for n, bar in enumerate(read) if bar.day >= c.start))
-    ours, found = days(mine, read, start), []
+    ours = days(mine, read, start)
+    if not ours.std() > 0:
+        raise ValueError(f"{c}: its held days never moved, so nothing can be set beside them")
+    found = _beside(first, ours, read, start)
+    if not found:
+        return Fit(None, None, Answer.PASS)
+    r, name = max(found)
+    answer = Answer.FAIL if r > TOO_CLOSE else Answer.DOUBT if r > HALF_SHARED else Answer.PASS
+    return Fit(name, r, answer)
+
+
+def _beside(
+    first: rung.Verdict, ours: np.ndarray, read: Sequence[Bar], start: int
+) -> list[tuple[float, str]]:
+    """Each book rule's correlation with the cell's days, by name; its own rule's family (the
+    rule, or the one a variant moves a setting of) and a rule that never held there passed over."""
+    own = STRATEGIES.get(first.key.cell.strategy) or rulebook.rule(first.key.cell.strategy)
+    found = []
     for name, rule in RUNNING.items():
-        if rule is own:
+        if rule in own.__mro__:
             continue
         if (name, first.key.data) not in _HELD:
             _HELD[name, first.key.data] = held(name, rule, read)
         theirs = days(_HELD[name, first.key.data], read, start)
         if theirs.std() > 0:
             found.append((float(np.corrcoef(ours, theirs)[0, 1]), name))
-    if not found:
-        return Fit(None, None, Answer.PASS)
-    r, name = max(found)
-    answer = Answer.FAIL if r > TOO_CLOSE else Answer.DOUBT if r > HALF_SHARED else Answer.PASS
-    return Fit(name, r, answer)
+    return found
 
 
 def _judged(first: rung.Verdict, bars: Sequence[Bar], _rates: Rates) -> tuple[Answer, str]:

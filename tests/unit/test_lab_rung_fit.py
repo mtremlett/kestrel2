@@ -74,6 +74,17 @@ def test_the_rule_itself_running_on_paper_is_passed_over(monkeypatch: pytest.Mon
     assert got is Answer.PASS and "no rule running on paper" in why, why
 
 
+def test_a_variant_of_a_book_rule_is_not_set_beside_its_own_family(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A variant (the sweep's, the plateau's neighbours) is its book rule with one setting moved:
+    set beside its own base it would FAIL where the published setting is skipped."""
+    monkeypatch.setattr(rung_fit, "RUNNING", {"base": STRATEGIES["breakout_20_10"]})
+    moved = cell.run(Cell("breakout_20_10[entry=15]", VUSA, BARS[0].day, BARS[-1].day), BARS)
+    got, why = rung_fit.RUNG.judge(_first(moved, [t for t in moved.trades if t.sold]), BARS, {})
+    assert got is Answer.PASS and "no rule running on paper" in why, why
+
+
 def test_a_rule_the_first_rung_did_not_pass_keeps_its_answer() -> None:
     assert rung_fit.RUNG.judge(_first(RECORD, SOLD, -0.02), BARS, {})[0] is Answer.FAIL
     assert rung_fit.RUNG.judge(_first(RECORD, SOLD[:5]), BARS, {})[0] is Answer.THIN
