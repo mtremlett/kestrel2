@@ -7,6 +7,7 @@ import os
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,7 @@ from test_lab_ladder import _set as _cells
 
 from desk.lines import Line
 from desk.store import Bar
-from lab import folds, ladder, ladder_pool, trials, verdict
+from lab import folds, ladder, ladder_pool, ladder_sets, tape, trials, verdict
 from lab.batch import Bars
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -157,3 +158,20 @@ def test_the_pool_yields_memory_with_fewer_tasks_at_once_down_to_one_and_grows_b
             allowed.append(pool.allowed)
     assert got == list(range(12))  #: every result kept
     assert allowed[0] == 4 and min(allowed) == 1 and allowed[-1] == 4
+
+
+def test_a_change_re_runs_only_its_own_specs_and_the_set_table_says_rungs_built(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lines, rules = [VUSA, ISF], ["breakout_20_10", "trend_50_200"]
+    monkeypatch.setattr(ladder_pool, "run", partial(ladder_pool.run, size=2, memory=PLENTY))
+    pooled = ladder_sets._pooled(_book)
+    first = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, pooled, records={})
+    built, of = ladder.rungs_built()
+    table = next((tmp_path / ladder.FOLDER / "sets").glob("*.md")).read_text("utf-8")
+    assert f"rungs built: {built} of {of}\n" in table and of == 12
+    assert "4 judged now, 0 kept from before" in first
+    changed = tape.rule_code
+    monkeypatch.setattr(tape, "rule_code", lambda s: "edited" if s == rules[1] else changed(s))
+    again = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, ladder.run, records={})
+    assert "2 judged now, 2 kept from before" in again
