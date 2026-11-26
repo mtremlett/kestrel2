@@ -13,7 +13,7 @@ import pytest
 from test_lab_rung import FREE
 
 from desk.lines import LINES
-from lab import calibration, luck, rung
+from lab import calibration, luck, rung, rung_ci
 from lab.cell import Cell, Key, Trade
 from lab.rung import Answer, Priced, Verdict, noise_band
 
@@ -108,3 +108,9 @@ def test_the_command_takes_one_number_of_worlds_or_refuses() -> None:
     with pytest.raises(SystemExit, match="usage"):
         calibration.main(["many"])
     assert calibration.main(["3"]) == 0
+
+
+def test_a_noise_world_is_long_enough_for_the_bootstrap_to_draw() -> None:
+    """R-RUNNER-503: the calibration's ci answer is the bootstrap's too, never its THIN."""
+    drawn = rung_ci.bootstrap(calibration.world(0), calibration.BARS, {})
+    assert drawn.answer is not Answer.THIN

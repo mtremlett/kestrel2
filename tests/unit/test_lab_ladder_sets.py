@@ -85,10 +85,10 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
 ) -> None:
     from test_lab_ladder import EDGE, ISF, VUSA, _door
 
-    from lab import basket, rung_retail
+    from lab import basket
     from lab.cell import Cell
 
-    seen: list[rung_retail.Against | None] = []
+    seen: list[basket.Against | None] = []
     row = basket.row
 
     def spy(*a: Any) -> Any:
@@ -199,3 +199,15 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     )
     assert "NOT PUBLISHED: " in said
     assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
+
+
+def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected(
+    tmp_path: Path,
+) -> None:
+    stopped = "stopped after a unit: STOP"
+    said = ladder_sets.epon(
+        tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
+    )
+    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    _, notes = ladder_sets.survivors(["breakout_20_10"], [STAYS, LONDON], {"SP500": RECORD})
+    assert ladder_sets.survivorship_said(notes, 2).startswith("survivorship: 1 of 2 lines not")

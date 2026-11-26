@@ -28,3 +28,9 @@ def test_no_buy_without_a_squeeze_or_six_months_of_history() -> None:
     widening = [100 + (n % 2) * (1 + n // 50) for n in range(146)]
     assert _trades([*widening, 200]) == {}  # bands wider than ever: no squeeze
     assert _trades([100] * 100 + [110]) == {}  # under six months of band widths
+
+
+def test_squeeze_declares_no_holding_period() -> None:
+    from desk.eponymous_bollinger_squeeze import BollingerSqueeze
+
+    assert BollingerSqueeze.declared.hold is None  # the middle band is its only exit

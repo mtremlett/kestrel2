@@ -12,10 +12,8 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows, _set
 
 from lab import ladder, rung
 
-#: The gate (rungs-each-rung): the rung modules off the ladder's path may only fall, never rise.
-OFF_PATH = tuple(f"lab.rung_{m}" for m in ("retail",))
-#: Folded into a module that declares a rung, yet called by nothing in lab/: still off the path.
-FOLDED = ("rung_ci.bootstrap(",)
+#: The gate (rungs-each-rung): no rung module is off the ladder's path; waiting is empty.
+OFF_PATH: tuple[str, ...] = ()
 PLANTED = """
 from lab.rung import Answer, Rung
 
@@ -38,7 +36,7 @@ def _scratch(root: Path, extra: dict[str, str], name: str) -> str:
     return name
 
 
-def test_the_ladders_rows_are_those_the_verdict_gives_while_no_module_declares_a_rung(
+def test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired(
     tmp_path: Path,
 ) -> None:
     declared, waiting = rung.found()
@@ -49,13 +47,8 @@ def test_the_ladders_rows_are_those_the_verdict_gives_while_no_module_declares_a
         "regimes",
     ]
     assert waiting == OFF_PATH, "a rung module off verdict.judge's path: wire it, or merge it away"
-    callers = [
-        f.name
-        for f in Path(rung.__file__).parent.glob("*.py")
-        for x in FOLDED
-        if x in f.read_text()
-    ]
-    assert not callers, f"a folded judge is wired ({callers}): take it off FOLDED"
+    rung_map = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    assert "unwired" not in rung_map, "the map names a judge off the path: wire it, or merge it"
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA, ISF))
     assert all(not ({"planted"} & set(row["rungs"])) for row in _rows(tmp_path))
     rows = _rows(tmp_path)  #: EASED: a hard fail on the first rung stops that line there

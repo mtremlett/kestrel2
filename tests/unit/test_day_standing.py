@@ -352,6 +352,29 @@ def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_f
     assert "the zoo would hold 12" in str(over.reason) and over.blocker is Blocker.GATE
 
 
+def test_a_zoo_buy_of_a_line_the_desk_holds_stays_refused_until_shares_have_owners(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A line's owner is its last buyer (book.side), not per share: a zoo buy of the desk's line
+    would hand it the whole line, and the zoo's sale would sell the desk's shares (blind review,
+    23 Nov). So it stays refused until the book counts each side's shares (zoo-own-side)."""
+    line = next(ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa)
+    broker = Pretend({line: BARS[A]}, {})
+    broker.open(MON)
+    desk = Order(f"20251110-desk-{line.symbol}", line, 1, *map(Decimal, (50, 1, 45)))
+    assert book.send(tmp_path, broker, desk, ROOM).filled == 1
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: (line,))
+    broker.open(TUE)
+    (answer,) = day.trade(
+        tmp_path, {line: BARS[A][:1]}, broker, ROOM, TUE, {"GBP": Decimal(1)}, zoo=True
+    )
+    assert (answer.filled, answer.blocker) == (0, Blocker.HELD) and "held already" in str(
+        answer.reason
+    )
+
+
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

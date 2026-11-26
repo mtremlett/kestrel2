@@ -244,6 +244,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2060 R-RUNNER-459 done: cancel_all keeps no -stop id in cancels.csv.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2065 R-RUNNER-458 done: watch PARK words say parked by hand.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2084 R-RUNNER-456: one cap at one place over the whole round; every carried order is intended, chained and listed; golden re-pinned (11 Aug 2025, 9 carried). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2119 zoo-size-pins N1 (R-RUNNER-479): one test, pins #2105 (zoo buys sized on own side, desk holding five).
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2137 zoo-own-side: daily zoo round judged on the zoo's own room and total; intraday round remains.
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2152 zoo-own-side part: pounds-room part on main, held-already part blocked, one pinning test landed.
 
 
 ### DATA
@@ -556,6 +559,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2088 R-DATA-77 met: keeper withdraws only the refused bar; no scene moved. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2098 data-members: nightly reads FTSE members by date from the free page revisions. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2129 data-rollup-hot built; only his 08:00 look at data-hover remains. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2143 data-two-stores closed on evidence: 0 old-file rows missing from market_history.db bar a counted 156 refused. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -1130,4 +1135,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2071 R-RUNNER-460 done: ladder.rates reads the one dollars band (1 to 3), a 2.05 pound close now rates the next day.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2082 R-RUNNER-466 done, test-only: the ladder test reads SPY from lines.REFERENCE.
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2097 rungs-blocks: the sizing block is registered and readable from a spec row (SIZE kind, SIZES, spec size place). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2132 rungs-eponymous held: 0 ladder passes of 500,140 EPON verdicts, nothing to graduate, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2122 data-disk-rolloff rule built: byte-identical duplicates rolled off, rest listed; 1 contract test, fast check and mypy green. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2140 RUNGS: rung_sample folded into rung 1, off-path rung modules 2 to 1 (retail left). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2141 RUNGS rungs-eponymous held again: 0 ladder passes in 804,450 EPON lines; no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2151 RUNGS: rung_retail folded into the basket; off-path rung modules 1 to 0, pinned empty. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2161 RUNGS: block bootstrap reads the first rung's verdict, one call from wired (rungs-each-rung, not ticked). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2173 RUNGS R-RUNNER-503 built: bootstrap on the ci rung's judge path; no golden moved. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2174 RUNGS L15 blind review done, 2 non-blocking defects fixed, 0 blocking (R-RUNNER-495). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2164 PAPER R-MONEY-73 done: a zoo buy is judged by ZOO_DAY and the zoo's total; desk/ at the 18,000 ceiling. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2166 PAPER R-RUNNER-486 done: the day's exchange rate is kept once; blind review, no blocking finding. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |

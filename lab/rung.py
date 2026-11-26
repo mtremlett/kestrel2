@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
 from math import comb
-from types import ModuleType
+from types import MappingProxyType, ModuleType
 
 from desk import orders
 from desk.broker import Pretend
@@ -62,6 +62,7 @@ T_PASS = Decimal(2)
 MISS = 0.001
 #: Pounds per unit of a line's currency, for each day it trades.
 Rates = Mapping[date, Decimal]
+NO_RATES: Rates = MappingProxyType({})  #: a pound line's, which reads no rate
 
 
 class Answer(enum.IntEnum):
@@ -293,17 +294,25 @@ def noise_band(cells: int, rate: float, miss: float = MISS) -> tuple[int, int]:
 @dataclass(frozen=True)
 class Rung:
     """A rung as its module declares it, in `RUNG`: its name, its bar in words, and its one
-    judging function, which reads the first rung's verdict (the priced trades) and answers."""
+    judging function, which reads the first rung's verdict (the priced trades) and answers. A
+    rung that also needs the bars and the day's rates (the block bootstrap) gives `redrawn`."""
 
     name: str
     bar: str
-    judge: Callable[[Verdict], tuple[Answer, str]]
+    read: Callable[[Verdict], tuple[Answer, str]]
+    redrawn: Callable[[Verdict, Sequence[Bar], Rates], tuple[Answer, str]] | None = None
+
+    def judge(
+        self, first: Verdict, bars: Sequence[Bar] = (), rates: Rates = NO_RATES
+    ) -> tuple[Answer, str]:
+        """The rung's answer on the first rung's verdict, the bars that made it and the rates."""
+        return self.redrawn(first, bars, rates) if self.redrawn else self.read(first)
 
     @property
     def code(self) -> str:
         """sha256 of the declaring module's text: part of a cell's key, so a changed rung is
         judged again."""
-        text = inspect.getsource(sys.modules[self.judge.__module__])
+        text = inspect.getsource(sys.modules[self.read.__module__])
         return hashlib.sha256(text.encode()).hexdigest()
 
 

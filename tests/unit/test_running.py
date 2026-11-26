@@ -80,7 +80,7 @@ def fast_store(hot: Path, price: int = 40) -> None:
         round_.five(YARDSTICK, [Five(at, *(Decimal(price),) * 4, 1) for at in every])
 
 
-def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
+def _desk(root: Path, fetch: Mock | None = None, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
     """A desk of £4,750 whose kill switch was never drilled, a door that takes every message,
     and the bars saved for its lines: SMGB's the store has parked."""
     lines, post = {"IITU": IITU, "AAPL": AAPL, "SMGB": SMGB, "VUAG": YARDSTICK}, Mock()
@@ -92,7 +92,7 @@ def _desk(root: Path, **bars: Sequence[Bar]) -> tuple[Desk, Mock]:
         root,
         Settings(Decimal(4750)),
         post,
-        Mock(return_value=RATES),
+        fetch or Mock(return_value=RATES),
         hot,
         saved,
         paper.Door(paper.DESK),
@@ -316,7 +316,8 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     assert withheld.profit is None and withheld.mismatches == ("IITU",)
     # a desk that was off since Friday's buy: each session it missed gets its own record, the
     # oldest first, from the bars saved by that day's end and at that day's own kept rates
-    missed, tuesday = _desk(tmp_path / "missed", IITU=WEEK, VUAG=WEEK)
+    asked = Mock(return_value=RATES)
+    missed, tuesday = _desk(tmp_path / "missed", asked, IITU=WEEK, VUAG=WEEK)
     book._record(missed.root, [BEFORE])
     held: list[Said] = [[END], *[_account([tp.HELD], *STOP_7)] * 2]  # the line under its stop
     sent = _step(monkeypatch, missed, SHUT + timedelta(days=1), *held[:2], *held * 3)
@@ -324,7 +325,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     days = [date(2026, 11, n) for n in (13, 16, 17)]
     assert [r.day for r in day.records(missed.root)] == days
     assert "📅 Last day on record Tue 17 Nov" in _told(tuesday)[-1]
-    assert _told(missed.rates) == days
+    assert _told(asked) == days
     assert _told(missed.held)[1:] == [  # after the crash watch's look
         on + timedelta(days=1) for on in days
     ]
@@ -403,3 +404,17 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     _, failed, _ = _told(bell)  # the morning message, one line of it in his words, the evening's
     assert "Failed: today's rehearsal of the kill switch did not pass, so the desk" in failed
     assert "NOT kept: the kill switch's drill at 2026-11-16 09:05 UTC broke: ['the ord" in failed
+
+
+def test_the_days_rate_is_kept_at_its_first_record_and_later_steps_price_at_it(
+    tmp_path: Path,
+) -> None:
+    later = {"GBP": Decimal(1), "USD": Decimal("0.5")}
+    desk, _ = _desk(tmp_path, Mock(side_effect=[RATES, later]))
+    first = book.rates_kept(tmp_path)
+    assert first == {}
+    one = desk.rates(MON.date())
+    book.record_rates(tmp_path, MON.date(), one)
+    two = desk.rates(MON.date())  #: a second step's fetch differs: the kept rate answers
+    book.record_rates(tmp_path, MON.date(), two)
+    assert one == two == RATES == {c: r for (_, c), r in book.rates_kept(tmp_path).items()}

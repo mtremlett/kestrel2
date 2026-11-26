@@ -31,7 +31,6 @@ from lab import (
     ladder_pool,
     members,
     rulebook,
-    rung_retail,
     scalping,
     tape,
     trials,
@@ -151,9 +150,12 @@ def epon(
     rules = eponymous() if rules is None else rules
     todo, notes = survivors(rules, lines, records)
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
-    count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
-    rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
+    kept = [last.get(tuple(batch.row(c))) for c in todo]
+    if None in kept:  #: the runner's STOP ended the pass early: no table of cells never judged
+        return counts
+    count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
+    rows = [cast(verdict.Row, row) for row in kept]
     stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(bars, pounds, todo, rules, plan)
@@ -165,11 +167,17 @@ def epon(
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
         out.write(NL.join(_authors(rules) + withheld) + NL)
-    said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
+    said = survivorship_said(notes, len(lines))
     said += "" if shown else NL + stop[-1]
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def survivorship_said(notes: Sequence[str], lines: int) -> str:
+    """The set's survivorship line: how many of its lines no list corrected."""
+    left = sum(note.endswith(NOT_CORRECTED) for note in notes)
+    return f"survivorship: {left} of {lines} lines not corrected, none guessed"
 
 
 def _authors(rules: Sequence[str]) -> list[str]:
@@ -239,12 +247,12 @@ def baskets(
     ]
 
 
-def _against(first: Verdict, bars: Bars, pounds: Rates) -> rung_retail.Against:
+def _against(first: Verdict, bars: Bars, pounds: Rates) -> basket.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
     and the pound rates."""
     venue = first.key.cell.line.venue
     market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
-    return rung_retail.Against(market, bars(market), pounds)
+    return basket.Against(market, bars(market), pounds)
 
 
 def tapes_held(home: Path) -> str:
