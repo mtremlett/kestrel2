@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from test_running import MON
 
-from desk import book, running, venues
+from desk import book, halt, running, venues
 from desk.lines import LINES
 
 LSE = [line.symbol for line in LINES if line.venue == "LSE"][:3]
@@ -40,3 +40,14 @@ def test_only_the_desks_own_cancels_go_again_once_and_not_after_the_close(
     assert running._again(tmp_path, after, look) == {}  # type: ignore[arg-type]
     running._note(tmp_path, now, "orders LSE again", "x")
     assert running._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # never a third
+
+
+def test_orders_the_round_cap_carried_go_again_once_a_sale_with_a_buy(tmp_path: Path) -> None:
+    """R-RUNNER-473: the morning's CARRIED ids, a sale and a buy, are sent at the next step."""
+    look, now = SimpleNamespace(), venues.hours("LSE", TODAY).open + timedelta(minutes=30)
+    _plant(tmp_path, [])
+    carried = [halt.Blocked(f"{TODAY:%Y%m%d}-s-{s}", halt.Blocker.CARRIED, 0, "x") for s in LSE[:2]]
+    halt.note(tmp_path, TODAY, carried)
+    assert running._again(tmp_path, now, look) == {"LSE": set(LSE[:2])}  # type: ignore[arg-type]
+    running._note(tmp_path, now, "orders LSE again", "x")
+    assert running._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # neither twice
