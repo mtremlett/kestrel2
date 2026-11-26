@@ -309,6 +309,7 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
 
 def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later_day(
     tmp_path: Path,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
     broker.open(DAYS[21])
@@ -334,7 +335,8 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
     first = next(iter(MARKET))  #: A, still held: its bar for the day is owed, not yesterday's
     held = book.positions(tmp_path)
     owing = {line: bars[:-1] if line.symbol in held else bars for line, bars in MARKET.items()}
-    one = Path(shutil.copytree(tmp_path, tmp_path.parent / "refused"))
+    one = tmp_path_factory.mktemp("refused")
+    shutil.copytree(tmp_path, one, dirs_exist_ok=True)
     every = day.publish(one, owing, broker, capital, DAYS[22])  #: all owed: named, published
     assert every.profit is None and every.worth == 0
     assert every.mismatches == tuple(sorted(s + day_money.OWED for s in held))
@@ -343,10 +345,11 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
         day_money.close(owing, first, DAYS[22])
     #: the held lines but A have theirs: A is named, the rest valued, the profit withheld
     shutil.rmtree(one)
-    one = Path(shutil.copytree(tmp_path, tmp_path.parent / "refused"))
+    shutil.copytree(tmp_path, one)
     refused = day.publish(one, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
     assert (refused.profit, refused.mismatches) == (None, ("A" + day_money.OWED,))
     assert refused.worth > 0, "the other lines were not valued"
+    assert day.records(one)[-1] == refused, "the named line reads back from the comma file"
     halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade
     rest = {line: bars for line, bars in MARKET.items() if line != first}
     missed = day.publish(tmp_path, {**rest, halted: MARKET[first][:-1]}, broker, capital, DAYS[22])
