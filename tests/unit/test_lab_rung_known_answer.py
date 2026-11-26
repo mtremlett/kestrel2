@@ -26,7 +26,7 @@ from test_lab_rung import _bars, _walk
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import CLOSES, Declared, Rule, Timeframe
-from lab import ladder, ladder_sets, rulebook, shuffle, tape, verdict
+from lab import ladder, ladder_sets, rulebook, tape, verdict
 from lab.cell import Cell
 from lab.published_case import Published, known
 from lab.published_epon import EPONYMOUS_PUBLISHED
@@ -164,7 +164,6 @@ def judged(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Callable[[str],
     set's basket row, read with the retail rung (EASED); the churner is planted in the book
     with its own known answers, so the ladder's door lets it in."""
     with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))  #: a hundred runs each
         book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner}
         patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
         churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
