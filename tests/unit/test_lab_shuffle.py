@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from decimal import Decimal
+from typing import Any
 
 import pytest
 from test_lab_rung import POUND, TEN_K, _walk
 
 from desk.lines import LINES
+from desk.store import Bar
 from lab import cell, reproduce, shuffle
 from lab.cell import Cell
 from lab.reproduce import Figure, Fill, Found, Hand, Measure, Reproduction, Stated
@@ -43,3 +46,28 @@ def test_a_rule_with_an_authors_figure_is_shuffled_with_its_reproduction(
     )
     monkeypatch.setattr(reproduce, "FIGURES", (figure,))
     assert _share(0.012, made=(made,)) == Decimal(1) / 101
+
+
+def test_a_cell_ending_before_later_bars_draws_none_of_their_days(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """T2, future-blind (canon B3): a day after the cell's end, planted as a hundredfold rise, is
+    never shuffled into the cell's window; only the days the cell is shown are drawn."""
+    walk = _walk(1, 0.0, days=3000)
+    end = walk[1999].day
+    later = walk[2500]
+    big = Bar(later.day, later.open * 100, later.high * 100, later.low * 100, later.close * 100, 1)
+    bars = (*walk[:2500], big, *walk[2501:])
+    c = Cell("breakout_20_10", VUSA, bars[0].day, end)
+    seen: list[Sequence[Bar]] = []
+    real = shuffle._t
+
+    def spied(c: Cell, b: Sequence[Bar], *rest: Any) -> Decimal | None:
+        seen.append(b)
+        return real(c, b, *rest)
+
+    monkeypatch.setattr(shuffle, "_t", spied)
+    shuffle.share(c, bars, TEN_K, POUND, ())
+    top = max(bar.close for bar in bars if bar.day <= end)
+    for history in seen[1:]:
+        assert max(bar.close for bar in history if bar.day <= end) < top * 20, "a later day drawn"

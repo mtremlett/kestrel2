@@ -26,6 +26,7 @@ from pathlib import Path
 from desk.store import Bar
 from lab import cell, rulebook
 from lab.cell import Cell, Record, Trade
+from lab.spec import SpecRule
 
 FOLDER = "tapes"
 Run = Callable[[Cell, Sequence[Bar]], Record]
@@ -47,18 +48,23 @@ def _own_text(source: bytes, mine: type, others: set[str]) -> bytes:
     return b"".join(lines)
 
 
-def code_of_rule(strategy: str, root: Path = cell.ROOT, folder: Path | None = None) -> str:
+def code_of_rule(
+    strategy: str, root: Path = cell.ROOT, folder: Path | None = None, book: Path | None = None
+) -> str:
     """sha256 of the files the rule's module reaches, its own file without the other rules'
-    classes; a Windows line ending is not a change."""
-    book, mine = rulebook.rules(folder), rulebook.rule(strategy, folder)
+    classes, and for a rule made from a catalogue row that row as written (T1): an edited param
+    is a new key. A Windows line ending is not a change."""
+    known, mine = rulebook.rules(folder), rulebook.rule(strategy, folder)
     module = mine.__module__
-    others = {c.__name__ for c in book.values() if c.__module__ == module and c is not mine}
+    others = {c.__name__ for c in known.values() if c.__module__ == module and c is not mine}
     digest = hashlib.sha256()
     for path in cell.reached(root, module):
         data = (root / path).read_bytes()  # bounded: one source file of the code
         if path == module.replace(".", "/") + ".py":
             data = _own_text(data, mine, others)
         digest.update(data.replace(b"\r\n", b"\n") + b"\0")
+    if issubclass(mine, SpecRule):  #: its trades are its row's: the row is its code too
+        digest.update(rulebook.row(strategy, book))
     return digest.hexdigest()
 
 

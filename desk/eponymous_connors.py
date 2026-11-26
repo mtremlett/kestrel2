@@ -26,6 +26,8 @@ read it from, and a figure quoted from memory would be a guess. The ladder measu
 itself, after costs, on the desk's own data. Secondary sources (blogs and forums, undated here)
 quote entry thresholds from 2 to 10 and exits on the 5-day or the 2-day average, so the
 RANGE of the setting is 2 to 10; this port takes the book's own, under 10, and the 5-day exit.
+Holding period: none. Both rules sell on their own signal alone (%b over 0.8, a close over
+the 5-day average); the books give no day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """
