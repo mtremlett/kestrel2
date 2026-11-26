@@ -32,3 +32,8 @@ def test_sells_on_a_fifteen_percent_move_even_above_the_average() -> None:
 def test_waits_for_a_full_average_and_for_a_rising_trend() -> None:
     assert _trades([*range(100, 190)]) == {}  # 90 days only: no 100-day average yet
     assert _trades([*range(300, 200, -1)]) == {}  # a fall: under its average
+
+
+def test_a_long_climb_is_held_with_no_time_limit() -> None:
+    # the book sells on the average or the 15% move only: a 300-session climb stays held
+    assert _trades([*range(100, 400)]) == {99: Action.BUY}
