@@ -10,8 +10,10 @@ until it does, and the ladder refuses it loudly, by name, where it lists the epo
 from __future__ import annotations
 
 import importlib
+import json
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import desk
 from desk.strategy import STRATEGIES, VARIANTS, Rule
@@ -34,12 +36,25 @@ def eponymous(folder: Path | None = None) -> dict[str, type[Rule]]:
     return found
 
 
+def _table(book: Path | None) -> dict[str, Any]:
+    """The catalogue's rows by name, as written."""
+    return tomllib.loads((book or CATALOGUE).read_text(encoding="utf-8"))
+
+
 def specs(book: Path | None = None, folder: Path | None = None) -> dict[str, Spec]:
     """Every rule the catalogue names, as a parsed spec (each proven on its own known answers
     by `Spec.parse`); a row needs no Python file. `folder` is kept for the ladder's callers."""
     del folder
-    table = tomllib.loads((book or CATALOGUE).read_text(encoding="utf-8"))
-    return {name: Spec.parse({"name": name, **row}) for name, row in table.items()}
+    return {name: Spec.parse({"name": name, **row}) for name, row in _table(book).items()}
+
+
+def row(name: str, book: Path | None = None) -> bytes:
+    """The catalogue row a rule of that name is made from (a variant's, `row[settings]`, its
+    row's), as canonical text for a key; a name with no row is refused."""
+    table = _table(book)
+    if (base := name.partition("[")[0]) not in table:
+        raise ValueError(f"no catalogue row is called {base!r}")
+    return json.dumps(table[base], sort_keys=True, default=str).encode()
 
 
 def _made(spec: Spec) -> type[Rule]:
