@@ -86,12 +86,14 @@ def test_a_count_that_does_not_fit_the_bars_is_refused_loudly() -> None:
         history.ask(wire, lambda _: None, VUAG, DAY, SINCE)
 
 
-def test_each_line_is_asked_as_its_own_client_paced_apart(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_each_line_is_asked_as_its_own_client_unheld_by_the_small_bar_count(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     waits: list[float] = []
     wire = conversation(TAPE, NONE)
     monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, lambda _: None))
     got = history.gather((VUAG, IDTL), DAY, SINCE, MONDAY_NOON, waits.append)
-    assert waits == [history.PACING] and history.CLIENT == 225
+    assert waits == [] and history.CLIENT == 225
     assert isinstance(got[IDTL], Refused) and got[VUAG] != got[IDTL]
 
 
@@ -109,9 +111,8 @@ def test_nothing_is_asked_in_a_desk_round(monkeypatch: pytest.MonkeyPatch) -> No
     assert history.quiet(datetime(2026, 11, 16, 8, 30, tzinfo=UTC))
 
 
-def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
+def test_a_pull_fills_the_gaps_only_unheld_and_resumes_after_a_stop() -> None:
     done: set[history.Ask] = {(VUAG, "1d")}
-    waits: list[float] = []
     asked: list[history.Ask] = []
 
     def fetch(line: Line, frame: str) -> Refused:
@@ -125,10 +126,10 @@ def test_a_pull_fills_the_gaps_only_paced_and_resumes_after_a_stop() -> None:
     first = history.plan((VUAG, IDTL), done)
     assert not {f for _, f in first} & {"1h", "4h", "1wk"}  # rolled up locally, not asked
     assert len(first) == everything - 1 and (VUAG, "1d") not in first
-    assert history.pull(first, fetch, keep, waits.append, limit=4) == 4
-    assert waits == [history.PACING] * 3 and len(done) == 5
+    assert history.pull(first, fetch, keep, limit=4) == 4
+    assert len(done) == 5
     rest = history.plan((VUAG, IDTL), done)
-    assert history.pull(rest, fetch, keep, waits.append) == everything - 5
+    assert history.pull(rest, fetch, keep) == everything - 5
     assert len(set(asked)) == len(asked) == everything - 1 and not history.plan((VUAG, IDTL), done)
 
 
@@ -207,4 +208,18 @@ def test_a_walk_back_pages_before_each_page_until_one_is_empty(
     assert history.run([(VUAG, "1d")], keep, DAY, MONDAY_NOON, waits.append) == 1
     ends = [re.search(r"\d{8} 00:00:00 UTC", m.decode()) for m in sent if b"UTC" in m]
     assert [e.group()[:8] if e else "" for e in ends] == ["20261116", "20251116", "20241116"]
-    assert waits == [history.PACING] * 2 and len(kept[0]) == 5  # type: ignore[arg-type]
+    assert waits == [] and len(kept[0]) == 5  # type: ignore[arg-type]
+
+
+def test_only_a_pacing_refusal_from_the_broker_slows_the_pull(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pacing = "4|2|9001|162|Historical Market Data Service error: request pacing violation"
+    waits: list[float] = []
+    wire = conversation(NONE, pacing, TAPE, EMPTY)
+    monkeypatch.setattr(paper, "dial", lambda talk: talk(wire, lambda _: None))
+    asks = [(VUAG, "1m"), (VUAG, "1d"), (IDTL, "1d")]
+    kept: list[object] = []
+    keep = lambda _l, _f, got: kept.append(got)  # noqa: E731
+    assert history.run(asks, keep, DAY, MONDAY_NOON, waits.append) == 3
+    assert waits == [history.PACING]  # the "no security" refusal did not slow it; pacing did
