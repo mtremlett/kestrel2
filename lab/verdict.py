@@ -33,6 +33,7 @@ from lab import (
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
+from lab.published_epon import TESTED
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 from lab.verdict_parts import (
@@ -161,14 +162,14 @@ def judge(
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     verdict = first or ready(c, own, pounds, made)
-    unrun: dict[str, str] = {}
     settings = Settings(CAPITAL)
     (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
-        return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
-    rungs["reproduce"] = _reproduced(c, own, pounds, verdict, made)
-    if rungs["reproduce"][0] is Answer.FAIL:  #: a hard fail: a verdict unlike its own re-run
+        return _stopped(len(verdict.trades), {"first": rungs["first"]}, {})  #: a hard fail
+    said = _reproduced(c, own, pounds, verdict, made)  #: None: its author's figure is owed
+    unrun, rungs = ({}, rungs | {"reproduce": said}) if said else ({"reproduce": NO_FIGURE}, rungs)
+    if said and said[0] is Answer.FAIL:  #: a hard fail: a verdict unlike its own re-run
         return _stopped(len(verdict.trades), rungs, unrun)
     rungs["folds"] = _folded(pooled)
     rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
@@ -438,13 +439,15 @@ def shuffled(
 
 def _reproduced(
     c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict, made: Sequence[Reproduction]
-) -> Pair:
+) -> Pair | None:
     """The reproduce rung in the form that judged it: the author's figures, each reproduced
-    (`reproduce.settled` refused any that was not), or with none on file, `_determined`."""
-    if not made:
-        return _determined(c, own, pounds, verdict)
-    said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
-    return Answer.PASS, f"reproduced: {said}"
+    (`reproduce.settled` refused any that was not); with none on file, `_determined`, but only
+    for a rule no author's test binds (`published_epon.TESTED`): one that binds waits, None."""
+    if made:
+        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
+        return Answer.PASS, f"reproduced: {said}"
+    test = TESTED.get(c.strategy)
+    return None if test is not None and test.candidate else _determined(c, own, pounds, verdict)
 
 
 def _determined(c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict) -> Pair:

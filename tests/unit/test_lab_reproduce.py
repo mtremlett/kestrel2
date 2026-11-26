@@ -232,3 +232,12 @@ def test_a_rule_with_no_figure_is_judged_on_determinism_and_a_planted_coin_fails
     said, why = verdict._determined(c, own, {}, first)
     assert said is Answer.FAIL and why.startswith(f"{verdict.DETERMINED}: run again"), why
     assert f"another verdict, {len(first.trades) - 1} trades" in why
+
+
+def test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism() -> None:
+    #: the blind review's finding (26 Nov): determinism stands in only where no author's test
+    #: binds; Faber's binds (`published_epon.TESTED`), so with no figure on file it stays UNRUN
+    isf = next(line for line in LINES if line.symbol == "ISF")
+    own = _walk(3, 0.004, 0.004, days=3100)[-2400:]
+    c = Cell("faber_tactical", isf, own[0].day, own[-1].day)
+    assert verdict._reproduced(c, own, {}, verdict.ready(c, own, {}, ()), ()) is None
