@@ -12,7 +12,7 @@ import json
 import math
 import random
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from functools import cache
@@ -25,9 +25,10 @@ from test_lab_rung import _bars, _walk
 
 from desk.lines import LINES, Line
 from desk.store import Bar
-from desk.strategy import CLOSES, Declared, Rule, Timeframe
+from desk.strategy import CLOSES, STRATEGIES, Declared, Rule, Timeframe
 from lab import ladder, ladder_sets, rulebook, tape, verdict
 from lab.cell import Cell
+from lab.published import PUBLISHED
 from lab.published_case import Published, known
 from lab.published_epon import EPONYMOUS_PUBLISHED
 
@@ -82,6 +83,8 @@ KIT = (
     Known(11, "paid", "ci", "PASS", "the ci's PASS is held to the block bootstrap's"),
     Known(12, "paid basket", "retail", "PASS", "the basket beats holding its market"),
     Known(12, "noise basket", "retail", "FAIL", "a basket of noise does not"),
+    Known(13, "clone", "liquidity", "PASS", "a deep line takes under 1% of its day", "capacity"),
+    Known(13, "paid", "liquidity", "FAIL", "one share a day cannot take its trades", "volume on"),
 )
 
 
@@ -130,6 +133,18 @@ def _paid(seed: int) -> tuple[Bar, ...]:
     return tuple(out)
 
 
+class Clone(STRATEGIES["breakout_20_10"]):  # type: ignore[misc,valid-type]
+    """The desk's breakout under another name: a rule that only repeats one running on paper."""
+
+
+def _deep() -> Mapping[Line, Sequence[Bar]]:
+    """The breakout's planted edge on the four US lines, each trading a million shares a day."""
+    return {
+        line: tuple(replace(bar, volume=1_000_000) for bar in _walk(n, 0.012, 0.012, days=3100))
+        for n, line in enumerate(US, 1)
+    }
+
+
 def _lucky() -> Mapping[Line, Sequence[Bar]]:
     """A breakout that loses a little every year but one, and earns its whole profit there."""
     pushes = [0.03 if year == LUCKY else -0.003 for year in range(2010, 2027)]
@@ -155,6 +170,7 @@ CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
     "lucky": ("breakout_20_10", _lucky),
     "thin": ("breakout_20_10", _thin),
     "noise": ("breakout_20_10", _noise),
+    "clone": ("clone", _deep),
 }
 
 
@@ -164,12 +180,15 @@ def judged(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Callable[[str],
     set's basket row, read with the retail rung (EASED); the churner is planted in the book
     with its own known answers, so the ladder's door lets it in."""
     with pytest.MonkeyPatch.context() as patch:
-        book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner}
+        book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner, "clone": Clone}
         patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
         churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
         patch.setitem(EPONYMOUS_PUBLISHED, "churner", Published("the kit's churner", (churns,)))
+        patch.setitem(EPONYMOUS_PUBLISHED, "clone", PUBLISHED["breakout_20_10"])
         real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
-        patch.setattr(tape, "code_of_rule", lambda s: "planted" if s == "churner" else real(s))
+        patch.setattr(
+            tape, "code_of_rule", lambda s: "planted" if s in ("churner", "clone") else real(s)
+        )
 
         @cache
         def rows(case: str) -> Rows:
