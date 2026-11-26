@@ -70,3 +70,15 @@ def test_a_round_leaves_each_rolled_span_as_fresh_as_its_base(tmp_path: Path) ->
     for span, length in (("15m", 15), ("30m", 30), ("1h", 60)):
         got = bars.timed(hot, line, span, open_, ends)
         assert got[-1].start + timedelta(minutes=length) == ends  # the base's last bar is in it
+
+
+def test_every_keeper_round_leaves_its_newest_five_minute_bar_in_the_long_database(
+    tmp_path: Path,
+) -> None:
+    now, price = datetime(2026, 11, 16, 10, 5, tzinfo=UTC), Decimal(5)
+    line, newest = Line("BBB", "LSE", "GBP", 1), datetime(2026, 11, 16, 10, tzinfo=UTC)
+    planted = (Five(newest, price, price, price, price, 1),)
+    keeper.keep(tmp_path, now, [line], lambda _line, _day: (), lambda _line, _at: planted)
+    with closing(sqlite3.connect(bars.files(tmp_path / keeper.HOT)[bars.DAILY])) as long:
+        seen = long.execute("SELECT COUNT(*) FROM bar WHERE span = ?", (bars.FIVE,)).fetchone()
+    assert seen == (1,)
