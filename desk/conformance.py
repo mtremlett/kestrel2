@@ -30,10 +30,10 @@ quiet read the account as this desk's own; it ends flat in its own lines, and a 
 found changed at its end is named a FIRST-LIGHT FAULT. It never begins within five minutes of
 a desk round, or in one (ROUNDS): the desk's round has the account.
 
-NOTHING IS DONE, code 0: the market is not in continuous trading, or the rejection's is shut
-today, or a desk round is near. NOTHING IS SENT, code not 0, unless the gateway is ready, both
-desks' kill switches off, this one's drilled, and the account QUIET of this desk's own: nothing
-of its own held, no order of its own open."""
+NOTHING IS DONE, code 0: the market is not in continuous trading, or a desk round is near.
+NOTHING IS SENT, code not 0, unless the gateway is ready, both desks' kill switches off,
+this one's drilled, and the account QUIET of this desk's own: nothing of its own held,
+no order of its own open."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ from desk.conformance_parts import (
     pretend as pretend,
 )
 from desk.ended import action, reasons
-from desk.lines import LINES, Line
+from desk.lines import LINES
 from desk.listing import Listing
 from desk.orders import Order
 from desk.running import VENUES
@@ -162,13 +162,11 @@ def why(now: datetime) -> tuple[bool, str]:
     return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
 
 
-def _barred(
-    root: Path, market: str, refused: Line, now: datetime, door: paper.Door
-) -> tuple[bool, str] | None:
+def _barred(root: Path, market: str, now: datetime, door: paper.Door) -> tuple[bool, str] | None:
     """Why no run is begun now, and whether that is all well; None when one may begin."""
-    venue, today, hours = MARKETS[market], now.date(), venues.open_at(MARKETS[market], now)
-    if hours is None or now >= hours.close or not venues.sessions(refused.venue, today, today):
-        return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
+    venue, hours = MARKETS[market], venues.open_at(MARKETS[market], now)
+    if hours is None or now >= hours.close:  #: the refusal sends nothing: no calendar gates it
+        return True, NOTHING.format(market, f"{VENUES[venue]} is shut")
     if tape.round_at(now, tape.LEAD):
         return True, NOTHING.format(market, "a desk round runs 08:00-08:30 and 14:30-15:00")
     known, killed = (
@@ -231,7 +229,7 @@ def trade(
     now, refused = clock(), next(line for line in LINES if line.retail is False)
     seed, home = (int(now.timestamp()) if seeded else None), root.parent
     door = paper.Door(CLIENT)  #: this run's own client; its apart set once the desk's share is read
-    if barred := _barred(root, market, refused, now, door):
+    if barred := _barred(root, market, now, door):
         return barred
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
     kill.drill(root, now)  #: no order on a day the switch was not seen to work: raised if broken

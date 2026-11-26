@@ -434,3 +434,29 @@ def test_whatever_stops_a_run_outside_its_steps_the_account_is_still_put_back(
     with pytest.raises(OSError, match="the record's disk"):
         _run(tmp_path, MON, "london")
     assert (broker.submitted()[-1], broker.holdings()) == (ID.format(9), ())
+
+
+def test_london_runs_on_a_us_holiday_the_refusal_sends_nothing_so_no_calendar_gates_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch)
+    thanksgiving = datetime(2026, 11, 26, 10, 5, tzinfo=UTC)  # New York shut, London in session
+    day = date(2026, 11, 25)
+
+    def saved(
+        _home: Path, _day: date, lines: list[Line]
+    ) -> tuple[dict[Line, tuple[Bar, ...]], set[str]]:
+        return {
+            x: (Bar(day, *(Decimal(LAST[x.symbol][0]),) * 4, LAST[x.symbol][1]),) for x in lines
+        }, set()
+
+    monkeypatch.setattr(keeper, "saved", saved)
+    broker = _market(conformance.plan([VUAG], SPY, thanksgiving.date(), FX, STAMP, HOME), VUAG)
+    monkeypatch.setattr(placing, "Paper", lambda _list, _root, _clock, door: _seen(door) or broker)
+    monkeypatch.setattr(
+        conformance,
+        "_raised",
+        lambda *_: lambda _o: broker.open(thanksgiving.date() + timedelta(1)),
+    )
+    assert _run(tmp_path, thanksgiving, "london") == 0
+    assert "6 of 6 steps done on VUAG" in capsys.readouterr().out
