@@ -1137,3 +1137,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2097 rungs-blocks: the sizing block is registered and readable from a spec row (SIZE kind, SIZES, spec size place). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2132 rungs-eponymous held: 0 ladder passes of 500,140 EPON verdicts, nothing to graduate, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2122 data-disk-rolloff rule built: byte-identical duplicates rolled off, rest listed; 1 contract test, fast check and mypy green. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2140 RUNGS: rung_sample folded into rung 1, off-path rung modules 2 to 1 (retail left). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2141 RUNGS rungs-eponymous held again: 0 ladder passes in 804,450 EPON lines; no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2151 RUNGS: rung_retail folded into the basket; off-path rung modules 1 to 0, pinned empty. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2161 RUNGS: block bootstrap reads the first rung's verdict, one call from wired (rungs-each-rung, not ticked). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2173 RUNGS R-RUNNER-503 built: bootstrap on the ci rung's judge path; no golden moved. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2174 RUNGS L15 blind review done, 2 non-blocking defects fixed, 0 blocking (R-RUNNER-495). |
