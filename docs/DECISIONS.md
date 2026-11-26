@@ -2533,3 +2533,8 @@ rule already running, so half its risk is not new; the rung's own number, homed 
 correlation gate and `lab/bets.py` own the book's lines together). *Owed:* `lab/verdict.py`'s
 `GRADED` does not yet name `fit`, so until its owner adds it a WEAK holds a cell back from going
 forward as a FAIL would: stricter, never looser.
+*Golden (B5, the desk approves goldens, his 22 Nov):* no answer moves. The ladder's fixture book
+(`tests/unit/test_lab_ladder.py`) traded one share a day, which the liquidity rung rightly FAILS;
+its two lines now trade a million shares a day, so the planted edge still passes every rung, and
+`tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
+of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
