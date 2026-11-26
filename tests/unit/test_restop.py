@@ -60,3 +60,15 @@ def test_a_thin_line_is_bought_to_one_percent_of_its_traded_pounds(tmp_path: Pat
     broker.open(DAYS[21])
     day.trade(tmp_path, {LINE: thin[:21]}, broker, ROOM, DAYS[21], POUNDS)
     assert 0 < book.positions(tmp_path)["A"] * 9 <= Decimal("0.01") * 20_000
+
+
+def test_a_stops_row_for_a_line_sold_to_nothing_is_history_and_never_sent(tmp_path: Path) -> None:
+    """R-RUNNER-512: stops.csv is a history of levels by buy, not a register of live stops; a
+    row whose line the broker holds at 0 is never placed or moved (a stop on nothing is a short)."""
+    (tmp_path / book.STOPS).write_text("stop,level\n1-stop,8.1\n", encoding="utf-8")
+    broker = Pretend({LINE: _bars("9")}, {})
+    sends: list[object] = []
+    broker.restop = lambda *a: sends.append(a)  # type: ignore[method-assign]
+    assert restop.move(tmp_path, broker, [LINE]) == {} and sends == []
+    assert broker.resting_stops() == {}, "no stop was rested on a line held at 0"
+    assert book.levels(tmp_path) == {"1-stop": Decimal("8.1")}, "the history is left as it was"
