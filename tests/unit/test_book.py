@@ -115,7 +115,12 @@ def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
     planted = [Fill(f"x-{n}", ids[n % 2], s, 1, Decimal(5), MON) for n, s in enumerate(names)]
     book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
     asked, real = list[int](), book.fills
-    monkeypatch.setattr(book, "fills", lambda root: asked.append(1) or real(root))
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        asked.append(1)
+        return real(root)
+
+    monkeypatch.setattr(book, "fills", counted)
     mine = book.side(tmp_path, dict.fromkeys(names, 1), "d-rule-2")
     assert len(mine) == 150 and len(asked) == 1, f"{len(asked)} reads of the fills, not one"
 
