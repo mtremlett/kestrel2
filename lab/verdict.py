@@ -93,8 +93,9 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
-#: The rungs graded soft: SOFT, and the declared regime rung, added after (`ladder_parts`).
-GRADED = (*SOFT, rung_regimes.RUNG.name)
+#: The rungs graded soft: SOFT, and the declared regime and fit-with-the-book rungs, added
+#: after (`ladder_parts`); "fit" is `rung_fit.RUNG.name` (#2233), named here until it lands.
+GRADED = (*SOFT, rung_regimes.RUNG.name, "fit")
 #: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
 BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
