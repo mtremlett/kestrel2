@@ -214,13 +214,16 @@ def _version(cell: Cell, bars: Sequence[Bar], read: Sequence[Bar]) -> str:
 def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     """Whether the rule is in the market after each bar: the grid's answer, and the desk's
     own engine's, for this one rule alone, wherever the grid refuses to give one (S9)."""
-    if cell.strategy in STRATEGIES:  #: an eponymous rule has no array form: the desk's engine
+    if cell.strategy in STRATEGIES:
         with suppress(grid.TooClose):  #: floating point cannot call it: the desk's engine does
             held: list[bool] = grid.held(cell.strategy, grid.prices(bars)).tolist()
             return held
+    #: the desk's engine: an eponymous rule has no array form, and one of the five is built as
+    #: `decide` builds it, with no rule book read
+    make = STRATEGIES.get(cell.strategy) or rulebook.rule(cell.strategy)
     held = []
     with localcontext(ARITHMETIC):
-        for decision in _run(cell.strategy, rulebook.rule(cell.strategy)(), cell.line.symbol, bars):
+        for decision in _run(cell.strategy, make(), cell.line.symbol, bars):
             was = held[-1] if held else False
             held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
     return held

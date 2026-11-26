@@ -20,7 +20,7 @@ from desk import strategy
 from desk.lines import LINES, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import Action
-from lab import cell, grid
+from lab import cell, grid, rulebook
 from lab.cell import Cell, Trade
 
 START = date(2020, 1, 1)
@@ -111,7 +111,8 @@ def test_a_refused_cell_runs_its_one_rule_and_holds_what_the_desk_decides(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """S9: where the grid refuses, only the cell's own rule is run on the desk's engine, never
-    all five, and it holds after each bar what that rule's decisions in `decide` say."""
+    all five, built as `decide` builds it (no rule book read), and it holds after each bar what
+    that rule's decisions in `decide` say."""
     bars = _jumpy(10)
     whole = strategy.decide({AAPL.symbol: bars})
     ran: list[str] = []
@@ -124,8 +125,12 @@ def test_a_refused_cell_runs_its_one_rule_and_holds_what_the_desk_decides(
     def refused(*_: Any) -> Any:
         raise grid.TooClose("planted")
 
+    def unread(name: str) -> Any:
+        raise AssertionError(f"the rule book read for the desk's own {name}")
+
     monkeypatch.setattr("lab.cell._run", counted)
     monkeypatch.setattr(grid, "held", refused)
+    monkeypatch.setattr(rulebook, "rule", unread)  #: the five are built as `decide` builds them
     for name in strategy.STRATEGIES:
         held: list[bool] = []
         for decision in (d for d in whole if d.strategy == name):
