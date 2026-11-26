@@ -57,7 +57,7 @@ from desk import archive, bars, venues
 from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, VARIANTS
-from lab import batch, tune, universe
+from lab import batch, chain, tune, universe
 from lab.cell import Cell
 
 if sys.platform == "win32":
@@ -323,6 +323,7 @@ def main(argv: Sequence[str]) -> None:
     study = args.held or args.transfer
     lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
     done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
+    chain.main({"KESTREL2_DATA": str(args.data)})  # its lines first: the count stays the last
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
     counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
     sys.stdout.write(json.dumps({**counts, "died": died}) + "\n")
