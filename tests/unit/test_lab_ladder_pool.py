@@ -7,6 +7,7 @@ import os
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -163,6 +164,7 @@ def test_a_change_re_runs_only_its_own_specs_and_the_set_table_says_rungs_built(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     lines, rules = [VUSA, ISF], ["breakout_20_10", "trend_50_200"]
+    monkeypatch.setattr(ladder_pool, "run", partial(ladder_pool.run, size=2, memory=PLENTY))
     pooled = ladder_sets._pooled(_book)
     first = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, pooled, records={})
     built, of = ladder.rungs_built()
