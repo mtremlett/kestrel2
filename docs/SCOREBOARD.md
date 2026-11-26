@@ -561,6 +561,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2103 R-RUNNER-476 done: IDTL's ISIN corrected to IBKR's. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2129 data-rollup-hot built; only his 08:00 look at data-hover remains. |
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2143 data-two-stores closed on evidence: 0 old-file rows missing from market_history.db bar a counted 156 refused. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2144 hourly data table names each database's golden-line status. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2167 R-RUNNER-487: a newest bar the size of the pound's step is judged as a normal move, not a wrong unit. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2170 R-RUNNER-493: keeper re-cleans on a change to any store module. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2171 R-RUNNER-501: rolled spans pinned equal to their bases and fresh; no product change. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2172 R-RUNNER-502: a newest daily bar the broker answered is stored as IBKR's. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2191 R-RUNNER-508: one-minute and daily history asks no longer held by the small-bar count. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
