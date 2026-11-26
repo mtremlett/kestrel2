@@ -572,6 +572,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2171 R-RUNNER-501: rolled spans pinned equal to their bases and fresh; no product change. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2172 R-RUNNER-502: a newest daily bar the broker answered is stored as IBKR's. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2191 R-RUNNER-508: one-minute and daily history asks no longer held by the small-bar count. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2197 R-RUNNER-511: keeper judges before its round, lock held only while writing. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2201 R-RUNNER-522: data-monitor names each stale span. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2205 R-RUNNER-525: old stores checked against the one store, restore drilled. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2208 R-RUNNER-524: history database kept fresh every keeper round; data-history-fine ticked. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2244 test only: keeper withdrawn-day contract extended. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
