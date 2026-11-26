@@ -2417,6 +2417,22 @@ not bear out is a doubt about the rule, never proof of a loss. Too few days to d
 the PASS standing (LAD-06). Golden verdicts moved: none (the ladder's golden and the registry
 tests pass unchanged); calibration worlds now carry daily bars, as the bootstrap reads them.
 
+## 26 Nov - the desk's ceiling raised from 18,000 to 30,000 lines (his ruling)
+
+**His words.** In chat, Thursday 26 November 2026, about 13:45 UK, offered 20,000 (recommended),
+22,000 or 18,000 kept, he chose "Raise to 22,000".
+
+**His words, about 14:00 the same day.** "if we need to add more code to build the desk then this is ok. go to a limit that is sensible. what we need to be careful about is doon loops, bloat and sprawl. if we can monitor those things closely then line limits can grow as they are needed to ... if we need 50,000 lines to build the desk then this is fine as long as we know there is no doon loops, bloat and sprawl."
+
+**Decided.** `BUDGET.json`'s phase 3 `product_lines` goes from 18,000 to 30,000, sized for the
+money features and the five lane books; it rises again, by his words above, when the desk needs
+it and the doom-loop (`tests/guards/test_churn.py`), bloat and sprawl checks are green. The guard
+stays and still fails one line past the new ceiling; files stay under 800 lines each.
+
+**Why.** The desk stood at 18,000 of 18,000, so every money feature had first to delete as
+much as it added; his rulings of the same hour (risk-based sizing, trend and market filters,
+TP1/TP2/TP3 take-profits: R-RUNNER-543 to 545) and the money fixes need room to land.
+
 ## 26 Nov - doom loops, bloat and sprawl held by code, not prose (his ruling)
 
 **His words.** In chat, Thursday 26 November 2026, about 14:10 UK: "we have updated the claude.md
