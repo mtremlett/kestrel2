@@ -2509,7 +2509,11 @@ computed for it. THIN and FAULT stay THIN and FAULT (LAD-06).
 **Liquidity (`lab/rung_liquidity.py`).** Each judged trade's shares, as the first rung sized them
 by the desk's one sizing home (`orders.size`, from the one capital), set against the line's volume
 on the day each leg filled. FAIL when any leg is more than `orders.LIQUIDITY` (1%) of its day's
-volume; a leg on a day of no volume is more than any share. *Why 1%:* it is already the desk's
+volume. *A day of no volume recorded* is not read: the history database holds such days on 634
+of its 2,063 lines (85,559 of 11.0 million bars; WPP, a FTSE 100 company, on 3,277), so a zero is
+the record's gap, not a market that did not trade; failing on it would fail a line on its data
+(pattern 10). Each such leg is counted in the reason; with no leg read the rule is THIN. Found by
+the blind review of #2230, before any EPON result. *Why 1%:* it is already the desk's
 number (SIZ-10: no position above 1% of a line's traded value), so it keeps one home (pattern 8);
 under 1% of a day's volume is the usual retail participation bar, below which a market order's
 impact is small (Almgren, Thum, Hauptmann and Li 2005, square-root impact). The desk holds it to

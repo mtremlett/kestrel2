@@ -51,25 +51,37 @@ def test_a_deep_line_passes_and_names_its_capacity_in_pounds() -> None:
     assert answer is Answer.PASS, why
     depth = rung_liquidity.judge(first, _bars(1_000_000))
     assert depth.worst == Decimal(SHARES) / 1_000_000
-    assert depth.capacity == CAPITAL * LIQUIDITY / depth.worst  #: the pot at which it is at 1%
-    assert f"{depth.capacity:,.0f}" in why
+    assert depth.capacity == Decimal(1_000_000)  #: 100 shares of a million: 1% at 100 times the pot
+    assert Decimal(10_000) == CAPITAL and "about 1,000,000 pounds" in why
+    #: the volume read is named by the line whose bars were judged: a proxy's, where one stands in
+    assert "of VUSA's volume" in why
 
 
 def test_a_thin_line_fails_where_its_trades_take_more_than_the_desks_share_of_the_day() -> None:
     first = _first()
     over = int(SHARES / LIQUIDITY) - 1  #: 100 shares a little over 1% of the day's volume
     answer, why = rung_liquidity.RUNG.judge(first, _bars(over), {})
-    assert answer is Answer.FAIL and "of the day's volume" in why, why
+    assert answer is Answer.FAIL and "of VUSA's volume" in why, why
     at = int(SHARES / LIQUIDITY)  #: exactly 1%: not more than the share, so it passes
     assert rung_liquidity.RUNG.judge(first, _bars(at), {})[0] is Answer.PASS
 
 
-def test_one_thin_day_or_a_day_of_no_volume_fails_the_whole_rule() -> None:
+def test_one_thin_day_fails_the_whole_rule() -> None:
     first = _first()
     sold = first.trades[5].held[1]
-    for volume in (2_000, 0):
-        answer, why = rung_liquidity.RUNG.judge(first, _bars(1_000_000, {sold: volume}), {})
-        assert answer is Answer.FAIL and str(sold) in why, why
+    answer, why = rung_liquidity.RUNG.judge(first, _bars(1_000_000, {sold: 2_000}), {})
+    assert answer is Answer.FAIL and str(sold) in why, why
+
+
+def test_a_day_with_no_volume_recorded_is_not_read_and_is_named_never_a_fail() -> None:
+    """A zero is the record's gap, not a day nothing traded (634 of 2,063 history lines hold
+    one, WPP 3,277 days): such a leg is left unread and counted; with none read, THIN."""
+    first = _first()
+    sold = first.trades[5].held[1]
+    answer, why = rung_liquidity.RUNG.judge(first, _bars(1_000_000, {sold: 0}), {})
+    assert answer is Answer.PASS and "1 leg on a day with no volume recorded, not read" in why
+    answer, why = rung_liquidity.RUNG.judge(first, _bars(0), {})
+    assert answer is Answer.THIN and "no leg's day has a volume recorded" in why, why
 
 
 def test_a_rule_the_first_rung_did_not_pass_keeps_its_answer() -> None:

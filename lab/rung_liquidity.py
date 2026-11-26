@@ -5,10 +5,14 @@ The first rung (`lab/rung.py`) sizes every trade by the desk's one sizing home (
 the one capital). This rung reads those shares and sets each leg against the line's volume on the
 day it filled. A rule that needs more than `orders.LIQUIDITY` of a day's volume (1%, the desk's own
 SIZ-10 number: one home) on any leg FAILS: its fills are not the market's prices but its own
-impact. A leg on a day of no volume is more than any share. Its reason names the worst leg's day.
+impact. A day whose volume is recorded as nothing is the record's gap, not a market that did not
+trade (634 of 2,063 history lines hold one): its leg is not read, and is counted in the reason;
+with no leg read the rule is THIN, never failed on a gap. Its reason names the worst leg's day,
+and whose volume it read: the judged bars' line, a proxy's where one stands in (`ladder_parts`).
 
-CAPACITY, in the reason: the largest pot at which the worst leg is still at the share, the capital
-times the share over the worst leg's part of its day, since the shares grow with the pot.
+CAPACITY, in the reason: about the largest pot at which the worst leg is still at the share, the
+capital times the share over the worst leg's part of its day, as the shares grow with the pot
+(whole shares and a fifth of the pot a holding, so near enough, never exact).
 
 IT ONLY LOWERS A PASS (as the costs rung does): a cell the first rung did not pass keeps the first
 rung's answer, FAIL, THIN or FAULT, and nothing is read for it (LAD-06). The bars and reasons are
@@ -28,8 +32,6 @@ from desk.store import Bar
 from lab import rung
 from lab.rung import Answer, Rates, Rung
 
-NONE_TRADED = Decimal("Infinity")  #: a leg's part of a day on which nothing traded
-
 
 @dataclass(frozen=True)
 class Depth:
@@ -39,6 +41,7 @@ class Depth:
     on: date | None  #: the day of that leg
     capacity: Decimal | None  #: pounds of pot at which the worst leg is at LIQUIDITY
     answer: Answer
+    unread: int = 0  #: legs on a day with no volume recorded, left unread
 
 
 def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Depth:
@@ -50,25 +53,29 @@ def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Depth:
     legs = [(p.shares, day) for p in first.trades for day in p.held]
     if missing := sorted({day for _, day in legs} - volume.keys()):
         raise ValueError(f"{first.key.cell}: no bar to read the volume of {missing[:3]}")
-    parts = [
-        (Decimal(shares) / volume[day] if volume[day] else NONE_TRADED, day) for shares, day in legs
-    ]
+    parts = [(Decimal(shares) / volume[day], day) for shares, day in legs if volume[day]]
+    unread = len(legs) - len(parts)
+    if not parts:
+        return Depth(None, None, None, Answer.THIN, unread)
     worst, on = max(parts)
-    capacity = CAPITAL * LIQUIDITY / worst
-    return Depth(worst, on, capacity, Answer.FAIL if worst > LIQUIDITY else Answer.PASS)
+    answer = Answer.FAIL if worst > LIQUIDITY else Answer.PASS
+    return Depth(worst, on, CAPITAL * LIQUIDITY / worst, answer, unread)
 
 
 def _judged(first: rung.Verdict, bars: Sequence[Bar], _rates: Rates) -> tuple[Answer, str]:
     """The liquidity rung as the ladder reads it: its answer, the worst leg and the capacity."""
     depth = judge(first, bars)
+    if depth.unread and depth.worst is None:
+        return depth.answer, f"no leg's day has a volume recorded ({depth.unread} legs)"
     if depth.worst is None or depth.capacity is None:
         return depth.answer, "the first rung did not pass it, so its volume is not read"
-    if depth.worst == NONE_TRADED:
-        return depth.answer, f"a leg on {depth.on}, a day of no volume; capacity no pounds"
+    n = depth.unread
+    gaps = f"; {n} leg{'s' * (n > 1)} on a day with no volume recorded, not read" if n else ""
     return (
         depth.answer,
-        f"its worst leg took {depth.worst:.4%} of the day's volume on {depth.on}, needs at most"
-        f" {LIQUIDITY:.0%}; capacity {depth.capacity:,.0f} pounds",
+        f"its worst leg took {depth.worst:.4%} of {first.key.cell.line.symbol}'s volume on"
+        f" {depth.on}, needs at most {LIQUIDITY:.0%}; capacity about {depth.capacity:,.0f} pounds"
+        + gaps,
     )
 
 
