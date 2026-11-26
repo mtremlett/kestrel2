@@ -2495,3 +2495,26 @@ excused all of `manifest.toml`. The guard-change warning on GitHub names `manife
 Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml` passes both tests.
 Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
 runner's card claims are renamed by runner ops after this lands.
+
+## 26 Nov - plateau is judged on every cell (L17, RUNGS)
+
+**Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
+always unrun, as the ladder hands `verdict.judge` no surface (`lab/ladder.py`, claimed by RUNGS-s4).
+Chat seat 215's order (26 Nov): the verdict builds the plateau itself, the one home of the answer.
+
+**Options.** (a) the ladder builds the surface (its file is claimed; two homes for one rung);
+(b) `verdict.judge` builds it when handed none (chosen). Its parameter goes dead: dropping it is a
+RUNGS follow-up once RUNGS-s4 frees `lab/ladder.py`.
+
+**What it does.** A rule with no ranges is FIXED: NOT APPLICABLE, a PASS (decision a). A ranged
+rule's own setting that failed its first rung is 0 deep whatever its neighbours, so it FAILs with
+no variant run. Only a cell whose own setting passed has its row's variants (3 to 27) run on its
+own line, window and bars. Found on the way: `published.proven` refused every variant (no
+publication under a variant's name), so a variant could never be judged. A variant is its row's
+code at other settings, so it is held to its row's publication; a variant of a row with none is
+still refused (`test_a_variant_is_held_to_its_rows_publication_and_refused_without_one`). A basket
+keeps its own unrun line, so its pass is still no pass of the whole ladder.
+
+**Cost, measured** on a 2,400-bar walk: 0.4 s a variant, about 3.6 s for a passing cell (9
+variants on average). EPON's ~21,000 cells: at most ~21 CPU hours were every cell to pass, under
+four hours on the pool's six workers; in practice only passing cells pay, a small share.

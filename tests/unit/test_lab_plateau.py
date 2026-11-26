@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from itertools import product
 
 import pytest
 from test_lab_luck import DAY
-from test_lab_rung import FREE, line_of
+from test_lab_rung import FREE, _walk, line_of
 
+from desk import strategy
+from desk.lines import LINES
 from lab import cell, plateau, rulebook, rung, variants, verdict
 from lab.cell import Cell, Key, Trade
 from lab.plateau import Grid, Setting
@@ -174,19 +177,14 @@ def test_a_grid_or_a_surface_that_cannot_show_a_true_plateau_is_refused() -> Non
             plateau.choose((FIVE,), line | {(30,): rung.verdict(key, line[30,].trades)})
 
 
-def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surface() -> None:
-    #: L17: plateau judged on a rule's variants, a FIXED rule NOT APPLICABLE; neither: UNRUN
+def test_the_rung_passes_a_setting_inside_a_plateau_and_fails_one_on_a_peak() -> None:
+    #: L17: plateau judged on a rule's variants, a FIXED rule NOT APPLICABLE
     tried = _surface(_square, SEVEN, SEVEN)
     inside, peak = (plateau.Surface((SEVEN, SEVEN), tried, own) for own in ((30, 30), (60, 60)))
     assert plateau.judged(inside)[0] is Answer.PASS and plateau.judged(peak)[0] is Answer.FAIL
     assert "1 steps deep among 49 tried, the centre (30, 30) 2 deep" in plateau.judged(peak)[1]
     with pytest.raises(ValueError, match="not tried"):
         plateau.judged(plateau.Surface((SEVEN, SEVEN), tried, (15, 30)))
-    rungs: dict[str, tuple[Answer, str]] = {}
-    owed = verdict.UNRUN | {"reproduce": verdict.NO_FIGURE}
-    assert verdict._plateaued(None, rungs, owed) == owed and not rungs
-    assert verdict._plateaued(inside, rungs, owed) == {"reproduce": verdict.NO_FIGURE}
-    assert rungs == {"plateau": plateau.judged(inside)}
     book = rulebook.specs()
     for ranged in ("donchian_channel_breakout", "donchian_channel_breakout[entry.n=40,exit.n=80]"):
         with pytest.raises(ValueError, match="never FIXED"):
@@ -203,10 +201,45 @@ def test_the_rung_passes_a_setting_inside_a_plateau_and_stays_unrun_with_no_surf
             plateau.of(unmade, book, firsts)
     fixed = plateau.judged(plateau.Fixed("breakout_20_10", book))
     assert fixed[0] is Answer.PASS and fixed[1].startswith("NOT APPLICABLE: breakout_20_10")
-    row: dict[str, object] = {"answer": "PASS"}
-    fixed_r = plateau.Fixed("r", {})
-    for given, goes in ((None, False), (inside, True), (peak, False), (fixed_r, True)):
-        rungs = {}
-        row["unrun"] = verdict._plateaued(given, rungs, verdict.UNRUN)
-        row["every"] = all(a is Answer.PASS for a, _ in rungs.values())
+    row: dict[str, object] = {"answer": "PASS", "unrun": {}}
+    one = Cell("r", line_of("VUSA"), DAY, DAY)
+    for given, goes in ((inside, True), (peak, False), (plateau.Fixed("r", {}), True)):
+        said, _ = verdict._plateaued(one, (), {}, _verdict(PASS), given)
+        row["every"] = said is Answer.PASS
         assert verdict.goes(row) is goes, f"an edge or a fixed rule goes forward: {given}"
+
+
+def test_the_verdict_builds_the_plateau_itself_from_the_rules_variants_on_the_cells_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: L17 wired: with no surface handed in, the verdict builds one. A FIXED rule is NOT
+    #: APPLICABLE; a setting that failed its first rung is 0 deep, no neighbour run for it; one
+    #: that passed has every variant of its row run on its own line and window, for real
+    rule, isf = "donchian_channel_breakout", next(one for one in LINES if one.symbol == "ISF")
+    own = _walk(3, 0, 0, days=3100)[-2400:]
+    c = Cell(rule, isf, own[0].day, own[-1].day)
+    won, lost = _verdict(PASS, rule), _verdict(FAIL, rule)  #: the cell's own first rung
+    monkeypatch.setattr(cell, "STRATEGIES", strategy.STRATEGIES)  #: the real rules, run for real
+    asked: list[Cell] = []
+    ready = verdict.ready
+    monkeypatch.setattr(verdict, "ready", lambda c, *rest: asked.append(c) or ready(c, *rest))
+    fixed = verdict._plateaued(replace(c, strategy="breakout_20_10"), own, {}, won, None)
+    assert fixed[0] is Answer.PASS and fixed[1].startswith("NOT APPLICABLE: breakout_20_10")
+    failed = verdict._plateaued(c, own, {}, lost, None)
+    assert failed == (Answer.FAIL, f"{_deep(0, 1)} the centre (20, 20) 0 deep; 2 asked")
+    assert asked == []
+    passed = verdict._plateaued(c, own, {}, won, None)
+    names = [v.spec.name for v in variants.variants(rulebook.specs()[rule])]
+    assert [(a.strategy, a.line, a.start, a.end) for a in asked] == [
+        (name, isf, c.start, c.end) for name in names
+    ]
+    assert passed[0] is Answer.FAIL and passed[1].startswith(_deep(0, 12)), passed
+    monkeypatch.setattr(verdict, "ready", lambda *_: (_ for _ in ()).throw(ValueError("no bar")))
+    assert verdict._plateaued(c, own, {}, won, None) == (
+        Answer.FAULT,
+        "the plateau could not be judged: no bar",
+    )
+
+
+def _deep(depth: int, tried: int) -> str:
+    return f"its setting {depth} steps deep among {tried} tried,"

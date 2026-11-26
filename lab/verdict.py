@@ -22,6 +22,7 @@ from lab import (
     market,
     plateau,
     reproduce,
+    rulebook,
     rung,
     rung_regimes,
     shuffle,
@@ -65,10 +66,6 @@ from lab.verdict_parts import (
 FOLDS = folds.YEARS
 #: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
 RESAMPLES = 1000
-#: Rungs that are built and that this set cannot yet be run through, each with why.
-UNRUN = {
-    "plateau": "neither its rule's variants nor its rule declared fixed were handed in",
-}
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
@@ -153,14 +150,15 @@ def judge(
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` the cell's first rung if run already; `surface` its rule at its settings, or
-    FIXED (`_plateaued`); `among` it among its rule's own lines (L18), else charged `count`."""
+    `first` the cell's first rung if run already; `surface` its rule at its settings, or FIXED,
+    else built here (`_plateaued`); `among` it among its rule's own lines (L18), else charged
+    `count`."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     verdict = first or ready(c, own, pounds, made)
-    unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
+    unrun = {} if made else {"reproduce": NO_FIGURE}
     settings = Settings(CAPITAL)
     (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
@@ -177,7 +175,7 @@ def judge(
         return _stopped(len(verdict.trades), rungs, unrun)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
-    unrun = _plateaued(surface, rungs, unrun)
+    rungs["plateau"] = _plateaued(c, own, pounds, verdict, surface)
     answer = one_answer({name: said for name, (said, _) in rungs.items()}, one.yearly)
     return {
         "trades": len(verdict.trades),
@@ -202,14 +200,23 @@ def gates(rungs: Judged) -> bool:
 
 
 def _plateaued(
-    surface: plateau.Surface | plateau.Fixed | None, rungs: Judged, unrun: Mapping[str, str]
-) -> dict[str, str]:
-    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface, or
-    its rule FIXED, is handed in; with neither, plateau stays UNRUN, with why."""
-    if surface is None:
-        return dict(unrun)
-    rungs["plateau"] = plateau.judged(surface)
-    return {name: why for name, why in unrun.items() if name != "plateau"}
+    c: Cell,
+    own: Sequence[Bar],
+    pounds: Rates,
+    first: Verdict,
+    surface: plateau.Surface | plateau.Fixed | None,
+) -> Pair:
+    """The plateau rung (L17) on the surface handed in, else on one built from the rule's
+    variants, each run on the cell's own line, window and bars; a FAULT where it cannot be."""
+
+    def tried(name: str) -> Verdict:
+        return ready(Cell(name, c.line, c.start, c.end), own, pounds, ())
+
+    try:
+        built = surface or plateau.at(c.strategy, rulebook.specs(), first, tried)
+        return plateau.judged(built)
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the plateau could not be judged: {cannot}"
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:

@@ -49,7 +49,7 @@ def test_three_thin_lines_make_one_basket_of_36_trades_judged_on_the_pooled_gain
     assert row["trials"] == 50
     assert "36 trades judged" in row["rungs"]["first"][1]
     assert "8.87 standard errors" in row["rungs"]["first"][1]
-    assert row["unrun"] == verdict.UNRUN  #: a basket's pass is no pass of the whole ladder
+    assert row["unrun"] == basket.UNRUN  #: a basket's pass is no pass of the whole ladder
     assert not verdict.goes(row)
 
 
