@@ -30,8 +30,8 @@ def worth(
 ) -> tuple[Decimal, tuple[str, ...]]:
     """What the lines held at a day's end that have their close were worth, in pounds: each at
     its close then, at the rate kept for that very day. A held line owed its close is named
-    (NO_CLOSE_OWED) and left out, never priced by an older bar: the day's profit is withheld, and the
-    next record opens from the last that carried one. A missing rate still stops the day."""
+    (NO_CLOSE_OWED) and left out, never priced by an older bar: the day's profit is withheld, and
+    the next record opens from the last that carried one. A missing rate still stops the day."""
     lines, priced, refused = {line.symbol: line for line in archive}, [], []
     for s, shares in book.positions(root, upto).items():
         rate = book.rate(root, lines[s].currency, upto)
