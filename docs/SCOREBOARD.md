@@ -250,6 +250,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2149 money-door-pound step 1: currency maths takes an injected rate; SimCity off rates.csv.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2181 R-RUNNER-512 met, one pinning test, no behaviour change.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2184 four rules' holding periods settled; fade's 20-session hold waits on its spec.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2187 money-simcity-withdrawn-day done; deep SimCity worlds live past a withdrawn day.
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2210 R-RUNNER-533 test pinned: reconcile books an unsent broker fill; root cause not yet found on the broker side.
 
 
 ### DATA

@@ -15,6 +15,7 @@ from lab import (
     history_bars,
     intraday,
     ladder,
+    ladder_pool,
     ladder_sets,
     members,
     rulebook,
@@ -176,7 +177,6 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
 ) -> None:
     from test_lab_ladder import AAPL, EDGE, ISF, NOISE, SPY, VUSA, _door
 
-    from lab import ladder_pool
     from lab.cell import Cell
 
     ran: list[object] = []
@@ -202,12 +202,17 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
 
 
 def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    stopped = "stopped after a unit: STOP"
+    stopped = f"{ladder_pool.STOPPED}: STOP"
     said = ladder_sets.epon(
         tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
     )
+    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    monkeypatch.setattr(ladder.Kept, "get", lambda *_: {})  #: every cell kept from before
+    said = ladder_sets.epon(
+        tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
+    )  #: a pass stopped after an earlier whole one: its old rows are not this pass's table
     assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
     _, notes = ladder_sets.survivors(["breakout_20_10"], [STAYS, LONDON], {"SP500": RECORD})
     assert ladder_sets.survivorship_said(notes, 2).startswith("survivorship: 1 of 2 lines not")
