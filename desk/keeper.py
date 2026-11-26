@@ -393,8 +393,9 @@ def rolled(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     long = bars.files(hot)[bars.DAILY]
     if not (hot.is_file() and long.is_file()):
         return []
-    landed = sum(history_write.roll(hot, line, now) for line in lines for _ in range(2))
-    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now)]
+    since = history_write.recent(now)  # the whole history is rolled and judged nightly (quality)
+    landed = sum(history_write.roll(hot, line, now, since) for line in lines for _ in range(2))
+    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now, since)]
     return faults + [
         f"roll-up: {landed} coarser bars built from the five-minute and daily bars"
     ] * bool(landed)
