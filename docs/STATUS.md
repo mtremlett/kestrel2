@@ -221,6 +221,7 @@ Open: members' FTSE Russell announcement reader (lseg.com has no stable machine-
 - [ ] R-DATA-8: a verdict counts trades held through a day in `History.moves`, with and without.
 - [ ] R-DATA-11 (blocking): `test_lab_rung.py` prices a dollar trade on "SPY"; name a US line that stays.
 - [ ] R-DATA-29, -38, -34, -43: the ladder reads SPY and its sets from `market_history.db`, rates from `keeper.pound`, POUND and DOLLARS from `desk.lines`. R-DATA-39: re-run the 35 waiting cells.
+- [ ] R-GRID-9 (blocking, 2026-11-26 17:00 UK): `published.proven` accepts a variant name by proving its base rule (`name.partition("[")[0]`); `rulebook.specs()` carries ranges (`chain.ranges`).
 ### Requests to RUNNER
 - [ ] R-DATA-16 (blocking): `test_check.py::test_at_most_n_full_checks_run_at_once` flaky on Windows.
 - [x] R-DATA-69: done in #1910 (`python -m desk.backfill POUND`); schedule it (R-DATA-74's job). R-DATA-72: done in #1870 (feed built; announcement reader open).
@@ -242,7 +243,7 @@ the desk's), a key per rung that ignores the modules that run it, auto-tune, the
 book (with each rule's variants swept as cells, #1487) with the catalogue's specs (catalogue-only rows served by `rulebook.rule`, #2104; `ladder.py:384` can drop `specs()`'s unused `folder`), the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
 pass runs each strategy on its declared universe (22 lines); all-on-all is `--transfer`, never a verdict. A pass reports
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
-`lab/chain.py` (#2190, R-RUNNER-364 part 2 of 5): a published set's variants at x2/3 and x3/2 of each value, one Cell per rule line; the pooled BASKET row is skipped. Remains: `rulebook.rule`/`variants.find` refuse a chain variant outside the catalogue row's ranges until they follow `chain.ranges` (next part).
+`lab/chain.py` (#2190, R-RUNNER-364 part 2 of 5): a published set's variants at x2/3 and x3/2 of each value, one Cell per rule line; the pooled BASKET row is skipped. `chain.sweep(home, bars, pounds, tag)` (#2202, R-RUNNER-365) runs a set's variants by the ladder's engine under its plan, sharing its register and results. Remains: the real ladder refuses a variant name (`published.proven` and `rulebook.specs()` ranges, R-GRID-9); until then a sweep records an error row per variant.
 
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
@@ -253,7 +254,7 @@ The 2,810 failures were journals the old CSV door wrote on 21 Nov; current code 
 
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
-- R-RUNNER-362: done in #1487
+- R-RUNNER-362: done in #1487; R-RUNNER-365: done in #2202
 - R-RUNNER-451: done in #2021; R-RUNNER-465: done in #2073; R-RUNNER-474: done in #2104
 - R-DATA-61: done in #1555; R-RUNGS-34 rule half met in #1700, pound half in #1683
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
