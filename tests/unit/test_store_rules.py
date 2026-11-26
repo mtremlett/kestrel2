@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from test_store import DAY, LONG, US, _bars, _scaled
+from test_store import DAY, LONG, POUND, US, _bars, _scaled
 
 from desk import store
 from desk.lines import Line
@@ -60,6 +60,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         "unit",
     ),
     "_priced:4": (lambda b: [*b[:-8], _scaled(b[-8], Decimal("1.7")), *b[-7:]], US, "moved from"),
+    "_priced:5": (  # the newest bar has no next close: a pound-sized step is kept, told unconfirmed
+        lambda b: [*b[:-1], _scaled(b[-1], 1 / POUND)],
+        US,
+        "unconfirmed",
+    ),
     "_split:1": (
         lambda b: [*(_scaled(x, Decimal(1) / 500) for x in b[:30]), *b[30:]],
         replace(US, splits=frozenset({(b_day(30), Decimal(7))})),
@@ -126,7 +131,9 @@ def test_each_rule_fires_on_its_synthetic_row(site: str) -> None:
     clean = list(_bars(US, LONG))
     answer = make(clean)
     shelf = [_scaled(x, Decimal(1) / 100) for x in clean] if site == "_joined:1" else clean
-    faults = store.judge(line, answer, DAY, shelf=shelf if site.startswith("_joined") else None)[1]
+    rates = {x.day: POUND for x in clean} if site == "_priced:5" else {}
+    shelf = shelf if site.startswith("_joined") else None
+    faults = store.judge(line, answer, DAY, rates, shelf=shelf)[1]
     assert any(seen in f.what for f in faults), site
 
 

@@ -151,4 +151,8 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
             )
             faults.append(Fault(bar.day, what, lasting=True))
         kept.append(bar)
+    if len(kept) > 1 and kept[-1] is sound[-1] and line.leverage == 1:  # no close follows it yet
+        last, pound = kept[-1], pound_on(rates, kept[-1].day)
+        if same_as_pound(last.close / kept[-2].close, pound, FX_STEP):
+            faults.append(Fault(last.day, f"{last.day} unconfirmed: a step the pound's size", noted=True))
     return kept

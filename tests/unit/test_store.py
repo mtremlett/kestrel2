@@ -330,6 +330,8 @@ def test_the_newest_bar_a_pound_step_from_the_day_before_is_kept_a_hundredfold_o
     clean = _bars(US, LONG)
     kept, _, reasons = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
     assert reasons == [] and len(kept) == len(clean)
+    _, faults, _ = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
+    assert any("unconfirmed" in f for f in faults)  # kept, but listed (R-RUNNER-492)
     kept, faults, reasons = _priced((*clean[:-1], _scaled(clean[-1], Decimal(100))), US)
     assert len(kept) == len(clean) - 1 and any("wrong unit" in f for f in faults) and reasons
 
