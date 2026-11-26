@@ -2545,3 +2545,6 @@ first-rung run a cell, about 0.4 s.
 **Driven (A7).** A planted coin (the cell drops its last trade on every other run) FAILs the
 rung; the breakout on a walk PASSes
 (`test_a_rule_with_no_figure_is_judged_on_determinism_and_a_planted_coin_fails_it`).
+
+**The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a reproduce rung, PASS on
+determinism; no answer and no other rung changes. Its noise row stops at its hard fail first.
