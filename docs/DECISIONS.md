@@ -2496,6 +2496,30 @@ Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml`
 Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
 runner's card claims are renamed by runner ops after this lands.
 
+## 26 Nov - the one progress number has one function, `lab/progress.py` (his order, ~20:1x)
+
+CANON Part C marked it OWED: the Telegram counted ticked boxes in the runner's own code and
+STATUS and SCOREBOARD by hand. `lab/progress.py` is now the one count: boxes `- [x]` in
+`docs/PLAN.md` at a window's end that were not ticked at its start (main's last first-parent
+commit before each moment), per lane book and OTHER; `python -m lab.progress` prints it as one
+JSON line. Decided by rule, with the options:
+- **Where.** `desk/` holds 100 files, its ceiling (`BUDGET.json`), and the count is not the
+  trading core; `lab/` had about 6,100 lines of room. So `lab/`.
+- **Whose.** Every lane and the runner read it, but `manifest.toml` refuses any module that is
+  not a package marker (the 26 Nov split), and widening that is loosening a guard. So a lane
+  holds it: RUNGS, which already keeps the other outcome count beside it in CLAUDE.md
+  (strategies through the ladder), registered in `manifest/rungs.toml`.
+- **One parser.** None existed in `desk/` or `lab/`; the only ones are the guards' note reader
+  (`tests/guards/test_lanes.py`) and the runner's `slots.boxes`, outside the repository. The
+  runner reads this module instead of counting (runner ops wires it); the guards' reader is
+  left as found, not fixed.
+- **Which boxes.** Every box counts, umbrellas and boxes outside the books too, as CLAUDE.md
+  says "plan boxes"; a box is known by its note's id, else its words, so a box without an id
+  whose words change as it is ticked counts once, and one whose words change while already
+  ticked would count again (none seen; boxes with work carry ids).
+Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
+printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
@@ -2573,7 +2597,10 @@ Seat 215's order, the rest of the key, every rung real (no rung's own result stu
 - **Planted edges at a true t of 1, 2, 3 and 4** (the churner on the kit's paid line, its tilt set
   from the mean and spread measured at no tilt): stated first-rung pass rates 0.16, 0.50, 0.84, 0.98
   (a normal above 2 - t), found 0.20, 0.65, 0.95, 1.00 on 20 lines each, within 0.25 and rising; the
-  first rung is the rung a true t governs, so the rates are stated for it.
+  first rung is the rung a true t governs, so the rates are stated for it. The blind review judged the
+  calibration FAIL: every group's mean t runs about 0.3 high (found rates fit t + 0.3: 0.24, 0.62,
+  0.90, 0.99), so the plant is t + 0.3 and the tolerances (0.5 on t, 0.25 on a rate) hide it. Owed:
+  B and SD on 100+ seeds at the tilt, 80 lines a t, tolerances 0.25 and 0.15.
 - **A delisted line** (AMD cut at 2023-06-30 among 16): judged, FAIL, never an error; the 2025 fold
   pooled over the 15 lines still trading. Found: its regimes rung FAULTs (STATUS, found not fixed).
 - **L17's gate met:** the kit's paid edge goes forward on every line.

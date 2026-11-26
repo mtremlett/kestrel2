@@ -39,8 +39,10 @@ rung's verdict alone) is not given (rungs-each-rung: no rung module off the ladd
 
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from datetime import date
 from decimal import Decimal
 from statistics import fmean, stdev
 from typing import Any
@@ -115,15 +117,24 @@ class Against:
 
 def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
     """The basket's days and its market's, paired, over the market's bars from the basket's first
-    buy to its last sale; the market has no bar on a trade's day: refused."""
+    buy to the bar its last sale is booked to; a sale on a day the market is shut lands on its
+    next bar, and one after its last bar is refused."""
+    open_on = [b.day for b in against.bars]
+
+    def booked(day: date) -> date:
+        """The market's first bar on or after a sale's day: a London line on a US proxy sells
+        on a UK bank holiday with New York open, and its pounds land on ISF's next bar."""
+        at = bisect_left(open_on, day)
+        if at == len(open_on):
+            raise ValueError(f"{against.line.symbol} has no bar on or after {day}, a day of a sale")
+        return open_on[at]
+
     first = min(p.held[0] for p in basket.trades)
-    last = max(p.held[1] for p in basket.trades)
+    last = max(booked(p.held[1]) for p in basket.trades)
     bars = [b for b in against.bars if first <= b.day <= last]
     sold = {b.day: Decimal(0) for b in bars}
     for p in basket.trades:
-        if p.held[1] not in sold:
-            raise ValueError(f"{against.line.symbol} has no bar on {p.held[1]}, a day of a sale")
-        sold[p.held[1]] += (p.gross - p.costs.total) / CAPITAL
+        sold[booked(p.held[1])] += (p.gross - p.costs.total) / CAPITAL
     marks = [b.close * rung.rate(against.line, against.rates, b.day) for b in bars]
     market = [float(now / was - 1) for was, now in zip(marks, marks[1:], strict=False)]
     return [float(sold[b.day]) for b in bars[1:]], market

@@ -13,6 +13,8 @@ it from, and a figure quoted from memory would be a guess. The ladder measures t
 after costs, on the desk's own data. Secondary sources (blogs and forums, undated here) vary the
 run of lower days from 2 to 4 and the exit between the 5-day average and the 2-day average, so
 the RANGE of the setting is 2 to 4 days; this port takes the book's three and the 5-day exit.
+Holding period: none. The book sells on the close over the 5-day average alone and gives no
+day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """

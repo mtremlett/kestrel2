@@ -40,6 +40,9 @@ FALSE_PASS = 0.02
 #: trade, whose mean after costs at no tilt is B and whose spread is SD, measured on 16 seeds
 #: of no tilt (26 Nov); the tilt for a true t is the one whose mean after costs is t standard
 #: errors above nothing. The test checks the measure: each group's mean t lies near its own.
+#: KNOWN BIAS (blind review, 26 Nov): the found mean t runs about 0.3 high in every group (1.43,
+#: 2.33, 3.32, 4.02), so the plant is t + 0.3, not t; B and SD want re-measuring on 100+ seeds at
+#: the tilt and the tolerances tightening (RUNGS, owed). The first rung passes at its own t's rate.
 TRADES, B, SD = 2399, -0.00158, 0.0541
 SEEDS = 20  #: lines a true t
 #: The first rung passes at t 2 or over on its 30 trades: a true t of T passes as often as a

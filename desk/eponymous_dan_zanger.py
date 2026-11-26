@@ -18,6 +18,8 @@ READING HERE, ONE RULE, long only, on the close: BUY when the close is over the 
 the 50 sessions before AND the day's volume is at least 1.5 times the 50-day average volume
 before it; SELL when the close is under its 10-day simple average. The 50 days and the 1.5 are
 this port's reading of "a base" and "heavy volume"; sources give no single number.
+Holding period: none. The sale is the close under the 10-day average alone; the sources give
+no day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """
