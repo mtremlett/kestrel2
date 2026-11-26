@@ -142,23 +142,30 @@ def _kept_in(
     standing: bool = True,
 ) -> tuple[list[Parked], tuple[str, ...]]:
     """Answers judged by the one store, kept as one round: lines parked, sources in words."""
-    parked, rates, named, said, ibkr = [], pound_closes(hot), dict[str, list[str]](), [], []
-    with bars.writing(hot) as round_:
-        for line, answer in answers.items():
-            broker = first.get(line)
-            shelf = bars.bridged(hot, line, day, None, answer, broker)
-            stands = _standing(hot, line, day, broker) if standing else broker
-            kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
-            held, gave = _held(hot, line), broker if isinstance(broker, list | tuple) else ()
-            theirs = {(g.day, entered(g)) for g in gave}
-            ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
-            fresh = [b for b in kept if b not in held]  # a held bar keeps its label
-            round_.daily(
-                line, fresh, withdrawn=_dropped(held, answer, broker) - {b.day for b in kept}
-            )
-            parked += [park] if park else []
-            named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
-            said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
+    parked, rates, named, said, ibkr, judged = (
+        [],
+        pound_closes(hot),
+        dict[str, list[str]](),
+        [],
+        [],
+        [],
+    )
+    for line, answer in answers.items():  # every line judged first, outside any round
+        broker = first.get(line)
+        shelf = bars.bridged(hot, line, day, None, answer, broker)
+        stands = _standing(hot, line, day, broker) if standing else broker
+        kept, faults, park = scoped_judge(line, answer, day, rates, shelf=shelf, broker=stands)
+        held, gave = _held(hot, line), broker if isinstance(broker, list | tuple) else ()
+        theirs = {(g.day, entered(g)) for g in gave}
+        ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
+        fresh = [b for b in kept if b not in held]  # a held bar keeps its label
+        judged.append((line, fresh, _dropped(held, answer, broker) - {b.day for b in kept}))
+        parked += [park] if park else []
+        named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
+        said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
+    with bars.writing(hot) as round_:  # the round holds the lock only while it writes
+        for line, fresh, withdrawn in judged:
+            round_.daily(line, fresh, withdrawn=withdrawn)
     with bars.writing(hot, bars.Source.IBKR) as round_:  # the broker's own bars, so labelled
         for line, own in ibkr:
             round_.days(line, own)
@@ -360,6 +367,8 @@ def keep(
     told += keeper_live.rounds(  # the fast round first, under half the call's time
         home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
     )
+    if (home / HOT).is_file():
+        keeper_live.roll(home / HOT)  # the long database holds this round's bars, not tonight's
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         ask = _within(daily, clock, ends)
@@ -384,8 +393,9 @@ def rolled(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     long = bars.files(hot)[bars.DAILY]
     if not (hot.is_file() and long.is_file()):
         return []
-    landed = sum(history_write.roll(hot, line, now) for line in lines for _ in range(2))
-    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now)]
+    since = history_write.recent(now)  # the whole history is rolled and judged nightly (quality)
+    landed = sum(history_write.roll(hot, line, now, since) for line in lines for _ in range(2))
+    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now, since)]
     return faults + [
         f"roll-up: {landed} coarser bars built from the five-minute and daily bars"
     ] * bool(landed)

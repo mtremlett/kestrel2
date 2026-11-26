@@ -9,9 +9,11 @@ from pathlib import Path
 import pytest
 
 from desk import bars, conformance_tape, history
+from desk import keeper as rounds
 from desk.history_write import clashes, held, keeper, main, roll
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.rollup import Candle
+from desk.spans import EPOCH
 from desk.store import Bar, Refused
 
 LINE = next(line for line in LINES if line.symbol == "VUAG")
@@ -128,3 +130,28 @@ def test_five_minute_bars_are_rolled_from_whole_one_minute_runs_and_a_held_one_s
     roll(live, LINE, open_ + timedelta(days=1))
     fives = bars.five(live, LINE, open_, open_ + timedelta(hours=1))
     assert [(b.start, b.volume) for b in fives] == [(open_, 5)]
+
+
+def test_the_keepers_round_reads_and_tells_only_its_recent_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    old, now = datetime(2025, 11, 12, 8, tzinfo=UTC), datetime(2026, 11, 12, 18, tzinfo=UTC)
+    for day in (old, now.replace(hour=8)):
+        keep(LINE, "5m", tuple(Candle(day + timedelta(minutes=5 * n), PRICE, PRICE, PRICE, PRICE,
+                                      1, "ibkr") for n in range(24)))  # fmt: skip
+    keep(LINE, "1d", (Bar(now.date(), PRICE, PRICE, PRICE, PRICE, 5),))
+    keep(LINE, "15m", (Candle(old, PRICE, PRICE, PRICE, PRICE + 1, 9, "ibkr"),))  # an old clash
+    firsts: list[int] = []
+    reading = bars._read
+
+    def counted(path: Path, line: Line, span: str, first: int, *rest: int | str) -> list[object]:
+        firsts.extend([first] * (span != bars.DAILY))
+        return list(reading(path, line, span, first, *rest))  # type: ignore[arg-type]
+
+    monkeypatch.setattr(bars, "_read", counted)
+    told = rounds.rolled(live, [LINE], now)  # the 5-minute round, as the keeper takes it
+    assert firsts and min(firsts) >= (now - timedelta(weeks=3) - EPOCH).total_seconds()
+    assert not [t for t in told if t.startswith("FAULT")]  # the year-old clash is not told again
+    assert rounds.rolled(live, [LINE], now) == []  # the window rolled again: nothing new lands
+    assert clashes(live, LINE, now) == ["VUAG 15m 2025-11-12 08:00: rolled and held differ"]

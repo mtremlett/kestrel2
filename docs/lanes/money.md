@@ -751,3 +751,12 @@ true result on the fixture, not a tuning target.
 - Total bound for the daily zoo: (a) cap lines by count only, (b) cap pounds at each line's last buy and the day's rate. Took (b): a line's room is the zoo's whole 1,000 pounds (`ZOO_DAY`) and the zoo's total stays within it.
 - money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's is re-carded to RUNGS, claiming desk/eponymous_connors.py, lab/published_epon.py and their tests. His standing ruling "always go with recommended".
 - The 36 evening refusals' words are in no file of the repo; the test replays their cause with the refusal's words.
+
+### 2026-11-26 - Currency maths takes its rate source; connors7 to RUNGS (#2149)
+- money-connors7: keep on MONEY, or hand to RUNGS. Took RUNGS, following the runner's ruling (his "always go with recommended"); claim desk/eponymous_connors.py, its unit test, lab/published_epon.py, tests/unit/test_lab_published_epon.py. This session worked money-door-pound alone.
+
+### 2026-11-26 - A stops row for a line sold to 0 stays as history (#2181, R-RUNNER-512)
+- Options: prune sold lines' rows, or keep stops.csv as a history. Kept: pruning would lose the level behind "stop rests at" and a restart's put-back; the guard against a short is the held-lines-only walk in restop.move, now tested.
+
+### 2026-11-26 - The Donchian fade declares no hold for now (#2184, R-RUNNER-537)
+- Fade hold 20 sessions vs none: none for now, because the catalogue spec in lab/ decides without a time stop and the rule must match it (unit 3/5 and 5/5 went red); the 20 stays the recommended end state, needing rule and spec changed together.

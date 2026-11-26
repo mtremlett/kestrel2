@@ -106,6 +106,25 @@ def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
     assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
 
 
+def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The side figure of a buy over 300 held lines asks for the fills once (pattern 26)."""
+    names = [f"L{n}" for n in range(300)]
+    ids = ("d-zoo_a-1", "d-rule-1")
+    planted = [Fill(f"x-{n}", ids[n % 2], s, 1, Decimal(5), MON) for n, s in enumerate(names)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    asked, real = list[int](), book.fills
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        asked.append(1)
+        return real(root)
+
+    monkeypatch.setattr(book, "fills", counted)
+    mine = book.side(tmp_path, dict.fromkeys(names, 1), "d-rule-2")
+    assert len(mine) == 150 and len(asked) == 1, f"{len(asked)} reads of the fills, not one"
+
+
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -472,3 +491,18 @@ def test_a_trade_is_told_with_its_strategy_and_the_bar_its_signal_read(tmp_path:
     assert (story.strategy, story.held, story.bar) == ("rsi", 0, friday)
     with pytest.raises(ValueError, match="no bar before"):
         book.told(trips, {A: WEEK[A]})
+
+
+def test_a_fill_the_broker_reports_and_the_send_path_never_recorded_is_booked_by_the_next_reconcile(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-533 (SMGB, 25 Nov): the desk's and the zoo's orders filled at the broker, no fill
+    reached the ledger, and every later send refused 'the book is not the broker's'."""
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    for name in ("o-1", "zoo-bollinger-2"):  #: placed at the broker, the send path never saw them
+        broker.place(Order(name, A, 5, *map(Decimal, (50, 1, 45))))
+    assert book.positions(tmp_path) == {}, "nothing booked before the reconcile"
+    assert book.reconcile(tmp_path, broker) == (), "the book is the broker's once it has collected"
+    assert book.positions(tmp_path) == {"A": 10} and book.fills(tmp_path) == broker.fills()
+    assert _send(tmp_path, broker, "o-3", n=1).filled == 1, "the next send is not refused"

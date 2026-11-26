@@ -336,30 +336,31 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       from ONE store: the ladder's daily files miss SPY 2022-09-28 that market_history.db holds
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
-      Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read.
+      Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read. #2144: the hourly table also carries one row per database naming each red golden cell and why (SPY, QQQ, VUAG, IITU).
       {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
-- [ ] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
+- [x] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
       wire: every keeper round; gate: a rolled hour equals its twelve five-minute bars, and a differing held bar is a FAULT
-      Built (#2083, #2129): the keeper's five-minute round rolls each line's five-minute and daily bars up, and tells a rolled bar that differs from a held one as a FAULT line every round. Remains (the desk's, not his; coordinator 177, 24 Nov): the
-      check, data-hover's line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh
+      Built (#2083, #2129): the keeper's five-minute round rolls each line's five-minute and daily bars up, and tells a rolled bar that differs from a held one as a FAULT line every round. Pinned (#2171): a rolled hour equals its twelve five-minute bars; a keeper round leaves the 15m, 30m and 1h spans ending at the base's newest bar. Remains: data-hover's (data-monitor's, desk/quality.py), the line showing the history database's 15m, 30m, 1h, 4h and 1wk fresh
       {id: data-rollup-hot; files: desk/rollup.py, desk/keeper.py, desk/history_write.py, tests/unit/test_rollup.py, tests/unit/test_keeper*.py, tests/unit/test_history_write.py}
-- [ ] Every line's newest daily bar comes from IBKR when the broker answered that day (his 'IBKR always primary';
+- [x] Every line's newest daily bar comes from IBKR when the broker answered that day (his 'IBKR always primary';
       coordinator 165, 23 Nov 21:4x): the data table says 'sources: archive 22' in both stores, so every newest daily
       bar is the free archive's though IBKR-first is ticked. The session first names the mechanism (the keeper's room
       per call, the writer's order between sources, or a failed ask passed over silently) and fixes it where the wrong
       source wins, never by a second path
       wire: every keeper round; gate: a line whose newest daily bar is the archive's while the broker fake answered that day fails the keeper's contract test
+      Built (#2172): the keeper writes the bars equal to the broker's answer in a second round as IBKR; a held bar is not rewritten.
       {id: data-ibkr-daily-newest; files: desk/keeper.py, desk/bars.py, tests/unit/test_keeper*.py, tests/unit/test_bars*.py; after: data-rollup-hot}
 - [ ] The history database keeps the live day's five-minute and one-minute bars from every keeper round, not once at
       21:30, so research and the monitor read them as fresh as the live store
       wire: every keeper round; gate: a round over a planted live store leaves its newest five-minute bar in the history database
       {id: data-history-fine; files: desk/keeper.py, desk/keeper_live.py, tests/unit/test_keeper*.py; after: data-ibkr-daily-newest}
-- [ ] The history pull paces by bar size (coordinator 165, 23 Nov 21:4x): IBKR's sixty-requests-in-ten-minutes limit binds
+- [x] The history pull paces by bar size (coordinator 165, 23 Nov 21:4x): IBKR's sixty-requests-in-ten-minutes limit binds
       only bars of thirty seconds and under; one-minute and longer bars are held back only by open requests, so the
       pull asks them as fast as the broker answers, and slows only where the broker says pacing
       wire: the history pull; gate: a planted pull of one-minute and daily asks is never held by the small-bar count, and a planted pacing refusal still slows it
+      Built (#2191): no wait between asks; only a refusal naming pacing slows the pull.
       {id: data-history-pacing; files: desk/history.py, tests/unit/test_history*.py; after: data-rollup-hot}
 - [ ] No missing trading day: a line's gap on a day its venue traded (SPY 2022-09-28, ISF 2012-05-28 among
       6,788 market FAULTs in the ladder) is filled from IBKR, then Yahoo, or the one calendar names it a
@@ -732,6 +733,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
+      (#2149 step 1: currency maths takes its rate source, SimCity off rates.csv. Remains: the trading day, day_money.worth/heat, day._gap, book._priced, book.rate and fills pricing, with `home` threaded through day.run, desk/command*.py, desk/running.py and their tests (re-card to claim them); then the gate test)
       (runner ops 108, 23 Nov, stall watch 01:31: claim adds desk/book_parts.py, where the rates record is read, and desk/simcity.py, which reads it through `book.pounds_per`; two sessions stopped at that wall)
       {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py, desk/book_parts.py, desk/simcity.py}
 - [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
@@ -1138,8 +1140,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
-        whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold
-        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py; after: rungs-blind-review}
+        whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
+        Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
+        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; after: rungs-blind-review; waits: 2026-11-27}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
@@ -1205,10 +1208,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules}
   - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
-        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks, rungs-known-answer-kit}
+        {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py, manifest.toml; after: rungs-blocks}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
-        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate, rungs-b5}
+        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate}
 - [x] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Retired (coordinator 100, 22 Nov 23:0x): Supertrend's carried band and a fresh-low table, for which no free printed worked example was found; no paid data before profit (his 22 Nov), not a hard line. Supertrend stays held to its reference script's carried bands (lab/published.py, supertrend_10_3)
@@ -1239,13 +1242,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       written down; where sources disagree, the range is written down and reproduction must
       land inside it. RSI-2 goes first this way; variants of each rule are tested later on
       the ladder, never chosen by eye (BT-15)
-      {id: rungs-secondary-figures; files: lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-epon-first}
+      {id: rungs-secondary-figures; files: lab/published_epon.py, tests/unit/test_lab_published_epon.py}
 - [ ] **The ladder in sets, each published as it finishes:** set 1, the eponymous strategies;
       set 2, the grid's transfer study over the research universe; then sets of variants
       around any plateau found, each family named before it runs. After each set, one
       Telegram summary and a results file: every strategy, every rung's verdict with its
       reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
-      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; after: rungs-epon-first}
+      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py}
 - [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
       set's full trial count (and its reproduction, if published); it is named in this plan,
       with its kill condition, before its first paper day; it then trades paper side by side
