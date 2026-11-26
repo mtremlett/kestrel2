@@ -1,16 +1,10 @@
 """clearance - THE DAY'S CHECK, AND NO ORDER WITHOUT IT. Every day, and before any order, the
 paper account is read through the one door (desk/paper.py) and set against the desk's book:
-what it holds, and every order resting on it. The desk's own stops are told from anyone
-else's orders (desk/reports.py): each line held must be under a stop of the desk's own for
-exactly the shares held, and nothing else may rest there. Every difference is named in
-words. Only questions are sent.
-
-Each check goes on the desk's record, dated: first that it was begun, then what it found.
-`require` is asked by whoever would send an order, at the last moment, and refuses unless
-the newest check on the record was begun today, came back, and named nothing. So a check
-whose reading stopped, a desk that died in one, a later check that named something and a
-record that cannot be read whole each refuse: none of them is a clean day. The day is the
-UTC date, inside which London's session and New York's each fall whole."""
+what it holds, and every order resting on it (the desk's own stops told from anyone else's,
+desk/reports.py): each line held is under a stop of the desk's own for exactly its shares,
+nothing else rests there, and every difference is named in words. Each check goes on the
+desk's record, dated: begun, then what it found. `require` refuses an order unless the
+newest check was begun today (UTC), came back, and named nothing."""
 
 from __future__ import annotations
 
@@ -20,6 +14,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from itertools import pairwise
 from pathlib import Path
+from types import MappingProxyType
 
 from desk import book, listing, paper, reports
 from desk.lines import LINES, Line
@@ -29,6 +24,7 @@ from desk.paper import Account, Resting
 
 CHECKS = "checks.csv"
 COLUMNS = ("at", "result", "found")
+BESIDE, CONFORMANCE = "conformance", "223"  #: its folder beside the desk, its client id
 BEGUN, CLEAN, DIFFERS = "begun", "clean", "differs"  #: a check's result, as the record words it
 
 
@@ -43,8 +39,7 @@ class Check:
     """One run of the day's check, as the record keeps it."""
 
     at: datetime  #: when it was begun, in UTC
-    #: Every difference it named; none, and the account is the desk's book. None while it
-    #: has not come back: its reading stopped, or the desk died in it.
+    #: Every difference it named (none: the account is the desk's book); None until it comes back.
     found: tuple[str, ...] | None
 
     def __post_init__(self) -> None:
@@ -62,20 +57,29 @@ def differences(
     held: Mapping[str, int],
     lines: Iterable[Line],
     door: paper.Door,
+    beside: Mapping[str, int] = MappingProxyType({}),
 ) -> tuple[str, ...]:
     """Every way the paper account is not the desk's book, each named in words; none, and
-    nothing but the desk trades the account and each line held is under the desk's own stop.
-    held is the book (book.positions); listings, each line as the broker lists it now.
-    First the holdings (paper.differences). Then the desk's own resting stops, by the same
-    one rule (book.differences): a line's stop is for exactly the shares the book holds, so
-    a line held under none, a stop for other shares and a line under two are each named.
-    Then every other order: the desk's own that is no stop the broker is holding, and
-    anyone else's, which protects nothing of the desk's."""
-    holdings = paper.differences(account, held, lines)
-    told = reports.orders(account.orders, listings, door)
+    nothing but the desk trades it and each line held is under the desk's own stop. held is
+    the book (book.positions); listings, each line as the broker lists it now. First the
+    holdings (paper.differences). Then the desk's own resting stops, by one rule
+    (book.differences): a stop is for exactly the shares held, so none, other shares and two
+    are each named. Then every other order: the desk's own that is no stop, and anyone else's.
+    beside is the conformance desk's share by its ledger: added to the book's; its stops for
+    that share are left out. A share its ledger lacks, or any other order of its, is named."""
+    sums = {s: held.get(s, 0) + beside.get(s, 0) for s in held.keys() | beside.keys()}
+    holdings = paper.differences(account, sums, lines)
+    ours = tuple(o for o in account.orders if not _its_stop(o, beside))
+    told = reports.orders(ours, listings, door)
     stops = paper.named(held, told.stops, "the desk's own stop resting at the broker is for")
     idle = (_order(o, "the desk's own, and no stop the broker is holding") for o in told.unsettled)
     return (*holdings, *stops, *idle, *(_order(o, "not the desk's own") for o in told.others))
+
+
+def _its_stop(o: Resting, beside: Mapping[str, int]) -> bool:
+    """A sell stop of the conformance desk's, for no more than its ledger holds of the line."""
+    stop = (o.client, o.action, o.kind) == (CONFORMANCE, "SELL", "STP")
+    return stop and o.shares <= beside.get(o.symbol, 0)
 
 
 def _order(order: Resting, whose: str) -> str:
@@ -87,9 +91,8 @@ def _order(order: Resting, whose: str) -> str:
 
 
 def checks(root: Path) -> tuple[Check, ...]:
-    """The record of the day's checks, oldest first. No record is a desk never checked; one
-    that is there and is not, row for row and in the order made, as the desk writes it is an
-    error, never a clean day."""
+    """The record of the day's checks, oldest first. No record: never checked; one not as the
+    desk writes it, row for row and in order, is an error, never a clean day."""
     path = root / CHECKS
     if not path.exists():
         return ()
@@ -101,7 +104,7 @@ def checks(root: Path) -> tuple[Check, ...]:
 
 
 def _ordered(path: Path, record: tuple[Check, ...]) -> tuple[Check, ...]:
-    """A record in the order its checks were made, so that its last is its newest; or an error."""
+    """A record in the order made, its last the newest; or an error."""
     for earlier, later in pairwise(record):
         if earlier.at > later.at:
             raise ValueError(
@@ -112,7 +115,6 @@ def _ordered(path: Path, record: tuple[Check, ...]) -> tuple[Check, ...]:
 
 
 def _check(path: Path, row: list[str]) -> Check:
-    """A row of the record: a check exactly as the desk writes one, or an error."""
     found = None if row[1:] == [BEGUN] else tuple(row[2:])
     try:
         check = Check(datetime.fromisoformat("".join(row[:1])), found)
@@ -126,15 +128,14 @@ def _check(path: Path, row: list[str]) -> Check:
 def check(root: Path, now: datetime, door: paper.Door) -> Check:
     """THE DAY'S CHECK, run every day and before any order: each of the desk's lines as the
     broker lists it now, then the account, read through the one door and set against the
-    desk's book, whose ledger whoever runs the day has brought up to date first; the door says
-    who asks and what of the account is its own. The check
-    is on the record as begun before anything is asked, and as what it found once it comes
-    back; a reading that stops is raised, and leaves it begun. So is a check that finds the
-    record changed under it: another ran beside it, and what that one found stays."""
+    desk's book (its ledger brought up to date first); the door says who asks. It is on the
+    record as begun before anything is asked, then as what it found; a reading that stops is
+    raised and leaves it begun, as does a record changed under it (another check ran beside)."""
     begun = Check(now, None)
     _keep(root, (*checks(root), begun))
     listings = listing.kept(root, now, LINES, door)
-    found = differences(paper.read(door), listings, book.positions(root), LINES, door)
+    theirs = book.positions(root.parent / BESIDE) if door.client == paper.DESK else {}
+    found = differences(paper.read(door), listings, book.positions(root), LINES, door, theirs)
     record = checks(root)
     if record[-1:] != (begun,):
         raise ValueError(f"{root / CHECKS}: another check ran beside the one begun at {now}")
@@ -149,9 +150,8 @@ def _keep(root: Path, record: tuple[Check, ...]) -> None:
 
 
 def require(root: Path, now: datetime, order_id: str) -> None:
-    """Asked at the last moment before an order goes to the paper broker: Refused, in the
-    check's own words, unless the newest check on the record was begun today (now's date,
-    in UTC), came back, and named nothing."""
+    """Asked before an order goes: Refused, in the check's own words, unless the newest check
+    was begun today (UTC), came back, and named nothing."""
     today, record = _utc(now).date(), checks(root)
     last = record[-1] if record else None
     if last is None or last.at.date() != today:

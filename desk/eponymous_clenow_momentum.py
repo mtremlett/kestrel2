@@ -17,9 +17,7 @@ sees one line, so it cannot rank. The port keeps the score and asks of it what a
 answer: that it is positive (the 90-day trend is up). The book's other exits (a fall out of the
 top fifth, the index under its 200-day average) need the list and are not ported. Secondary sources
 vary the windows (90 or 125 days of regression; 100 or 200 days of average); this port takes the
-book's own.
-
-The old desk is a quarry for the reading only; none of its code is copied.
+book's own. No holding period: the book sells on the average or the move only.
 """
 
 from __future__ import annotations

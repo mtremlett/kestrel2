@@ -750,6 +750,7 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2021 GRID: held() skips faults notes again (R-RUNNER-451). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2104 R-RUNNER-474 catalogue-only rows served by the rule book. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2190 R-RUNNER-364 part 2 of 5: lab/chain.py makes a published set's variants; fast check and mypy green. |
 
 ### RUNGS
 
@@ -1137,3 +1138,13 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2097 rungs-blocks: the sizing block is registered and readable from a spec row (SIZE kind, SIZES, spec size place). |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2132 rungs-eponymous held: 0 ladder passes of 500,140 EPON verdicts, nothing to graduate, no box ticked. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2122 data-disk-rolloff rule built: byte-identical duplicates rolled off, rest listed; 1 contract test, fast check and mypy green. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2140 RUNGS: rung_sample folded into rung 1, off-path rung modules 2 to 1 (retail left). |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2141 RUNGS rungs-eponymous held again: 0 ladder passes in 804,450 EPON lines; no box ticked. |
+| 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2151 RUNGS: rung_retail folded into the basket; off-path rung modules 1 to 0, pinned empty. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2161 RUNGS: block bootstrap reads the first rung's verdict, one call from wired (rungs-each-rung, not ticked). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2173 RUNGS R-RUNNER-503 built: bootstrap on the ci rung's judge path; no golden moved. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2174 RUNGS L15 blind review done, 2 non-blocking defects fixed, 0 blocking (R-RUNNER-495). |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2164 PAPER R-MONEY-73 done: a zoo buy is judged by ZOO_DAY and the zoo's total; desk/ at the 18,000 ceiling. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2166 PAPER R-RUNNER-486 done: the day's exchange rate is kept once; blind review, no blocking finding. |
+| 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
