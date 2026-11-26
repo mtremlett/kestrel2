@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, trials
+from lab import cell, tape, trials
 from lab.cell import Cell
 from lab.reproduce import Reproduction
 from lab.rung import Rates, judge
@@ -39,12 +39,13 @@ def share(
     shown = cell.shown(c, bars)  #: only the cell's own days are drawn: none after its end (B3)
     moves = _moves(shown)
     as_good = 1  #: the trial itself
-    for _ in range(SHUFFLES):
-        rng.shuffle(moves)
-        got = _t(c, _history(shown, moves), settings, rates, made)
-        as_good += got is not None and got >= own
-        if as_good > MOST_AS_GOOD:  #: it cannot pass now: the shuffles left would only add (S3)
-            break
+    with tape.resamples(c, shown) as resampled:  #: one tape for the cell's shuffles (S5)
+        for _ in range(SHUFFLES):
+            rng.shuffle(moves)
+            got = _t(c, _history(shown, moves), settings, rates, made, resampled)
+            as_good += got is not None and got >= own
+            if as_good > MOST_AS_GOOD:  #: it cannot pass now: the shuffles left would only add (S3)
+                break
     return Decimal(as_good) / (SHUFFLES + 1)
 
 
@@ -60,9 +61,15 @@ def said(share: Decimal) -> str:
 
 
 def _t(
-    c: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates, made: Sequence[Reproduction]
+    c: Cell,
+    bars: Sequence[Bar],
+    settings: Settings,
+    rates: Rates,
+    made: Sequence[Reproduction],
+    run: tape.Run | None = None,
 ) -> Decimal | None:
-    return judge(cell.run(c, bars), bars, settings, rates, made).t
+    """The trial's standard errors on these bars, its trades from `run` (the cell engine's)."""
+    return judge((run or cell.run)(c, bars), bars, settings, rates, made).t
 
 
 def _moves(bars: Sequence[Bar]) -> list[tuple[Decimal, ...]]:

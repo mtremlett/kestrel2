@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -12,7 +13,7 @@ from test_lab_rung import POUND, TEN_K, _walk
 
 from desk.lines import LINES
 from desk.store import Bar
-from lab import cell, reproduce, shuffle, trials
+from lab import cell, reproduce, shuffle, tape, trials
 from lab.cell import Cell
 from lab.reproduce import Figure, Fill, Found, Hand, Measure, Reproduction, Stated
 
@@ -142,3 +143,28 @@ def test_five_as_good_passes_the_sixth_fails_and_stops_there(
 
 def test_a_trial_of_under_two_trades_is_said_as_run_no_shuffles() -> None:
     assert shuffle.said(Decimal(1)) == "1 (under two trades: no shuffle run)"
+
+
+def test_a_cells_shuffles_are_one_tape_read_back_with_no_simulation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S5: a cell's resampled histories are kept as one tape beside its own, not a file each,
+    and a shuffle judged again under the same tapes simulates nothing; the share is the one
+    given with no tapes at all."""
+    bars = _walk(1, 0.012, days=3000)
+    c = Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
+    bare = shuffle.share(c, bars, TEN_K, POUND, ())
+    runs, engine = [0], cell.run
+
+    def counted(*args: Any) -> cell.Record:
+        runs[0] += 1
+        return engine(*args)
+
+    monkeypatch.setattr(cell, "run", counted)
+    with tape.on(tmp_path):
+        first = shuffle.share(c, bars, TEN_K, POUND, ())
+        cold = runs[0]
+        again = shuffle.share(c, bars, TEN_K, POUND, ())
+    assert bare == first == again == Decimal(1) / 101
+    assert cold == shuffle.SHUFFLES + 1 and runs[0] == cold, "the second shuffle simulated"
+    assert len(list(tmp_path.glob("*.tape"))) == 1 and len(list(tmp_path.glob("*.shuffles"))) == 1
