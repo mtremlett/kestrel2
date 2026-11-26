@@ -50,6 +50,10 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ### Found, not fixed
 
+- **`docs/PLAN.md`'s "Current objective" is stale.** It still names the money lane's
+  kill switch and drill; his goal for Mon 30 Nov 08:00 is all five lane books (57 open
+  boxes, graduation gates excluded), with the RUNGS ladder judging 24x7 and Greenkeeper
+  keeping data green, both without tokens (chat seat 210, 26 Nov).
 - **The runner's own lines to his phone wait for his key.** A lane that halts, pauses at
   the weekly cap or needs his decision, and the 07:00 line, are sent by the runner on his
   PC from a file holding the bot key, which he copies beside the runner himself. Until he
