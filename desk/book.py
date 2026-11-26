@@ -252,11 +252,33 @@ def _unless_stopped(root: Path, order: Order | Sale) -> None:
 _write = keep  # old name, for other lanes' callers until they move
 
 
-def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
-    """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
-    the book, and those shares (whole ones; a part share is for a hand to look at)."""
+def _more(root: Path, broker: Broker) -> dict[str, int]:
+    """Each name the broker holds more shares of than the book, and how many more (whole ones)."""
     more = differences(positions(root), broker.holdings())
-    return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
+    return {d.name: int(d.broker) - d.book for d in more if d.broker > d.book}
+
+
+def _stopped(broker: Broker) -> Counter[str]:
+    """The shares each name has resting under a working broker stop."""
+    under = Counter[str]()
+    for name, shares in broker.stops():
+        under[name] += int(shares)
+    return under
+
+
+def sheltered(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
+    """THE SHARES THE BOOK LACKS THAT ALREADY SIT UNDER A WORKING BROKER STOP: each name and
+    those shares. They are to be booked with that stop, never sold on top of it."""
+    under = _stopped(broker)
+    return tuple((n, min(k, under[n])) for n, k in _more(root, broker).items() if under[n] > 0)
+
+
+def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
+    """THE POSITIONS THE DESK DID NOT MAKE, to be sold: each name the broker holds more shares
+    of than the book, less those under a working stop (sheltered), and those shares."""
+    under = _stopped(broker)
+    left = {n: k - min(k, under[n]) for n, k in _more(root, broker).items()}
+    return tuple((n, k) for n, k in left.items() if k > 0)
 
 
 def collect(root: Path, broker: Broker) -> None:
