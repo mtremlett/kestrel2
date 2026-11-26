@@ -55,4 +55,16 @@ def test_fade_in_chop_leaves_a_trend_alone() -> None:
 def test_declares_a_daily_rule_on_every_line() -> None:
     for rule in (DonchianChannelBreakout, DonchianFadeChop):
         declared = rule.declared
-        assert (declared.bar, declared.hold, declared.universe) == (Timeframe.DAILY, None, LINES)
+        assert (declared.bar, declared.universe) == (Timeframe.DAILY, LINES)
+    assert DonchianChannelBreakout.declared.hold is None
+    assert DonchianFadeChop.declared.hold == 20
+
+
+def test_time_stop_sells_a_fade_held_past_its_window_and_a_breakout_is_never_timed_out() -> None:
+    # Bought at 20; a slow fall keeps the close under the midpoint, so only the 20-session
+    # time stop ends it: the sale is on the 20th held session (40).
+    fade = ["100"] * 20 + [str(99 - n * 0.01) for n in range(30)]
+    assert _trades("donchian_fade_chop", fade) == [(20, Action.BUY), (40, Action.SELL)]
+    # a long climb stays held under the breakout: no limit of its own
+    climb = ["100"] * 20 + [str(101 + n) for n in range(60)]
+    assert _trades("donchian_channel_breakout", climb) == [(20, Action.BUY)]

@@ -9,7 +9,7 @@ six months" (about 126 sessions) marks the squeeze, and a close out of the bands
 direction. This port, long only: buy at the close when the bands were in a squeeze on the day
 before (their width, upper minus lower over the average, the lowest of the last 126 sessions,
 ties included) and the close is over the upper band; sell at the close that is under the
-20-day average (the middle band).
+20-day average (the middle band). No holding period: the book gives none.
 
 AUTHOR'S TEST: stocks and indices, daily bars, the book's examples of the late 1990s. The book
 gives the squeeze as a pattern, not a tested rule with a published figure, and this session had
@@ -17,8 +17,6 @@ no copy of it to read from: NO figure is written here, and the exit on the middl
 port's reading, not a quotation. Secondary sources (blogs and forums, undated here) take the
 squeeze from the lowest width in 100 to 150 sessions, so the RANGE of the look-back is 100 to
 150; the book's six months, 126, is taken. The ladder measures the rule itself, after costs.
-
-The old desk is a quarry for the reading only; none of its code is copied.
 """
 
 from __future__ import annotations
