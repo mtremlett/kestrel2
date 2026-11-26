@@ -2538,3 +2538,7 @@ forward as a FAIL would: stricter, never looser.
 its two lines now trade a million shares a day, so the planted edge still passes every rung, and
 `tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
 of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
+*Fit's golden (B5):* no answer moves; each cell of the fixture book gains a `fit` row. The planted
+edge FAILS it: a breakout on one line rising for years is held on the same days by every trend
+rule on paper, and moves 0.91 with `supertrend_10_3`. On EPON, expect trend rules on a trending
+line to meet the same bar; that is the rung working, not a fault.

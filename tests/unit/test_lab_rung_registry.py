@@ -44,6 +44,7 @@ def test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired
         "ci",
         "costs",
         "cpcv",
+        "fit",
         "liquidity",
         "regimes",
     ]
