@@ -2503,8 +2503,11 @@ well. Once a sixth does, no shuffle left can change the answer, so the rung stop
 of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
 Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
 of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
-is about 20 rules of mostly failing cells). The one golden-text change: a FAIL's reason now says
+is about 20 rules of mostly failing cells). The text changes: a FAIL's reason now says
 "its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
-is unchanged. No threshold or answer changes. Proven by
+is unchanged; a trial of under two trades, never shuffled, says "1 (under two trades: no shuffle
+run)". A FAIL's exact share is no longer recorded anywhere; nothing reads it. No threshold or
+answer changes. Proven by
 `tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
-(the early answer equals a full run's on four fixture walks, passing and failing).
+(the early answer equals a full run's on a passing and a failing walk) and
+`test_five_as_good_passes_the_sixth_fails_and_stops_there` (the edge, ties and None scripted).

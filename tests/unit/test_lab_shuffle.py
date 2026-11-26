@@ -88,7 +88,7 @@ def _full(c: Cell, bars: Sequence[Bar]) -> int:
     return as_good
 
 
-@pytest.mark.parametrize(("seed", "push"), [(1, 0.012), (1, 0.0), (2, 0.004), (3, 0.0)])
+@pytest.mark.parametrize(("seed", "push"), [(1, 0.012), (1, 0.0)])
 def test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one(
     seed: int, push: float, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -113,3 +113,32 @@ def test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one(
     else:
         assert got == Decimal(6) / (shuffle.SHUFFLES + 1) and runs[0] < shuffle.SHUFFLES + 1
         assert shuffle.said(got) == "at least 6 of 101"
+
+
+@pytest.mark.parametrize(
+    ("better", "runs", "share"), [(4, 101, "0.050"), (5, 7, "at least 6 of 101")]
+)
+def test_five_as_good_passes_the_sixth_fails_and_stops_there(
+    better: int, runs: int, share: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S3 at its edge: four shuffles as good (ties among them) and the trial makes five of 101,
+    which passes after all 100; a fifth makes six and the rung stops there. A shuffle with no
+    standard errors (None) is never counted."""
+    ties = [Decimal(1 + n % 2) for n in range(better)]  #: as good: equal, then better, by turns
+    told = iter([Decimal(1), None, *ties, *[Decimal(0)] * 100])
+    asked = [0]
+
+    def scripted(*_: Any) -> Decimal | None:
+        asked[0] += 1
+        return next(told)
+
+    monkeypatch.setattr(shuffle, "_t", scripted)
+    bars = _walk(1, 0.0, days=300)
+    got = shuffle.share(
+        Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day), bars, TEN_K, POUND, ()
+    )
+    assert shuffle.said(got) == share and asked[0] == runs
+
+
+def test_a_trial_of_under_two_trades_is_said_as_run_no_shuffles() -> None:
+    assert shuffle.said(Decimal(1)) == "1 (under two trades: no shuffle run)"

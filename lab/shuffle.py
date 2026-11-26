@@ -50,9 +50,12 @@ def share(
 
 def said(share: Decimal) -> str:
     """The share as the rung reports it: a passing one exactly; a failing one as the count at
-    which the shuffles stopped, since the rest were not run (`docs/DECISIONS.md`, S3)."""
+    which the shuffles stopped, since the rest were not run (`docs/DECISIONS.md`, S3); and 1,
+    which no stopped run reaches, as the trial of under two trades it is."""
     if share <= SHARE:
         return f"{share:.3f}"
+    if share == 1:
+        return "1 (under two trades: no shuffle run)"
     return f"at least {share * (SHUFFLES + 1):.0f} of {SHUFFLES + 1}"
 
 
