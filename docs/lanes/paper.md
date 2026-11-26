@@ -609,3 +609,11 @@ All 143 intraday orders since 10:43 were refused: `desk/placing.py` sent only an
 
 Options: wait, or delete. Chose delete (his "always go with recommended"): `day_gap`, `_result`, `Gap` in `desk/reports.py` had no caller (49 lines, R-RUNNER-478). #2107 still needs 75+ more lines of room; that is a separate card for runner ops.
 
+
+### 2026-11-24 — the day's rate is read in running.py, kept once (#2166)
+
+Desk.rates answers a day's rates from their first record in rates.csv when the day has them, else fetches; a later step's different rate neither errors nor overwrites. Options: reader in `desk/book_parts.py` (refused by the lane wall), or in `desk/running.py` as the request wrote it. Chose running.py. Latent, non-blocking: a day kept with one currency never fetches the other (no writer makes a partial day).
+
+### 2026-11-24 — the conformance share is found beside the desk's root (#2178)
+
+The day check finds the conformance ledger as root.parent/"conformance", only for the desk's own door (222). Options: every caller passes the folder (outside the claim), or derive it in `desk/clearance.py`. Chose derive, so no caller changes. Order filter: only a client-223 SELL stop no bigger than the ledger share is left out, the narrowest rule; any other 223 order is still named.
