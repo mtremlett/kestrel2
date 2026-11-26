@@ -186,13 +186,18 @@ def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = Tr
 
 def _again(root: Path, now: datetime, seen: watch.Look | None) -> dict[str, set[str]]:
     """THE ROUND OWED ONCE MORE (R-RUNNER-395): of a venue still trading whose round is on the
-    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled
-    with nothing filled under the id or its -r1; only those go again, as <id>-r1."""
+    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled,
+    or the round cap carried (the morning's list), with nothing filled under the id or its -r1;
+    only those go again, as <id>-r1."""
     path = root / book.CANCELS
-    if seen is None or not path.exists():
+    if seen is None:
         return {}
-    with path.open(newline="", encoding="utf-8") as rows:
-        mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
+    mine = set[str]()
+    if path.exists():
+        with path.open(newline="", encoding="utf-8") as rows:
+            mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
+    if (root / halt.BLOCKED / f"{now.date()}.csv").exists():  #: R-RUNNER-473: the round cap's own
+        mine |= {b.order_id for b in halt.morning(root, now.date())[halt.Blocker.CARRIED]}
     done = {note.what for note in notes(root) if note.at.date() == now.date()}
     filled = {fill.order_id for fill in book.fills(root) if fill.day == now.date()}
     out = dict[str, set[str]]()
