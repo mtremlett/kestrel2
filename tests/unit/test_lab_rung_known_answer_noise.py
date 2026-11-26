@@ -43,8 +43,9 @@ FALSE_PASS = 0.02
 TRADES, B, SD = 2399, -0.00158, 0.0541
 SEEDS = 20  #: lines a true t
 #: The first rung passes at t 2 or over on its 30 trades: a true t of T passes as often as a
-#: standard normal lies above 2 - T, stated before any run, to within NEAR.
-STATED = {t: 1 - NormalDist().cdf(float(rung.T_PASS) - t) for t in (1, 2, 3, 4)}
+#: standard normal lies above 2 - T, stated before any run, to within NEAR. The 2 is written
+#: here, never read from `rung.T_PASS`, so a loosened bar moves the found rates, not the stated.
+STATED = {t: 1 - NormalDist().cdf(2 - t) for t in (1, 2, 3, 4)}  #: the bar, written here
 NEAR = 0.25
 CUT = date(2023, 6, 30)  #: the delisted line's last bar
 
