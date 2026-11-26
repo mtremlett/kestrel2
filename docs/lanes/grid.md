@@ -318,3 +318,7 @@ A catalogue row with no `desk/eponymous_*.py` twin was refused by `specs()`. Opt
 
 A catalogue row for the pooled BASKET is no tradable line. Options: skip it, or refuse it. **Decided** skip.
 Ranges ignore a row's own catalogue ranges and use the published value (x2/3, x3/2).
+
+### 2026-11-26 — chain.sweep selects its plan by tag
+
+`chain.sweep(home, bars, pounds, tag, go)` must run a set's variants under the set's own plan (EPON or LEV). Options: pass a Plan in, or look it up by the set's tag. Chose the tag, as the request's signature gave it; the caller then cannot pair a set with the wrong plan. Variant cells run on the ladder's pool/engine, so they share its register and results file; the test stands in for the pool. The real ladder still refuses a variant's name (`published.proven`, no ranges in `rulebook.specs()`): asked of RUNGS as R-GRID-9; until done the runner's sweep records an error row per variant. Evidence: #2202.
