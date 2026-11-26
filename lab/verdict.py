@@ -421,7 +421,7 @@ def shuffled(
     share = shuffle.share(c, own, settings, pounds, made)
     return (
         Answer.PASS if share <= shuffle.SHARE else Answer.FAIL,
-        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
+        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {shuffle.said(share)}; "
         f"{shuffle.SHARE} or under passes",
     )
 

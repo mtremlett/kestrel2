@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
@@ -11,7 +12,7 @@ from test_lab_rung import POUND, TEN_K, _walk
 
 from desk.lines import LINES
 from desk.store import Bar
-from lab import cell, reproduce, shuffle
+from lab import cell, reproduce, shuffle, trials
 from lab.cell import Cell
 from lab.reproduce import Figure, Fill, Found, Hand, Measure, Reproduction, Stated
 
@@ -71,3 +72,44 @@ def test_a_cell_ending_before_later_bars_draws_none_of_their_days(
     top = max(bar.close for bar in bars if bar.day <= end)
     for history in seen[1:]:
         assert max(bar.close for bar in history if bar.day <= end) < top * 20, "a later day drawn"
+
+
+def _full(c: Cell, bars: Sequence[Bar]) -> int:
+    """The shuffles as good as the trial, itself among them, over all SHUFFLES: the rung as it
+    was before it stopped early, written again here as the reference."""
+    own = shuffle._t(c, bars, TEN_K, POUND, ())
+    assert own is not None
+    rng, shown = random.Random(trials.name(c)), cell.shown(c, bars)  # noqa: S311
+    moves, as_good = shuffle._moves(shown), 1
+    for _ in range(shuffle.SHUFFLES):
+        rng.shuffle(moves)
+        got = shuffle._t(c, shuffle._history(shown, moves), TEN_K, POUND, ())
+        as_good += got is not None and got >= own
+    return as_good
+
+
+@pytest.mark.parametrize(("seed", "push"), [(1, 0.012), (1, 0.0), (2, 0.004), (3, 0.0)])
+def test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one(
+    seed: int, push: float, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S3: at six of 101 as good the trial cannot pass (five or fewer passes), so the rung stops
+    there; the answer is the full run's, and a failing share is said as 'at least 6 of 101'."""
+    bars = _walk(seed, push, days=3000)
+    c = Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day)
+    full = _full(c, bars)
+    runs, real = [0], shuffle._t
+
+    def counted(*args: Any) -> Decimal | None:
+        runs[0] += 1
+        return real(*args)
+
+    monkeypatch.setattr(shuffle, "_t", counted)
+    got = shuffle.share(c, bars, TEN_K, POUND, ())
+    passes = Decimal(full) / (shuffle.SHUFFLES + 1) <= shuffle.SHARE
+    assert (got <= shuffle.SHARE) == passes
+    if passes:
+        assert got == Decimal(full) / (shuffle.SHUFFLES + 1) and runs[0] == shuffle.SHUFFLES + 1
+        assert shuffle.said(got) == f"{got:.3f}"
+    else:
+        assert got == Decimal(6) / (shuffle.SHUFFLES + 1) and runs[0] < shuffle.SHUFFLES + 1
+        assert shuffle.said(got) == "at least 6 of 101"

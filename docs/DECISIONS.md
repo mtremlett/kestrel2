@@ -2495,3 +2495,16 @@ excused all of `manifest.toml`. The guard-change warning on GitHub names `manife
 Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml` passes both tests.
 Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
 runner's card claims are renamed by runner ops after this lands.
+
+## 26 Nov - the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
+
+The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
+well. Once a sixth does, no shuffle left can change the answer, so the rung stops there instead
+of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
+Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
+of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
+is about 20 rules of mostly failing cells). The one golden-text change: a FAIL's reason now says
+"its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
+is unchanged. No threshold or answer changes. Proven by
+`tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
+(the early answer equals a full run's on four fixture walks, passing and failing).
