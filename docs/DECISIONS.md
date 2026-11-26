@@ -2520,8 +2520,10 @@ institution's participation, not a family's market order); the median leg (a thi
 times 1% over the worst leg's share, since shares grow with the pot.
 
 **Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
-already trading on paper on that line: the desk's five (`strategy.STRATEGIES`) and the zoo's daily
-rules (`intraday.ZOO_DAILY`), less any of the cell's own class. A day's return is the line's
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`), less any of the
+cell's own class, and later any rule the ladder promotes (none yet). NOT the zoo (decided by chat
+seat 215, 26 Nov, by canon B6): the zoo trades only as a paper MACHINERY TEST, one share, never
+evidence, and a rule must never be graded down for resembling a machinery test. A day's return is the line's
 close-to-close move when the rule held after the close before, else nothing, the same formula for
 both, so costs (a level, not a co-movement) do not enter. Pearson over the cell's window; a rule
 that never held there says nothing and is passed over. WEAK (`Answer.DOUBT`) above 0.70; FAIL above
@@ -2539,6 +2541,7 @@ its two lines now trade a million shares a day, so the planted edge still passes
 `tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
 of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
 *Fit's golden (B5):* no answer moves; each cell of the fixture book gains a `fit` row. The planted
-edge FAILS it: a breakout on one line rising for years is held on the same days by every trend
-rule on paper, and moves 0.91 with `supertrend_10_3`. On EPON, expect trend rules on a trending
-line to meet the same bar; that is the rung working, not a fault.
+edge FAILS it: a breakout on one line rising for years is held on the same days by the desk's
+own trend rules, and moves 0.91 with `supertrend_10_3`, one of the five (so dropping the zoo does
+not move it). On EPON, expect trend rules on a trending line to meet the same bar beside the
+desk's trend rules; that is the rung working, not a fault.

@@ -1,8 +1,9 @@
 """rung_fit - FIT WITH THE BOOK: does the rule bring new return, or only more of a rule the
 desk already trades on paper?
 
-The rules running on paper are the desk's five (`strategy.STRATEGIES`) and the zoo's daily rules
-(`intraday.ZOO_DAILY`), less any of the cell's own class. Each is run on the cell's own bars and
+The rules it is set beside are the book's: the desk's five (`strategy.STRATEGIES`), less any of
+the cell's own class; never the zoo, a MACHINERY TEST and never evidence (canon B6), so a rule is
+not graded down for resembling one. Each is run on the cell's own bars and
 its days set beside the cell's. A day's return is the line's close-to-close move when the rule
 held after the close before, and nothing when it did not: the same for both, so the costs, a
 level and not a co-movement, do not enter. The cell's days are its judged trades' (the first
@@ -27,7 +28,6 @@ from decimal import localcontext
 
 import numpy as np
 
-from desk import intraday
 from desk.command import CAPITAL
 from desk.orders import Settings
 from desk.store import Bar
@@ -35,8 +35,8 @@ from desk.strategy import ARITHMETIC, STRATEGIES, Action, Rule, _run
 from lab import cell, rulebook, rung
 from lab.rung import Answer, Rates, Rung
 
-#: The rules trading on paper, by name: the desk's five and the zoo's daily rules.
-RUNNING: Mapping[str, type[Rule]] = {**STRATEGIES, **intraday.ZOO_DAILY}
+#: The book's rules, by name: the desk's five (and, once the ladder promotes one, that rule).
+RUNNING: Mapping[str, type[Rule]] = STRATEGIES
 HALF_SHARED = 0.70  #: above it, about half of the rule's daily swings are already in the book
 TOO_CLOSE = float(Settings(CAPITAL).correlation)  #: the desk's own correlation gate, 0.90
 _HELD: dict[tuple[str, str], tuple[bool, ...]] = {}  #: a running rule's days, by its name, bars

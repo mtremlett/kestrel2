@@ -1,5 +1,6 @@
 """The fit rung: a rule cloned from one already running on paper FAILS, one that shares part of
-its days is WEAK, an unrelated one passes; and the running rules are the desk's and the zoo's."""
+its days is WEAK, an unrelated one passes; the rules set beside it are the desk's five, never
+the zoo."""
 
 from __future__ import annotations
 
@@ -10,7 +11,6 @@ from decimal import Decimal
 import pytest
 from test_lab_rung import VUSA, _walk
 
-from desk import intraday
 from desk.orders import Charges
 from desk.strategy import STRATEGIES
 from lab import cell, rung, rung_fit
@@ -80,6 +80,6 @@ def test_a_rule_the_first_rung_did_not_pass_keeps_its_answer() -> None:
     assert rung_fit.RUNG.judge(rung.verdict(RECORD.key, ()), BARS, {})[0] is Answer.FAULT
 
 
-def test_the_running_rules_are_the_desks_five_and_the_zoos_daily_rules() -> None:
-    assert dict(rung_fit.RUNNING) == {**STRATEGIES, **intraday.ZOO_DAILY}
+def test_the_running_rules_are_the_desks_five_and_never_the_zoos_machinery() -> None:
+    assert dict(rung_fit.RUNNING) == dict(STRATEGIES)
     assert rung_fit.RUNG in rung.found()[0] and rung_fit.RUNG.name == "fit"
