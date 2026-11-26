@@ -22,7 +22,7 @@ COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 
 
 def levels(root: Path) -> dict[str, Decimal]:
-    """THE STOPS THE DESK RESTED: each buy's stop level under "<buy>-stop", oldest first."""
+    """THE STOPS THE DESK RESTED, by buy ("<buy>-stop"): a history, not a register of live ones."""
     if not (path := root / STOPS).exists():
         return {}
     with path.open(newline="", encoding="utf-8") as kept:
