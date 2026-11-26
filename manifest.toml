@@ -153,6 +153,7 @@ rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
 "desk/ended.py" = "the day's cancelled orders at the paper broker and its own words of why each ended, read-only over an open connection"
 
 # the grid lane
+"lab/chain.py" = "the grid's chain: reads a published set table and makes each rule's variants, each parameter at its published value and one step either side, on every line the rule was judged on"
 "lab/cell.py" = "the ladder's unit of work: one strategy on one line over one window, keyed by the code's and the data's versions"
 "lab/rulebook.py" = "the lab's one list of rules by name: the desk's five and every rule of every eponymous file, found by the folder; only the five are A-GATE candidates"
 "lab/batch.py" = "the ladder's batch service: runs many cells, records a bad one and carries on, and takes up where a stopped run left off"
