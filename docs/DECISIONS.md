@@ -2495,3 +2495,41 @@ excused all of `manifest.toml`. The guard-change warning on GitHub names `manife
 Control: the money branch registering `desk/zzdrive.py` in `manifest/money.toml` passes both tests.
 Open pull requests that edit `manifest.toml` (#2107) rebase onto their lane's fragment; the
 runner's card claims are renamed by runner ops after this lands.
+
+## 26 Nov - two rungs before EPON: liquidity and capacity, and fit with the book (his order)
+
+**His order** (Thu 26 Nov 20:2x, through chat seat 215): two new rungs on the ladder before the
+overnight EPON run, each able to fail a rule, their bars written here before any EPON result.
+Written before either rung's code, and before any EPON row exists.
+
+**Both read the first rung and only lower its PASS** (as the costs rung does): a cell the first
+rung did not pass keeps its answer, so noise passes them at the first rung's rate and nothing is
+computed for it. THIN and FAULT stay THIN and FAULT (LAD-06).
+
+**Liquidity (`lab/rung_liquidity.py`).** Each judged trade's shares, as the first rung sized them
+by the desk's one sizing home (`orders.size`, from the one capital), set against the line's volume
+on the day each leg filled. FAIL when any leg is more than `orders.LIQUIDITY` (1%) of its day's
+volume; a leg on a day of no volume is more than any share. *Why 1%:* it is already the desk's
+number (SIZ-10: no position above 1% of a line's traded value), so it keeps one home (pattern 8);
+under 1% of a day's volume is the usual retail participation bar, below which a market order's
+impact is small (Almgren, Thum, Hauptmann and Li 2005, square-root impact). The desk holds it to
+20 days' value; the rung asks the stricter question his order named, the trade's own day, and the
+worst leg, as the worst fold is judged on. *Options not taken:* 5% or 10% of volume (an
+institution's participation, not a family's market order); the median leg (a thin day would hide).
+**Capacity**, in its reason: the largest pot at which the worst leg is still at 1%, the capital
+times 1% over the worst leg's share, since shares grow with the pot.
+
+**Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`) and the zoo's daily
+rules (`intraday.ZOO_DAILY`), less any of the cell's own class. A day's return is the line's
+close-to-close move when the rule held after the close before, else nothing, the same formula for
+both, so costs (a level, not a co-movement) do not enter. Pearson over the cell's window; a rule
+that never held there says nothing and is passed over. WEAK (`Answer.DOUBT`) above 0.70; FAIL above
+0.90. *Why 0.90:* it is the desk's own correlation gate (`Settings.correlation`): a buy that moves
+past 0.90 with a line held is refused, so such a rule could not be traded beside the other; one
+home. *Why 0.70:* a correlation of 0.70 shares about half (0.49) of its day-to-day swings with a
+rule already running, so half its risk is not new; the rung's own number, homed in the module.
+*Options not taken:* one bar (no grade between new and copied); across lines (the desk's
+correlation gate and `lab/bets.py` own the book's lines together). *Owed:* `lab/verdict.py`'s
+`GRADED` does not yet name `fit`, so until its owner adds it a WEAK holds a cell back from going
+forward as a FAIL would: stricter, never looser.
