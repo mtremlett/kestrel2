@@ -250,3 +250,30 @@ def test_constants_with_two_homes_never_rise() -> None:
         _two_homes(_sources(None)),
         "Import the constant from the one module that owns it (manifest.toml).",
     )
+
+
+#: a ticked box of docs/PLAN.md, up to the next box or heading; its id from its braces
+TICKED = re.compile(r"^- \[x\] .*?(?=^- \[[ x]\] |^#|\Z)", re.MULTILINE | re.DOTALL)
+BOX_ID = re.compile(r"\{id: ([a-z0-9-]+)")
+
+
+def _ticked_with_remains(plan: str) -> list[str]:
+    """The ticked boxes whose note still says what remains: a tick its check did not earn."""
+    return [
+        m.group(1) if (m := BOX_ID.search(box)) else box[:60]
+        for box in TICKED.findall(plan)
+        if "Remains:" in box
+    ]
+
+
+def test_ticked_boxes_that_say_remains_never_rise() -> None:
+    """PROGRESS COUNTED IN ACTIVITY (failure pattern 3): a box ticked while its note says what
+    remains (money-simcity-withdrawn-day, 26 November: 'Remains: read the next deep run's
+    verdict', and the deep run never gave one) is counted as progress before its check passed.
+    A change may untick one or finish what remains; it may not tick another."""
+    _never_rise(
+        "ticked boxes in docs/PLAN.md whose note says Remains:",
+        _ticked_with_remains(_git("show", f"{_base()}:docs/PLAN.md")),
+        _ticked_with_remains((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")),
+        "Leave the box unticked until its check passes, or finish what remains and drop the line.",
+    )
