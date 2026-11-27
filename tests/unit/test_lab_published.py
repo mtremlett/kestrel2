@@ -52,6 +52,7 @@ def test_each_rule_the_ladder_judges_gives_its_published_answers_and_names_its_s
     assert set(published.PUBLISHED) == set(strategy.STRATEGIES)
     for name, rule in published.PUBLISHED.items():
         assert published.proven(name) is rule and rule.source.strip()
+        assert published.proven(f"{name}[window=30]") is rule, "a variant proves its base"
         #: the fast grid answers a series with a trade itself, so it too is held to the rule
         traded = [grid.prices(case.bars()) for case in rule.cases if case.trades]
         assert any(_answers(name, prices) for prices in traded), name
