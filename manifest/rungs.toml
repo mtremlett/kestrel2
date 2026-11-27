@@ -4,6 +4,7 @@
 "lab/fast.py" = "the fast engine for spec rows: a row's position after every bar from its blocks worked out on whole arrays, shared between rows of one line, held to the desk's own engine trade for trade or refusing with TooClose"
 "lab/fast_parts.py" = "the fast engine's blocks: each spec block's firing on whole arrays, by name, imported by lab/fast.py"
 "lab/rung.py" = "the ladder's first rung: a cell's trades priced at the desk's fills and the broker's costs, and judged against chance"
+"lab/ladder_map.py" = "the ladder's rung map: every rung numbered to its module and its test, and the count of those the ladder judges by, so a new rung adds a row here and never edits lab/ladder.py"
 "lab/rung_costs.py" = "the ladder's costs rung: the first rung's priced trades read for how much of the edge the broker's costs took, and passed only if it survives them doubled"
 "lab/rung_ci.py" = "the ladder's confidence-interval rung: the mean gain of a rule's trades with its interval, judged on the whole interval above or below nothing and not on a sign; and the block bootstrap, a tape's days drawn again in blocks and passed only while few redrawn histories made nothing or lost"
 "lab/rung_fit.py" = "the ladder's fit rung: a passed rule's days on its line set beside each of the book's rules there, the desk's five and never the zoo, its own rule's family passed over, graded WEAK past a correlation of 0.70 and failed past the desk's own correlation gate"

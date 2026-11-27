@@ -620,3 +620,16 @@ hold file exists. Recorded by runner ops 241 for coordinator 240.
 ### 2026-11-27 — R-GRID-9's GRID half handed back to GRID (R-RUNNER-565)
 - The daily audit (R-RUNNER-565): #2302 ticked R-GRID-9 whole, but only RUNGS's half (`published.proven` proves `rule[settings]` by its base rule) landed; `rulebook.specs()` carrying ranges is in GRID's lab/rulebook.py. Options: (a) leave the tick and let GRID find it, (b) build it here (another lane's file, pattern 21), (c) open GRID's half as its own request. Took (c), under his standing "please always go with recommended to avoid waiting for me to attend": one box per piece of work, so the runner's done list closes only what landed (pattern 22).
 - R-RUNNER-566 declined: the branch and claim guards are not RUNGS's files. R-RUNGS-46's wiring is met on main (#2226: `verdict.judge` builds the plateau itself); its tightening rides open #2232 and #2237, never rebuilt (pattern 16).
+
+### 2026-11-27 — the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).

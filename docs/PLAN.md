@@ -1125,7 +1125,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: one tape per (rule, line) cut by date (#337, #378), compressed (#555), rates priced after it (#398)
         {id: rungs-tape-cache; files: lab/tape.py, tests/unit/test_lab_tape.py}
   - [x] L2 THE RUNG MAP: each of the eleven rungs above named to its module and test, built
-        or not, in `lab/ladder.py`'s docstring; the later cards follow it
+        or not, in `lab/ladder_map.py` (from `lab/ladder.py`'s docstring, R-RUNNER-571); the later cards follow it
         {id: rungs-rung-map; files: lab/ladder.py, tests/unit/test_lab_ladder_map.py; after: rungs-tape-cache}
   - [ ] L3-L13 ONE CARD PER RUNG, built or proven to one standard, one module each so they
         run in parallel: a planted edge passes; five hundred noise cells pass at about the
