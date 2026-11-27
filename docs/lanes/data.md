@@ -702,3 +702,6 @@ A small tested step of data-monitor restored from an unfinished branch rather th
 
 ### 2026-11-27 — the unconfirmed-step pin row is named `_unconfirmed:1` (DATA, #2263)
 The rule pin test names rules by function, so the row follows the function that holds the rule.
+
+### 2026-11-27 — four boxes' waits on requests are written as a date (DATA, scribe)
+The runner asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80` on data-isa-twins, data-survivorship, data-second-source and data-dividends. `tests/guards/test_requirements.py::test_every_id_the_plan_names_is_known` refuses two-digit R-DATA ids in a box (red on the first try). Options: write the ids (guard red; loosening it is his alone); drop the waits; write a date. Took the date 2026-12-04, the requests stay named in STATUS; the next scribe moves each wait to its request when the guard allows.
