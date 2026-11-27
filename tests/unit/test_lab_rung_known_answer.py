@@ -88,7 +88,14 @@ KIT = (
     Known(9, "drift", "shuffle", "FAIL", "random entries on a rising line", "share among them"),
     Known(6, "drift", "market", "FAIL", "they earn only their own line's rise", "its own line's"),
     Known(13, "clone", "liquidity", "PASS", "a deep line takes under 1% of its day", "capacity"),
-    Known(13, "one-share paid", "liquidity", "FAIL", "one share a day cannot take its trades", "volume on"),
+    Known(
+        13,
+        "one-share paid",
+        "liquidity",
+        "FAIL",
+        "one share a day cannot take its trades",
+        "volume on",
+    ),
     Known(14, "clone", "fit", "FAIL", "a clone of the desk's breakout adds no new return", "FAIL:"),
     Known(14, "paid", "fit", "PASS", "the churner moves with none of the desk's five", "new:"),
 )
@@ -227,7 +234,7 @@ CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
     "noise": ("breakout_20_10", _noise),
     "drift": ("dart", lambda: {line: _rising(n) for n, line in enumerate(US, 1)}),
     "clone": ("clone", _deep),
-    "one-share paid": ("churner", lambda: {US[0]: _paid(1)}),
+    "one-share paid": ("churner", lambda: {line: _paid(n) for n, line in enumerate(US, 1)}),
 }
 
 

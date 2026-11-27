@@ -2726,8 +2726,8 @@ the liquidity rung rightly FAILS, so the paid edge stopped going forward.
 **Blind review (27 Nov, CANON A6 step 6): BLOCK, three findings, each fixed (after #2237 landed, here).**
 - *L17 ticked with no planted edge going forward.* The kit's paid lines now trade a million shares a
   day, and `test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it` asserts `goes`
-  on every one; a copy of one paid line at one share a day keeps liquidity's FAIL row, the one rung
-  holding it back.
+  on every one; the same four lines at one share a day keep liquidity's FAIL row, the one rung
+  holding them back (one line alone pools its folds over one line, DOUBT, so it is four).
 - *The noise test measured liquidity, not the ladder.* Its walks traded one share a day, so liquidity
   refused any noise the gains-judging rungs let through. The walks are deep now. Driven, with every gate
   but liquidity leaking (the first rung passing any t, `verdict.judge`'s rungs read as passed, of
@@ -2736,7 +2736,9 @@ the liquidity rung rightly FAILS, so the paid edge stopped going forward.
 - *The planted-edge tolerances hid the t + 0.3 bias.* Fixed by R-RUNNER-553 (above), measured at
   the tilt. Driven: the old B turns the test red (mean t 1.27, 2.26, 3.37, 4.33).
 Notes taken: a missing t is asserted, never read as 0; the rates must rise strictly; the delisted
-line's fold count is no longer pinned to one run's 82.
+line's fold count is no longer pinned to one run's 82. The two files take 438 s and 380 s on the
+PC; `check.py` SECONDS and `test_check.py`'s MEASURED are left as on main, to be set from GitHub's
+own durations (MEASURED is GitHub's table, and PC seconds unbalance its deal).
 
 ## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
 Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
