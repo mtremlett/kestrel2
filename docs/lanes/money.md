@@ -760,3 +760,18 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-26 - The Donchian fade declares no hold for now (#2184, R-RUNNER-537)
 - Fade hold 20 sessions vs none: none for now, because the catalogue spec in lab/ decides without a time stop and the rule must match it (unit 3/5 and 5/5 went red); the 20 stays the recommended end state, needing rule and spec changed together.
+
+### 2026-11-26 - A withdrawn session is a still day in a SimCity world (#2187)
+- Options: (a) fill the world's withdrawn session as a still day at the close before; (b) change the world loop in desk/simcity.py to refuse (outside the claim); (c) drop the day from all lines (tried: the desk then refuses the next session as having no record). Took (a): smallest, inside the claim, and the refusal itself stays proved by the HOLE and PARKED scenarios. Per his 13 Nov "always go with recommended".
+
+### 2026-11-26 - R-RUNNER-533 kept at book level, no book.py change (#2210)
+- Options: pin the contract through `book.reconcile` (taken: the book code already meets it) or adopt stranger shares in book.py (rejected: it would hide the broker door's fault). The loss is upstream in `broker.fills()` / `desk/reports.py`, outside the claim.
+
+### 2026-11-27 - A fill by an undecided rule is a named mismatch (#2212)
+- Options: (a) a named "rule" mismatch for that fill, the replay goes on (taken, his gate wording); (b) skip zoo fills silently (rejected: hides them). Replaying zoo fills through a zoo rule is a separate box.
+
+### 2026-11-27 - Four eponymous rules declare no holding period (#2224, R-RUNNER-538)
+- Options: invent a limit (say 10 days) or declare none with its reason. Took none: no source on hand gives a day limit for connors, three-day high-low, dan_zanger or demark_sequential, and a guess is worse (his 21 Nov ruling: each limit from its own sell logic, or none with reason). No golden day moves.
+
+### 2026-11-27 - The zoo drops only lines the master marks isa=no (#2248, R-RUNNER-481)
+- Options: drop unrecorded isa (None) too (removes nothing today, hides unrecorded lines) or keep them. Took keep: the card says "marks isa=no". IB1T, SPY, QQQ leave; the count test moved 10/9 to 9/7.

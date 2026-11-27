@@ -18,6 +18,8 @@ the desk's S&P 500 line (SPY) out of the bars given and measures every other lin
 on the days both traded; with no SPY the rule raises. Weinstein's weeks are daily bars here: 52
 weeks are 260 sessions. His other test, the stock above its rising 30-week average, is not ported
 (one rule only).
+Holding period: none. The sale is the RS falling back under zero alone; the book gives no
+day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """

@@ -11,6 +11,13 @@ each rule's market, period and numbers printed, word for word, from the page nam
 22 November 2026 and never from memory. What was found is said plainly: the author's own test,
 a replication of the rule as coded (his ruling, 14 November), a test of a different rule (its
 numbers kept, never reproduced), or nothing free, with where it was looked for.
+
+SECONDARY FIGURES (his ruling, 14 November: published figures without buying books): where the
+author's own table is not to be had free, the best published replication of the rule as coded
+stands in, labelled secondary (`SECONDARY`), its source, date, rules, market and period written
+down with each number it prints. Where replications disagree, `span` gives the range, least to
+most, and reproduction must land inside it. RSI-2 goes first. Variants of a rule are tested on
+the ladder (`lab/variants.py`), never chosen here by eye (BT-15).
 """
 
 from __future__ import annotations
@@ -345,7 +352,7 @@ class Search(enum.Enum):
     whose a figure on file is: these are what was read before any figure is filed."""
 
     AUTHOR = "the author's own test"
-    SECOND = "a replication of the rule as coded"
+    SECOND = "a secondary replication of the rule as coded"
     OTHER = "a test of a different rule, never reproduced"
     NONE = "no numbers found free"
 
@@ -384,6 +391,7 @@ class Printed:
 
 _QS = "https://quantifiedstrategies.substack.com/p/"
 _OXFORD = "https://oxfordstrat.com/"
+_EMPIRICA = "https://empiricalab.substack.com/p/connors-rsi2-spy"
 _NOWHERE = "web search: no rules-based test of this rule published"
 TESTED: Mapping[str, Printed] = {
     "donchian_channel_breakout": Printed(
@@ -413,12 +421,13 @@ TESTED: Mapping[str, Printed] = {
         "CAGR of 8.79% with a maximum drawdown of 24.1%; Win rate 59%",
     ),
     "connors_rsi2": Printed(
-        Search.OTHER,
-        "https://backtest.substack.com/p/the-2-period-rsi-a-simple-system",
-        "Nasdaq 100 members, also requiring a close under the 5-day average",
-        "December 2006 through late 2025, filled at the next open (Dave Johnson, March 2026)",
-        "Annual return: 17.84%; Win rate: 64.33%; Average winner: +2.33%; Average loser: "
-        "-3.02%; Max drawdown: 29.15%",
+        Search.SECOND,
+        _EMPIRICA,
+        "SPY, dividend-adjusted Yahoo daily bars, long only, no stop, 2 bps per side",
+        "from 29 January 1993 to 30 September 2026, filled at the close (Empirica Lab, 11 "
+        "October 2026)",
+        "265 trades; 204 of 265 winners; average trade 0.63%; 5.0% a year; maximum drawdown "
+        "14.8%; invested on 893 of 8,475 days, in the market 11% of the time",
     ),
     "connors_percent_b": Printed(
         Search.NONE, _QS + "larry-connors-b-strategy-bollinger-eb7 (rules and numbers paywalled)"
@@ -470,5 +479,59 @@ TESTED: Mapping[str, Printed] = {
         Search.NONE, _OXFORD + "?p=5513 (42 futures 1980-2011, numbers in images only)"
     ),
 }
-"""Each rule's published test as found on 22 November 2026: Faber's alone is its author's own;
-reproduction may be held only to a `candidate`."""
+"""Each rule's published test as found on 22 November 2026 (RSI-2's on 27 November): Faber's
+alone is its author's own; reproduction may be held only to a `candidate`."""
+
+
+@dataclass(frozen=True)
+class Replication:
+    """A published run of the rule as coded, standing in, labelled secondary, for an author's
+    table not to be had free: its numbers keyed by `reproduce.Measure` name, each as printed."""
+
+    page: str  #: the address read
+    dated: str  #: who published it and when, and the day it was read
+    rules: str  #: the rules it ran, as the page gives them
+    market: str
+    period: str  #: first and last day, and where it fills
+    figures: Mapping[str, Decimal]
+
+    def __post_init__(self) -> None:
+        told = (self.dated, self.rules, self.market, self.period)
+        if not (self.page.startswith("https://") and all(part.strip() for part in told)):
+            raise ValueError(f"{self.page}: a replication with no address, date, rules or period")
+        if not self.figures or not all(v.is_finite() for v in self.figures.values()):
+            raise ValueError(f"{self.page}: a replication that prints no number")
+
+
+SECONDARY: Mapping[str, tuple[Replication, ...]] = {
+    "connors_rsi2": (
+        Replication(
+            _EMPIRICA,
+            "Empirica Lab, 11 October 2026; read 27 November 2026",
+            "buy at the close when RSI(2) is below 10 and the close is above its 200-day "
+            "average; sell at the close when the close is above its 5-day average; no stop",
+            "SPY, dividend-adjusted Yahoo daily bars, fully in SPY or in cash, 2 bps per side",
+            "29 January 1993 to 30 September 2026, filled at the close of the signal day",
+            {
+                "TRADES": _D(265),
+                "MEAN_GAIN": _D("0.63"),
+                "CAGR": _D("5.0"),
+                "DRAWDOWN": _D("14.8"),
+                "INVESTED": _D(11),
+            },
+        ),
+    ),
+}
+"""The best replications found free of each rule as coded; the only home for secondary figures.
+Searched 27 November 2026 for RSI-2: Backtrex (RSI under 5, shorts, a stop), Loomi.Ai (an RSI
+exit too), Trading Time Machine (Nasdaq 100 members) and Quant for Free (under 5) ran
+other rules."""
+
+
+def span(rule: str, measure: str) -> tuple[Decimal, Decimal]:
+    """The least and most the replications of `rule` print for one number: where they disagree,
+    reproduction must land inside this range; where one prints it, the range is that number."""
+    printed = [one.figures[measure] for one in SECONDARY.get(rule, ()) if measure in one.figures]
+    if not printed:
+        raise ValueError(f"{rule}: no secondary replication prints {measure}")
+    return min(printed), max(printed)

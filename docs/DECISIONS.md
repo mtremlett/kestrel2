@@ -2520,6 +2520,105 @@ JSON line. Decided by rule, with the options:
 Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
 printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.
 
+## 26 Nov - a WEAK fit with the book is graded, not held back (RUNGS)
+
+Ruled by chat seat 215, asked by the fit rung's session (#2233): the fit rung is a soft rung, so its
+WEAK is a scorecard mark like the regime rung's and its FAIL still holds a cell back. `verdict.GRADED`
+names "fit" (`rung_fit.RUNG.name` once #2233 lands). Seen red first: a WEAK fit held a cell back in
+`test_lab_verdict.py`'s scorecard test.
+
+## 26 Nov - two rungs before EPON: liquidity and capacity, and fit with the book (his order)
+
+**His order** (Thu 26 Nov 20:2x, through chat seat 215): two new rungs on the ladder before the
+overnight EPON run, each able to fail a rule, their bars written here before any EPON result.
+Written before either rung's code, and before any EPON row exists.
+
+**Both read the first rung and only lower its PASS** (as the costs rung does): a cell the first
+rung did not pass keeps its answer, so noise passes them at the first rung's rate and nothing is
+computed for it. THIN and FAULT stay THIN and FAULT (LAD-06).
+
+**Liquidity (`lab/rung_liquidity.py`).** Each judged trade's shares, as the first rung sized them
+by the desk's one sizing home (`orders.size`, from the one capital), set against the line's volume
+on the day each leg filled. FAIL when any leg is more than `orders.LIQUIDITY` (1%) of its day's
+volume. *A day of no volume recorded* is not read: the history database holds such days on 634
+of its 2,063 lines (85,559 of 11.0 million bars; WPP, a FTSE 100 company, on 3,277), so a zero is
+the record's gap, not a market that did not trade; failing on it would fail a line on its data
+(pattern 10). Each such leg is counted in the reason; with no leg read the rule is THIN. Found by
+the blind review of #2230, before any EPON result. *Why 1%:* it is already the desk's
+number (SIZ-10: no position above 1% of a line's traded value), so it keeps one home (pattern 8);
+under 1% of a day's volume is the usual retail participation bar, below which a market order's
+impact is small (Almgren, Thum, Hauptmann and Li 2005, square-root impact). The desk holds it to
+20 days' value; the rung asks the stricter question his order named, the trade's own day, and the
+worst leg, as the worst fold is judged on. *Options not taken:* 5% or 10% of volume (an
+institution's participation, not a family's market order); the median leg (a thin day would hide).
+**Capacity**, in its reason: the largest pot at which the worst leg is still at 1%, the capital
+times 1% over the worst leg's share, since shares grow with the pot.
+
+**Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`), less the cell's
+own rule's family (the rule, or the one a variant moves a setting of), and later any rule the ladder promotes (none yet). NOT the zoo (decided by chat
+seat 215, 26 Nov, by canon B6): the zoo trades only as a paper MACHINERY TEST, one share, never
+evidence, and a rule must never be graded down for resembling a machinery test. A day's return is the line's
+close-to-close move when the rule held after the close before, else nothing, the same formula for
+both, so costs (a level, not a co-movement) do not enter. Pearson over the cell's window; a rule
+that never held there says nothing and is passed over. WEAK (`Answer.DOUBT`) above 0.70; FAIL above
+0.90. *Why 0.90:* it is the desk's own correlation gate (`Settings.correlation`): a buy that moves
+past 0.90 with a line held is refused, so such a rule could not be traded beside the other; one
+home. *Why 0.70:* a correlation of 0.70 shares about half (0.49) of its day-to-day swings with a
+rule already running, so half its risk is not new; the rung's own number, homed in the module.
+*Options not taken:* one bar (no grade between new and copied); across lines (the desk's
+correlation gate and `lab/bets.py` own the book's lines together). `lab/verdict.py`'s
+`GRADED` names `fit` (#2239), so a WEAK is the scorecard's and only a FAIL holds a cell back.
+*Golden (B5, the desk approves goldens, his 22 Nov):* no answer moves. The ladder's fixture book
+(`tests/unit/test_lab_ladder.py`) traded one share a day, which the liquidity rung rightly FAILS;
+its two lines now trade a million shares a day, so the planted edge still passes every rung, and
+`tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
+of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
+
+## 2026-11-27 — the stress rung's reason names every untested episode (R-RUNNER-550, #2254)
+
+The stress rung's judged reason named only the worst scenario, so a line untested for 2008 or
+2020 showed PASS with no word that the episode went untested (failure pattern 10, silent). The
+reason now ends `; untested: <episode names>` whenever any episode was not shown (landed in
+#2254; this entry is its record, which #2254 left out and the duplicate #2270 carried). Options:
+change the answer to THIN for any untested episode (rejected: untested is not survived, but the
+tested scenarios still count, and `Stressed.judged` already gives THIN when nothing was tested),
+or say it in the reason only (taken). Proven by `tests/unit/test_lab_stress.py`.
+
+*Golden (B5, the desk approves goldens, his 22 Nov):* the fixture book's `stress` row in
+`tests/unit/test_lab_rung_golden.py`, a PASS, gains `; untested: the 2008 crash` (the fixture
+history begins after 2008); no answer moves.
+*Fit's golden (B5):* no answer moves; each cell of the fixture book gains a `fit` row. The planted
+edge FAILS it: a breakout on one line rising for years is held on the same days by the desk's
+own trend rules, and moves 0.91 with `supertrend_10_3`, one of the five (so dropping the zoo does
+not move it). On EPON, expect trend rules on a trending line to meet the same bar beside the
+desk's trend rules; that is the rung working, not a fault.
+
+## 27 Nov - a ticked box that says what remains may not rise (coordinator 221, 01:18 (4))
+
+`money-simcity-withdrawn-day` was ticked on 26 Nov while its note said "Remains: read the next
+deep run's verdict"; both deep runs since timed out at 7200 s with no verdict, so the tick
+counted progress its check had not earned (failure pattern 3). It is unticked, and
+`test_ticked_boxes_that_say_remains_never_rise` (tests/guards/test_ratchets.py) holds the count
+of ticked boxes whose note says `Remains:` to main's: it may fall, never rise. A refusal of all
+of them would have turned main red on 26 standing boxes, so it is a ratchet, like the two-homes one.
+*Driven (A7):* planted on this branch, `money-simcity-withdrawn-day` ticked again and `data-tiers`
+ticked with "Remains: planted": FAILED, "rise from 26 on main to 27; new: ['data-tiers']";
+restored, it passes.
+
+## 27 Nov - the check runs the pinned tools (coordinator 221, 01:3x (8))
+
+A lane's "types clean" passed on the PC while GitHub's types step failed (#2233,
+lab/rung_fit.py): `check.py` runs each tool under the python that started it, and the PC's own
+python has mypy 2.3.0 and numpy 2.3.5 where requirements.txt pins 1.14.1 and 2.1.3. Sessions the
+runner starts get .venv first on PATH (checked 27 Nov in Git Bash and PowerShell, profile or
+not); a session started any other way may not. `test_the_check_runs_the_pinned_tools`
+(tests/guards/test_pinned_tools.py) fails when any pinned package runs at another version, so
+the check refuses to call such a run green. Failure pattern 5's twin, folded into its lines.
+*Driven (A7):* run with the PC's own python (Python311), it FAILED: "mypy: pinned 1.14.1,
+running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
+.venv's python it passes.
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was

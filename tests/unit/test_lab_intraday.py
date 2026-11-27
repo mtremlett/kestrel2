@@ -18,7 +18,7 @@ from desk.orders import Leg, Settings
 from desk.rollup import Candle
 from desk.spans import Five
 from desk.strategy import Action
-from lab import rung, trials
+from lab import ladder, rung, trials
 from lab.intraday import IntradayMeanReversion, OpeningRangeBreakout
 from lab.rung import Answer
 
@@ -171,6 +171,7 @@ def test_the_set_runs_two_rules_on_two_lines_and_counts_every_trial_before_judgi
     said = lab_intraday.judge_set(tmp_path, {})
     assert counted == [4] * 4  # all four trials were entered before the first was judged
     table = (tmp_path / "ladder" / "sets" / "INTRADAY.md").read_text(encoding="utf-8")
+    assert f"\nrungs built: {ladder.rungs_built()[0]} of {ladder.rungs_built()[1]}\n" in table
     assert "PRE-REVIEW" in table and said.startswith("SET INTRADAY: 2 rules, 0 passed")
     assert (
         sum(f"| {r} | {x.symbol} (LSE) |" in table for r in lab_intraday.RULES for x in (one, two))

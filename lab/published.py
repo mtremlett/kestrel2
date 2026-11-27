@@ -136,12 +136,11 @@ PUBLISHED: Mapping[str, Published] = {
 def proven(name: str) -> Published:
     """The rule's publication, once the indicators give their published tables and the desk's
     engine and the ladder's cell have both given its known answers on every series; refused,
-    and not remembered, when any does not. A variant is held to its row's publication."""
+    and not remembered, when any does not. A variant (`rule[settings]`) is its base rule's."""
+    if (base := name.partition("[")[0]) != name:
+        return proven(base)
     indicators()
     rule = PUBLISHED.get(name) or EPONYMOUS_PUBLISHED.get(name)
-    row, _, setting = name.partition("[")
-    if rule is None and setting:  #: a variant is its row's code at other settings (L17)
-        return proven(row)
     if rule is None:
         raise ValueError(f"{name}: no published rule on file, so no code can be held to it")
     for case in rule.cases:

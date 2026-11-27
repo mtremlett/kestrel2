@@ -5,7 +5,7 @@ results file; it writes `ladder/sets/EPON.md` and `.json` - each rule, line and 
 with its reason, the trials, the author's result beside the desk's, what goes forward - and
 ends `SET EPON: <n> rules, <passed> passed, table <path>`. A rule has passed when a line's one
 verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the blind review
-(R-RUNNER-40) is clean. `python -m lab.ladder first` runs the first set instead; `leveraged`
+(R-RUNNER-40) is clean. `first` runs set 1 instead, its table published too; `leveraged`
 runs set LEV (STR-18): six trend rules, named in `TREND`, on the leveraged lines only, judged
 on their own trial count. `variants` names set VAR before any result (canon B6): every variant
 of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
@@ -150,10 +150,44 @@ def epon(
     rules = eponymous() if rules is None else rules
     todo, notes = survivors(rules, lines, records)
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
+    return publish(home, bars, pounds, (todo, rules, notes), counts, plan, len(lines))
+
+
+def first(
+    home: Path,
+    make: Callable[[], Bars],
+    pounds: Rates,
+    todo: Sequence[Cell] | None = None,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
+) -> str:
+    """Set 1 on the pool, each published rule on the lines it declares, whole (none corrected
+    for survivorship), its table published as every set's is (L16)."""
+    todo = ladder.cells() if todo is None else todo
+    counts = _pooled(make)(home, None, pounds, todo, now, ladder.FIRST)
+    rules = tuple(dict.fromkeys(c.strategy for c in todo))
+    notes = tuple(
+        f"{one.symbol} ({one.venue}): {NOT_CORRECTED}"
+        for one in dict.fromkeys(c.line for c in todo)
+    )
+    return publish(home, make(), pounds, (todo, rules, notes), counts, ladder.FIRST, len(notes))
+
+
+def publish(
+    home: Path,
+    bars: Bars,
+    pounds: Rates,
+    judged: tuple[Sequence[Cell], Sequence[str], Sequence[str]],
+    counts: str,
+    plan: Plan,
+    lines: int,
+) -> str:
+    """A judged set's table, `rungs built: n of 12` in its header, and the set's closing lines;
+    `judged` is its cells, rules and survivorship notes, of `lines` lines."""
+    todo, rules, notes = judged
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
     kept = [last.get(tuple(batch.row(c))) for c in todo]
-    if None in kept:  #: the runner's STOP ended the pass early: no table of cells never judged
-        return counts
+    if counts.startswith(ladder_pool.STOPPED) or None in kept:  #: no table of a pass cut short
+        return counts  #: by STOP, nor of cells never judged: older rows would stand as this pass
     count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
     rows = [cast(verdict.Row, row) for row in kept]
     stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
@@ -167,7 +201,7 @@ def epon(
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
         out.write(NL.join(_authors(rules) + withheld) + NL)
-    said = survivorship_said(notes, len(lines))
+    said = survivorship_said(notes, lines)
     said += "" if shown else NL + stop[-1]
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
@@ -346,7 +380,7 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         held = leveraged(held)
         said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
     elif argv:
-        said = _pooled(make)(home, None, pounds, ladder.cells())
+        said = first(home, make, pounds)
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
         said += "\n" + weather_line(home, make(), held)

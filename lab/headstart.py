@@ -189,6 +189,35 @@ def compare(path: Path, answers: Mapping[Line, Iterable[Five] | Refused]) -> dic
     return tallies
 
 
+def _daily_sum(given: Iterable[Bar]) -> str:
+    rows = (f"{b.day:%Y%m%d} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given)
+    return hashlib.sha256("".join(rows).encode()).hexdigest()
+
+
+def compare_days(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds daily rows of, them beside the one store's daily bars at
+    path: counts, a checksum of the prices on the days both hold, the days only the old one
+    holds (each as midnight UTC). A line the one store holds nothing of: all missing."""
+    from lab import headstart_days  # imports this module
+
+    _, read = headstart_days.form(where)
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = sorted(read(line, where), key=lambda bar: bar.day)
+        except (OSError, ValueError, sqlite3.Error):  # this line is not in that old store
+            continue
+        try:
+            have = {bar.day: bar for bar in bars.daily(path, line)}
+        except LookupError:
+            have = {}
+        both = [bar for bar in old if bar.day in have]
+        same = _daily_sum(both) == _daily_sum(have[bar.day] for bar in both)
+        gone = tuple(datetime.combine(b.day, time(), UTC) for b in old if b.day not in have)
+        tallies[line] = Tally(len(old), len(both), same, gone)
+    return tallies
+
+
 def drill(path: Path, scratch: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
     """The restore drill: the one store's databases copied to scratch under their own names, and
     each line's whole five-minute history read back from the copy, beside the original's."""
@@ -284,13 +313,17 @@ def checked(register: Path, path: Path, scratch: Path) -> str:
     bad = 0
     for where in imports(register):
         how = reader(where)
-        found = compare(path, archive.gather(LINES, where, how[1])) if how else {}
-        for line, tally in found.items():
-            bad += not tally.same or bool(tally.missing)
-            named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
-            counts = f"old {tally.old}, held {tally.held}"
-            match = "match" if tally.same else "DIFFER"
-            sys.stdout.write(f"{where.name}: {line.symbol}: {counts}; {match}; missing {named}\n")
+        found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
+        with suppress(ValueError):  # a store of no daily form has no daily rows to compare
+            found["1d"] = compare_days(path, where)
+        for span, tallies in found.items():
+            for line, tally in tallies.items():
+                bad += not tally.same or bool(tally.missing)
+                named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
+                counts = f"old {tally.old}, held {tally.held}"
+                match = "match" if tally.same else "DIFFER"
+                row = f"{where.name}: {line.symbol} {span}: {counts}; {match}; missing {named}"
+                sys.stdout.write(row + "\n")
     restored = drill(path, scratch)
     bad += sum(not t.same or bool(t.missing) for t in restored.values())
     said = (

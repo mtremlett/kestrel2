@@ -186,6 +186,20 @@ def test_rolloff_deletes_only_a_byte_identical_copy_and_lists_the_rest(tmp_path:
     assert (kept / "a.csv").exists()
 
 
+def test_rolloff_rows_lists_safe_only_a_file_whose_every_row_the_store_holds(
+    tmp_path: Path,
+) -> None:
+    seeded(tmp_path, set())
+    head = "symbol,day,open,high,low,close,volume\n"
+    rows = [f"SPY,{d},{bar(d).open},{bar(d).high},{bar(d).low},{bar(d).close},1000\n" for d in DAYS]
+    held, lacking = tmp_path / "held.csv", tmp_path / "lacking.csv"
+    held.write_text(head + "".join(rows), "utf-8")
+    lacking.write_text(head + rows[0] + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    safe, kept = quality.rolloff_rows([held, lacking], tmp_path, [SPY])
+    assert (safe, kept) == ([held], [lacking])
+    assert held.exists() and lacking.exists()
+
+
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     state = tmp_path / "archive.json"
@@ -263,6 +277,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
     assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
     assert quality.kind("1 sessions missing, the first x") == "hole"
+    assert quality.escalate("gap", frozenset({"gap"})) == "sonnet"
+    assert quality.escalate("hole", frozenset({"gap"})) == "opus"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
     assert first == (NOW, NOW, "data quality RED: SPY/1h")
     soon = NOW + timedelta(minutes=10)
@@ -323,3 +339,30 @@ def test_a_weekly_bar_is_fresh_for_the_last_complete_week_and_stale_after_a_fort
         with bars.writing(path, bars.Source.IBKR) as held:
             held.timed(SPY, "1wk", [Timed("1wk", at, price, price, price, price, 5)])
         assert quality.cell(path, SPY, "1wk", NOW) == why
+
+
+def test_an_intraday_gap_is_asked_of_the_broker_first_then_the_archive_and_no_gap_asks_nothing(
+    tmp_path: Path,
+) -> None:
+    path, asked = seeded(tmp_path, set()), []
+    start = datetime(2026, 11, 16, 15, 0, tzinfo=UTC)
+    one = Decimal(600)
+
+    def pull(name: str, answer: object):  # type: ignore[no-untyped-def]
+        def ask(_line: object, span: str) -> object:
+            asked.append((name, span))
+            return answer
+
+        return ask
+
+    here = [Timed("15m", start, one, one, one, one, 5)]
+    pulls = (
+        (bars.Source.IBKR, pull("broker", Refused("no"))),
+        (bars.Source.BACKFILL, pull("archive", here)),
+    )
+    wrote = quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("broker", "15m") in asked and ("archive", "15m") in asked
+    assert "SPY/15m: archive, backfilled" in wrote
+    asked.clear()
+    quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("archive", "15m") not in asked and ("broker", "15m") not in asked
