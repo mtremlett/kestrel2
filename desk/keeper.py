@@ -37,7 +37,7 @@ from desk.bars_form import entered
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
-from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
+from desk.lines import ADJUSTED, DOLLARS, LINES, POLLED_LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 from desk.store_scope import judge as scoped_judge
 
@@ -70,7 +70,7 @@ def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) ->
     """One `--polled <minutes>` run at the kept rate (floor first); keeps pace()'s next rate."""
     kept = home / f"polled_{minutes}.rate"
     rate = int(kept.read_text()) if kept.is_file() else POLLED[minutes][0]  # bounded: one integer
-    words, _, refusals = keeper_live.polled_round(home / HOT, LINES, now, ask, minutes, rate)
+    words, _, refusals = keeper_live.polled_round(home / HOT, POLLED_LINES, now, ask, minutes, rate)
     (tmp := kept.with_suffix(".tmp")).write_text(str(pace(minutes, rate, refusals)))
     tmp.replace(kept)
     return words
