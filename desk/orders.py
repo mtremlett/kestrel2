@@ -6,10 +6,11 @@ ONE ROUNDING POLICY for what is published of it."""
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import astuple, dataclass, field, replace
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
+from operator import attrgetter
 
 from desk.lines import Line
 from desk.orders_parts import (
@@ -139,19 +140,28 @@ class Charges:
     uk_taxes: Decimal  #: on a purchase, the part of its value the line states (Line.uk_tax)
 
     @property
+    def amounts(self) -> tuple[Decimal, ...]:
+        """The lines in their order, as they are kept: read off, not deep-copied as astuple does
+        (27 Nov: adding up every fill's costs that way was a third of a SimCity day's work)."""
+        return _AMOUNTS(self)
+
+    @property
     def total(self) -> Decimal:
-        return sum(astuple(self), Decimal(0))
+        return sum(self.amounts, Decimal(0))
 
     def __add__(self, other: Charges) -> Charges:
-        return Charges(*(a + b for a, b in zip(astuple(self), astuple(other), strict=True)))
+        return Charges(*(a + b for a, b in zip(self.amounts, other.amounts, strict=True)))
 
     def part(self, shares: int, of: int) -> Charges:
         """The share of a fill's costs that some of its shares carry."""
-        return Charges(*(a * shares / of for a in astuple(self)))
+        return Charges(*(a * shares / of for a in self.amounts))
 
     def published(self) -> Charges:
         """Each line as it is published: rounded once, by the one policy (pennies)."""
-        return Charges(*map(pennies, astuple(self)))
+        return Charges(*map(pennies, self.amounts))
+
+
+_AMOUNTS = attrgetter(*Charges.__dataclass_fields__)
 
 
 def pennies(amount: Decimal) -> Decimal:

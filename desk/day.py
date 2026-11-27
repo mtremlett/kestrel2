@@ -10,7 +10,18 @@ from decimal import Decimal, localcontext
 from functools import partial
 from pathlib import Path
 
-from desk import book, day_money, halt, handpark, intraday, paper, restop, strategy, venues
+from desk import (
+    book,
+    book_parts,
+    day_money,
+    halt,
+    handpark,
+    intraday,
+    paper,
+    restop,
+    strategy,
+    venues,
+)
 from desk.broker import Broker, Crash, Restopping
 from desk.day_parts import HEADER as HEADER
 from desk.day_parts import RECORDS as RECORDS
@@ -46,6 +57,7 @@ from desk.orders import (
 )
 from desk.risk import Standing
 from desk.store import Bar
+from desk.store_parts import upto
 from desk.strategy import Action, Decision
 
 
@@ -61,7 +73,8 @@ def run(
     """A whole day from the data saved by its end, the day's own bars in it: its orders are
     decided on the bars before the day alone, each stop is moved under its fill (restop), and
     then its record is published."""
-    seen = {line: tuple(bar for bar in bars if bar.day < day) for line, bars in archive.items()}
+    before = day - timedelta(days=1)
+    seen = {line: tuple(bars[: upto(bars, before)]) for line, bars in archive.items()}
     opens = {x.symbol: bars[-1].open for x, bars in archive.items() if bars and bars[-1].day == day}
     trade(root, seen, broker, settings, day, rates, strangers=strangers, live=opens)
     restop.move(root, broker, archive)  #: each fill's stop, under the fill (R-RUNNER-220)
@@ -112,7 +125,8 @@ def publish(
     )
     if record.stopped is not None:  #: a day nobody sent for has no list (halt.morning)
         _bare(root, day, book_held, unsure, stops)
-    book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
+    if not book_parts.add(root / RECORDS, HEADER, [_row(record)]):  #: kept before the heat or FX
+        book._write(root / RECORDS, [HEADER, *(_row(r) for r in (*kept, record))])
     return record
 
 
@@ -198,7 +212,7 @@ def _stand_down(
     lines, fills = {line.symbol: line for line in archive}, book.fills(root)
     buys, since = (
         {f.order_id: f for f in fills if f.quantity > 0},
-        max((r.day for r in records(root)), default=date.min),
+        kept[-1].day if (kept := records(root)) else date.min,
     )
     for sale in fills:
         buy = buys.get(sale.order_id.removesuffix("-stop"))
@@ -233,11 +247,13 @@ PEAK_FALL = Decimal(1500)
 def _peak_fall(root: Path, day: date, tell: book.Tell | None) -> None:
     """ON PAPER A FALL FROM THE BOOK'S HIGHEST POINT PAST PEAK_FALL IS TOLD TO HIM (BIC-05): the
     profits of the records so far, summed, against their highest running total. Alert only."""
+    if tell is None:
+        return  #: nobody to tell: the records are not summed
     total = peak = Decimal(0)
     for record in records(root):
         total += record.profit or Decimal(0)
         peak = max(peak, total)
-    if tell is not None and peak - total > PEAK_FALL:
+    if peak - total > PEAK_FALL:
         tell(
             f"peak fall {day}",
             f"DRAWDOWN ALERT: £{peak - total} below its highest; paper, trading on.",
