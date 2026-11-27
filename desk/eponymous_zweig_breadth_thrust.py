@@ -69,13 +69,12 @@ class Breadth:
 class ZweigBreadthThrust:
     """In on the breadth average climbing from under 0.40 to over 0.615 within 10 sessions."""
 
-    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, CLOSES)
+    declared: ClassVar[Declared] = Declared(Timeframe.DAILY, HOLD, LINES, CLOSES)
 
     def __init__(self, breadth: Mapping[date, Breadth]) -> None:
         self._breadth = breadth
         self._average = _Exponential(WINDOW)
         self._recent: deque[Decimal] = deque(maxlen=WINDOW)
-        self._held = 0
 
     def step(self, bar: Bar, holding: bool) -> bool:
         """Shown the next bar after its close: whether to be in the market from here."""
@@ -84,11 +83,7 @@ class ZweigBreadthThrust:
         average = self._average.add(self._breadth[bar.day].ratio)
         if average is not None:
             self._recent.append(average)
-        if holding:
-            self._held += 1
-            return self._held < HOLD
-        self._held = 0
-        return average is not None and average > HIGH and min(self._recent) < LOW
+        return holding or (average is not None and average > HIGH and min(self._recent) < LOW)
 
 
 def decide(
