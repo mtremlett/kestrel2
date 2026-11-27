@@ -1,9 +1,10 @@
 """Spec parity: every row of `lab/catalogue.toml` decides, on every day of every fixture series,
-exactly as its Python rule in `desk/eponymous_*.py`, and every such rule has a row (R-MONEY-45)."""
+exactly as its Python rule in `desk/eponymous_*.py` while that file stands, and as its pinned
+fingerprint always, so a twin can be deleted with its trades still held; every rule has a row."""
 
 from __future__ import annotations
 
-import inspect
+import hashlib
 import random
 import tomllib
 from datetime import date, timedelta
@@ -37,21 +38,49 @@ def _bars(seed: int, days: int = 1500) -> tuple[Bar, ...]:
     return tuple(made)
 
 
+# Each row's decisions on the five fixture series, hashed: the proof of identical trades that
+# outlives its Python twin (rungs-rows-as-rules). A changed hash is a changed rule (B5, DECISIONS).
+PINNED: dict[str, str] = {
+    "bollinger_squeeze": "17ee5331ac438f40",
+    "clenow_momentum": "445d61ba0c4fa625",
+    "connors_percent_b": "c0a6ebcfcd27e3f4",
+    "connors_rsi2": "e49cc20b59ae9a43",
+    "connors_three_day_high_low": "3355b32f1df9f7a3",
+    "dan_zanger_breakout": "cdfb37b7a054f3e2",
+    "darvas_box": "e53f80e7166e342d",
+    "demark_sequential": "b15e955c6a91dd3d",
+    "donchian_channel_breakout": "688d2e50ba73e28d",
+    "donchian_fade_chop": "2a2ae783512a0be7",
+    "dual_momentum": "2553c4ba7cffd393",
+    "faber_tactical": "e3e740cd7dc9a946",
+    "kell_breakout": "6524f0498454f29a",
+    "keltner_channel_trend": "740e0378cdb11415",
+    "mansfield_rs_momentum": "91df48c7a44471e5",
+    "minervini_breakout": "89b5f189c037b8a0",
+    "raschke_swing": "a90ea8d722dbccf4",
+    "weekly_reversal_jegadeesh": "a99c155880d7c216",
+    "weinstein_stage": "3377a7d485b98347",
+    "williams_r": "1cbc06de44c8d404",
+    "zweig_breadth_thrust": "bab612f0aa487836",
+}
+
+
 @pytest.mark.parametrize("name", sorted(BOOK.keys() | RULES))
-def test_each_spec_decides_as_its_python_rule_on_every_day(name: str) -> None:
-    assert name in RULES and name in BOOK, f"{name}: not both a catalogue row and a desk rule"
-    spec = Spec.parse({"name": name, **BOOK[name]})
-    seen: set[str] = set()
+def test_each_spec_decides_as_its_python_rule_and_its_pin_on_every_day(name: str) -> None:
+    assert name in BOOK, f"{name}: a desk rule with no catalogue row"
+    spec, seen, print_ = Spec.parse({"name": name, **BOOK[name]}), set(), hashlib.sha256()
     for seed in range(5):
-        bars, ratio = _bars(seed), _bars(seed)
-        if "breadth" in inspect.signature(RULES[name]).parameters:  # reads the market's breadth
-            draw = random.Random(seed)  # noqa: S311 - a test draw
-            made = {b.day: Breadth(draw.randint(1, 99), draw.randint(1, 99)) for b in bars}
-            theirs = tuple(_run(name, RULES[name](made), "X", bars))  # type: ignore[call-arg]
-            ratio = tuple(Bar(b.day, r, r, r, r, 1) for b in bars for r in [made[b.day].ratio])
-        else:
-            theirs = tuple(_run(name, RULES[name](), "X", bars))
-        mine = tuple(_run(name, SpecRule(spec), "X", ratio))
-        assert mine == theirs, f"{name} seed {seed}: the spec differs from the rule"
-        seen |= {d.action.name for d in theirs}
+        bars, draw = _bars(seed), random.Random(seed)  # noqa: S311 - a test draw
+        made = {b.day: Breadth(draw.randint(1, 99), draw.randint(1, 99)) for b in bars}
+        if BOOK[name]["entry"] == "breadth_thrust":  # the row reads the market's breadth ratio
+            bars = tuple(Bar(b.day, r, r, r, r, 1) for b in bars for r in [made[b.day].ratio])
+        mine = tuple(_run(name, SpecRule(spec), "X", bars))
+        if name in RULES:
+            breadth = BOOK[name]["entry"] == "breadth_thrust"
+            twin = RULES[name](made) if breadth else RULES[name]()  # type: ignore[call-arg]
+            theirs = tuple(_run(name, twin, "X", _bars(seed)))
+            assert mine == theirs, f"{name} seed {seed}: the spec differs from the rule"
+        seen |= {d.action.name for d in mine}
+        print_.update(repr(mine).encode())
     assert seen >= {"BUY", "SELL"}, f"{name}: the five fixture series never buy and sell"
+    assert PINNED.get(name) == print_.hexdigest()[:16], f"{name}: {print_.hexdigest()[:16]}"

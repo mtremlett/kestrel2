@@ -582,3 +582,21 @@ then the break was removed:
 - Trials hash (R-RUNNER-551, #2262): the catalogue row joins the rule hash only for rules made from a row (SpecRule, `row[settings]` variants), the tape key's own condition. Rejected: hashing every named row, which would recount Python rules whose row is not their code.
 - Regimes (R-RUNNER-552, #2278): a tradeless half is THIN only when the whole record traded (a whole with none stays FAULT). Options: change `rung.decide` (outside the claim) or map it in this rung. Taken: in the rung.
 - Real shuffle (R-RUNNER-548, #2256): options were editing ladder_sets files (refused) or handing on; handed on. A branch conflict (old whole-file line-ending rewrite of test_lab_ladder.py) was resolved by taking main's file and re-applying the two edits, so the diff carries only the change. Remains: the pooled test is slow (~18 min on a busy PC); a cheaper real shuffle needs lab/shuffle.py.
+
+### The ladder's hold stays until the speed work lands (his ruling, Fri 27 November 2026, 08:4x)
+
+Asked whether EPON should start on the rungs already landed, his words through the chat seat:
+"No, keep the hold". `job-ladder.hold` stays in the runner's state, and EPON waits on the
+critical path: E4 (#2226) and E5 (#2232) land first, `lab/ladder.py` is split so the new rungs
+stop waiting on one hub file (E16, E17), then E8, E11, E12 and E13 each in its own module and
+test, and the E20 blind review after E13. The check: the runner starts no ladder job while the
+hold file exists. Recorded by runner ops 241 for coordinator 240.
+
+### 2026-11-27 — the pool's tape test, variants proved by base, a catalogue row without Python, the Keltner tie, the phone summary (#2293, #2302, #2295, #2309, #2315, #2320, #2312)
+- Windows-red pool test (#2293). Options: (a) force "spawn" in the pool and rework every pool test that patches state; (b) warm the cell's units in-process in this one test; (c) leave it. Took (b): canon A3, smallest fix at the root. (a) is recorded as found, not fixed.
+- Claim gap rungs-pound-gap (#2293, #2302, #2315, #2320), under his standing "always go with recommended": already met on main (#1992, `_pooled.go` calls `ladder.preflight`); options widen or rebuild or verify; verified, nothing changed. rungs-epon-first stays held (waits: R-RUNGS-38).
+- Variant to base (#2302). Options: (a) `proven` reduces `rule[settings]` to its base, as `rulebook.row` does; (b) each variant its own publication. Took (a): the known answers prove the code, not the setting. #2302 had gone red on a Claim line carrying instruction text; corrected and re-run, not closed.
+- Catalogue row with no Python file (#2295). Used `rulebook._made`, the spec maker, not `rulebook.rules()`, which reads only the default catalogue and would drop a custom book's rows.
+- Zweig ratio bars (#2309). A session with no advance and no decline is left out: options were a 0.5 bar or a gap; left out so nothing is invented.
+- Keltner tie (#2315). The desk's block (Decimal division, buys at the tie) or the fast engine (exact sums, does not)? The fast engine, by "a close over the upper band" and canon B4; fix the desk's `_Keltner.see` at the source (A2). Extending the book parity test now with Keltner rows skipped was refused: a skipped row is a set-aside test (pattern 4).
+- No Telegram key when a set finishes (#2320). Options: (a) skip quietly; (b) say `telegram: NOT TOLD` and end 1; (c) crash before judging. Took (b), canon A4; the table is written first. A sqlite fault on the message record raises. The runner must pass TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID.

@@ -1805,15 +1805,6 @@ This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
 This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
 
-### The ladder's hold stays until the speed work lands (his ruling, Fri 27 November 2026, 08:4x)
-
-Asked whether EPON should start on the rungs already landed, his words through the chat seat:
-"No, keep the hold". `job-ladder.hold` stays in the runner's state, and EPON waits on the
-critical path: E4 (#2226) and E5 (#2232) land first, `lab/ladder.py` is split so the new rungs
-stop waiting on one hub file (E16, E17), then E8, E11, E12 and E13 each in its own module and
-test, and the E20 blind review after E13. The check: the runner starts no ladder job while the
-hold file exists. Recorded by runner ops 241 for coordinator 240.
-
 ### R-RUNNER-107 — the master and the calendars agree (DATA, 15 November 2026)
 
 `tests/unit/test_lines_worlds.py`: every line of `desk.lines` has a rule and a clock in
