@@ -256,9 +256,11 @@ def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
     the book, and those shares (whole ones; a part share is for a hand to look at). Shares the
     desk's own stop rests under at the broker are not listed: selling them too sells twice."""
-    covered = {name: int(shares) for name, shares in broker.stops()}
+    covered = Counter[str]()
+    for name, shares in broker.stops():
+        covered[name] += int(shares)
     more = differences(positions(root), broker.holdings())
-    left = ((d.name, int(d.broker) - d.book - covered.get(d.name, 0)) for d in more)
+    left = ((d.name, int(d.broker) - max(d.book, covered[d.name])) for d in more)
     return tuple((name, shares) for name, shares in left if shares > 0)
 
 

@@ -25,3 +25,7 @@ def test_shares_under_a_broker_stop_are_not_taken_in_and_sold_on_top_of_it(tmp_p
     assert book.strangers(tmp_path, broker) == ()
     broker.inject("H", 3)  #: 3 more, under no stop
     assert book.strangers(tmp_path, broker) == (("H", 3),)
+    book.adopt(tmp_path, LINE, 5, TEN, DAY)  #: the book now holds the 5 the stop rests under
+    assert book.strangers(tmp_path, broker) == (("H", 3),)
+    broker.inject("H", -3)
+    assert book.strangers(tmp_path, broker) == ()
