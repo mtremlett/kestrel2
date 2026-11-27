@@ -143,8 +143,8 @@ grid file, the runner's own request list, all on 16 November; and the shared clo
 `.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
 sections) until READY's reads failed (19 November).
 → *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
-Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
-shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
+Elsewhere `test_file_replaces_never_rise` holds the replaces at 19. *Debt:* one way to read and
+write each shared file, readers and writer under one lock; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
 runs: the rehearsal barred on any trading date or held line (16 Nov); `desk/running.py` set London

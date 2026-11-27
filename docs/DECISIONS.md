@@ -2867,6 +2867,15 @@ RED on main with four copies (CANON.md:4 200, CANON.md:74 50 and 800, test_guard
 RED again on a planted `PLANTED_CAP = 8914 + 30000` in a guard (30000 named, 8914 rightly not: it is
 the runner's figure, and its drive is the runner's). The two CANON lines now name `BUDGET.json` in
 place of the figures, same rule, same line count; the comment lost its copy. Green after.
+## 27 Nov - file replaces may fall, never rise (design L16, Builder 3b)
+Windows refuses to swap a file another process holds open (pattern 19), so every `path.replace`
+in `desk/` and `lab/` is a place a live job can fail. Options weighed: (a) build the one locked
+writer first: right, but it touches every lane's writers at once; (b) a ratchet now, so the count
+can only fall while the writer is built: chosen, as for whole-file reads. A replace is a call of
+`replace` or `rename` with one argument and no names (a text's replace takes two, a time's takes
+names) or `os.replace`/`os.rename`: 19 on main, each checked by hand against a grep.
+`test_file_replaces_never_rise` was RED on a planted `tmp.replace(path)` in desk/quality.py
+("rise from 19 on main to 20"), green with it removed.
 
 ## 27 Nov - book.send's fault matrix (design L8, pattern 23, Builder 3b)
 The send path learnt each broker behaviour from a live fault (#373, #860, #1008, #1014, #1031). One
