@@ -3,7 +3,7 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -22,7 +22,9 @@ from desk import (
     keeper_live,
     paper,
     simcity,
+    simcity_parts,
     store,
+    venues,
     watch,
 )
 from desk.lines import YARDSTICK
@@ -65,6 +67,7 @@ from desk.simcity_incidents import (
     unbarred,
     unheld,
 )
+from desk.store import Bar
 
 
 def night(patch: pytest.MonkeyPatch, root: Path) -> simcity.Night:
@@ -290,3 +293,13 @@ def test_a_session_the_store_withdrew_is_no_end_of_the_world(
     monkeypatch.setattr(simcity, "EVENTFUL", 1_000_000)  # no scenario: the plain days alone
     result = simcity.run(tmp_path, archive, ROOM, RATES, NOW, (1, 2, 3))
     assert not [b for b in result.broken if "stops on" in b], result.broken
+
+
+def test_a_session_the_store_withdrew_is_a_still_day_the_world_lives_past() -> None:
+    sessions = venues.sessions(YARDSTICK.venue, date(2019, 5, 20), date(2019, 5, 28))
+    bars_ = [Bar(d, *(Decimal(10 + i),) * 4, 5) for i, d in enumerate(sessions)]
+    gone = bars_.pop(3)
+    world = simcity_parts._restored(YARDSTICK, bars_)  # noqa: SLF001 - the world's own mending
+    assert [b.day for b in world] == list(sessions)
+    assert world[3] == Bar(gone.day, *(bars_[2].close,) * 4, 0)
+    assert day_money.close({YARDSTICK: world}, YARDSTICK, sessions[-1]) == bars_[-1].close
