@@ -415,9 +415,11 @@ ZOO_DAILY: Mapping[str, type[Rule]] = {
 
 def zoo_lines() -> tuple[Line, ...]:
     """The zoo's fixed lines, by the master's facts: London's plain (unleveraged) lines and every
-    US security; the operator's ten US lines wait on a tenth in the master."""
+    US security, never a line the master marks isa=no; the operator's ten US lines wait on a
+    tenth in the master."""
     return tuple(
         line
         for line in LINES
-        if (line.venue == "LSE" and line.leverage == 1) or (line.venue == "US" and line.isin)
+        if line.isa is not False
+        and ((line.venue == "LSE" and line.leverage == 1) or (line.venue == "US" and line.isin))
     )

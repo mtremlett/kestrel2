@@ -18,6 +18,8 @@ THE DESK'S READING: the template shows a rule one daily bar at a time, and the l
 month is known to be so only when the next month's first bar arrives. So the month-end close is
 judged on that first bar: the decision is made one session after the paper's, on the same
 information. Nothing between month-ends changes it.
+Holding period: none. The sale is the month-end close under its 10-month average alone; the
+paper gives no day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """
