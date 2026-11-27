@@ -479,15 +479,16 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
       Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Also (#1916): `keeper_live.polled_round` asks a rota's next `rate` lines for one-minute bars, counts requests and pacing refusals for `pace`; not yet in keeper.main (the rate must persist between runs). Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
       {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; check: tests/unit/test_keeper_live.py::test_the_polled_round_counts_every_request_and_paces_by_keeper_pace}
-- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+- [x] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
       London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
       BLS, BEA, EIA), earnings calendars (Finnhub and Alpha Vantage, cross-checked), and news
       with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
       it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
-      Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources). Remains: Alpha Vantage earnings CSV (own reader; cross-check of Finnhub dates).
-      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_alpha_vantage_earnings_are_kept_raw_and_cross_checked_with_finnhub}
+      Built (#1663, #1712, #1728, #1752, #1791): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources), and the Alpha Vantage earnings CSV, its own reader, its dates kept beside Finnhub's.
+      (plan steward, 27 Nov: met by #1791, 117bcff6: `_alpha_earnings_read` keeps the Alpha Vantage earnings CSV as EARNINGS facts beside Finnhub's under one key; the named check never existed, so check: points at the test #1791 extended, which asserts both dates held for NVDA)
+      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_one_run_writes_the_four_kinds_and_never_prints_a_key}
 - [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
       the one effect with strong published evidence; index trend and breadth from the desk's
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
@@ -635,9 +636,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       every stop's level; a lost stop is on the day's list with stop, shares, level); remains: the
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
       the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: nothing of MONEY's (the Pretend put-back door, `put_stop_back`, is on main; the list reaching him was re-homed to PAPER as R-RUNNER-291 and landed there, #805, the evening message naming each lost stop)
-      {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py, desk/simcity*.py, tests/unit/test_simcity*.py,
-      desk/broker.py, tests/unit/test_broker*.py;
+      (plan steward, 27 Nov, builders lead's order: wide globs narrowed to the files the box names: the put-back in day/book/broker, SimCity's census in simcity.py, the check in test_day.py)
+      {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day.py, tests/unit/test_restop.py,
+      tests/unit/test_book.py, desk/simcity.py, tests/unit/test_simcity.py,
+      desk/broker.py, tests/unit/test_broker.py;
       after: money-working; waits: R-MONEY-53; check: tests/unit/test_day.py::test_a_stop_cancelled_by_hand_is_put_back_the_same_day}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
@@ -685,17 +687,19 @@ day's trading and reconciliation are built, and any broker can stand behind them
       cost is flagged, and no position is above 1% of its line's twenty-day traded value
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
-      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
-      tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py,
-      tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy*.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
+      (plan steward, 27 Nov, builders lead's order: wide globs narrowed: orders.size/gate/thin, day._buy, the gain's source in strategy.py, SimCity's traded_value in simcity.py, and the fixtures the box names)
+      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
+      tests/unit/test_day.py, desk/simcity.py, tests/unit/test_simcity.py,
+      tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
       (runner ops, 27 Nov: claim gap, strategy.py and its tests are MONEY files (manifest/money.toml:5), no RUNGS request needed)
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Step 4 in #2363: `book.collect` takes lines, settings and tell and halts buying on a stop sold past GAP_LOSS (callers still pass none: day._stand_down, running.py, running_parts.py, send). Remains: those callers pass them, then delete `day._stand_down`'s body; each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
+      (plan steward, 27 Nov, builders lead's order: desk/ and test globs narrowed to the modules the Remains name: book.collect's callers in day.py, gap_loss in orders.py and simcity.py, the time stop in strategy.py; the rules' own sell logic keeps eponymous_*.py and grimes)
       {id: money-time-gaps; waits: 2026-11-28; files: desk/day.py, desk/orders.py, desk/strategy.py,
-      tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
-      desk/simcity*.py, tests/unit/test_simcity*.py, desk/book.py, tests/unit/test_book*.py,
+      tests/unit/test_day.py, tests/unit/test_day_standing.py, tests/unit/test_orders.py, tests/unit/test_strategy.py, tests/unit/test_strategy_hold.py,
+      desk/simcity.py, tests/unit/test_simcity.py, tests/unit/test_simcity_gaps.py, desk/book.py, tests/unit/test_book.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
       desk/grimes_parts.py; check: tests/unit/test_book.py::test_collect_halts_buying_on_a_stop_sold_past_gap_loss_from_every_caller}
       (runner ops 168, 23 Nov 22:0x, chat 167's order: desk/grimes.py holds 799 of its 800 lines, so the Grimes rules' hold
@@ -720,8 +724,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] Money honestly counted: interest on idle cash, with the risk-free rate in every
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: `RISK_FREE` in every Sharpe (lab, R-MONEY-65), then drop "interest inside the day's profit" from the box: interest stays beside profit as its own column and daily line, since profit must equal the ledger (#1861, decided). `RISK_FREE` in every Sharpe is RUNGS's request R-MONEY-65; the saved record is money-saved-fx, done
-      {id: money-honest; waits: R-MONEY-65; files: desk/day.py, desk/book.py, tests/unit/test_day*.py,
-      tests/unit/test_book*.py, tests/scenes/test_scenes.py, desk/simcity*.py, tests/unit/test_simcity*.py; check: tests/unit/test_day.py::test_interest_is_its_own_column_beside_profit_at_risk_free}
+      (plan steward, 27 Nov, builders lead's order: SimCity globs dropped, the box names no SimCity work; interest is the day's column, its check in test_day.py)
+      {id: money-honest; waits: R-MONEY-65; files: desk/day.py, desk/book.py, tests/unit/test_day.py,
+      tests/unit/test_book.py, tests/scenes/test_scenes.py; check: tests/unit/test_day.py::test_interest_is_its_own_column_beside_profit_at_risk_free}
 - [x] Currency and interest kept in the day's saved record, beside profit, so a later day
       reads them back unchanged; no golden day's numbers move (R-MONEY-66, split from
       money-honest by runner ops Sun 22 Nov 08:5x: that box's claim lacked these files and
@@ -739,7 +744,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       gate: a test where `rates.csv` disagrees with the database and the database wins
       (#2149 step 1: currency maths takes its rate source, SimCity off rates.csv. Remains: the trading day, day_money.worth/heat, day._gap, book._priced, book.rate and fills pricing, with `home` threaded through day.run, desk/command*.py, desk/running.py and their tests (re-card to claim them); then the gate test)
       (runner ops 108, 23 Nov, stall watch 01:31: claim adds desk/book_parts.py, where the rates record is read, and desk/simcity.py, which reads it through `book.pounds_per`; two sessions stopped at that wall)
-      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day*.py, tests/unit/test_book*.py, tests/unit/test_simcity*.py, desk/book_parts.py, desk/simcity.py; check: tests/unit/test_day.py::test_rates_csv_disagreeing_with_the_database_loses}
+      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day.py, tests/unit/test_book.py, tests/unit/test_simcity.py, tests/unit/test_simcity_fills.py, desk/book_parts.py, desk/simcity.py; check: tests/unit/test_day.py::test_rates_csv_disagreeing_with_the_database_loses}
+      (plan steward, 27 Nov, builders lead's order: test globs narrowed to the tests of the modules it names)
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
       parsed whole on every `book.fills` and `book.found` call, and the day and the book call them about twenty
@@ -918,6 +924,7 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-supervised-drill; files: desk/supervisor.py, tests/unit/test_supervisor.py; after: paper-running}
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       Done: `python -m desk.supervisor install ROOT` makes both schtasks, each starting in the code folder (#2102, #2110). Remains: he runs it once from an administrator console on his PC (tasks run as that user, so KESTREL2_DATA and Telegram settings are seen)
+      (plan steward, 27 Nov: his yes is recorded, after-first-light.md line 487, Sun 22 Nov 09:5x, "Yes, add it"; no question waits. The wait stays for his hand, not his answer: `schtasks /SC ONSTART` runs only from a console he opens as administrator (desk/supervisor.py:31), and no session may elevate or enter his password, hard line: credentials)
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py; waits: operator; check: tests/unit/test_supervisor.py::test_the_install_receipt_proves_both_tasks_started_at_boot}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
@@ -936,8 +943,15 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
-      Remains: #2107 is red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines, 75+ more needed (a deletion card outside this claim; raising the ceiling is his)
-      {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; waits: operator; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
+      Remains: #2107 was red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines
+      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines (tests/guards/test_guards.py:151) and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
+      {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
+- [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
+      clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
+      counted; no Windows task, no gateway, nothing of his (builders lead, 27 Nov: PAPER had no box buildable and
+      provable through SimCity without the operator). The claim is the test alone: desk/supervisor.py is held by two
+      open boxes, PAPER's two slots; if SimCity needs a door for it, that door is a MONEY box first and this one waits on it
+      {id: paper-supervisor-simcity; files: tests/unit/test_supervisor_simcity.py; check: tests/unit/test_supervisor_simcity.py::test_a_simcity_week_under_the_supervisor_restarts_a_killed_step_without_the_operator}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
       restore drilled every quarter (DQ-05, DQ-09) (#515: `desk/records_kept.py`; remains: the runner calling it nightly, runner-side work, coordinator 54, 22 Nov: not his)
       {id: paper-backups; files: desk/backup.py, tests/unit/test_backup.py, manifest.toml}
@@ -1023,6 +1037,10 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
 - [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612 and again in #2021 after #2007 dropped it), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563; the log line carries them, #1748); the 15 Nov stop's trigger is unproven; old failed journals under kept/ heal when a pass reruns them (#2007) {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; check: tests/unit/test_lab_sweep.py::test_unbroken_reads_seven_days_from_the_weeks_journal}
+- [ ] The week's clone runs current main's code, not pre-#1210: a pass runs the code at its own home
+      (`lab/sweep.py`, `Path(__file__).parents[1]`), so the week's clone kept pre-#1210 code and failed 2,810 cells
+      an hour; a pass whose home is behind main's code is refused by name, never run (builders lead, 27 Nov)
+      {id: grid-week-clone; files: lab/sweep.py, tests/unit/test_lab_sweep.py; check: tests/unit/test_lab_sweep.py::test_the_week_clone_runs_mains_code}
 - [x] Each strategy judged on its own declared universe; the everything-on-everything grid
       kept as a transfer study, never a verdict; sweeps on the declared universe (LAD-01,
       LAD-13) {id: grid-declared; files: lab/sweep.py, tests/unit/test_lab_sweep.py}
