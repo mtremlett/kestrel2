@@ -165,6 +165,7 @@ Windows tasks: `python -m desk.supervisor install ROOT` (#2102, #2110; each task
 
 ### Requests to DATA
 
+- [ ] R-PAPER-44 (later, opened 27 Nov 12:00 UK): keeper and data-quality alarms whose cause is the closed Gateway port (`running.down_since`) name that cause (R-RUNNER-536 second half; `desk/keeper.py`, `desk/quality.py`).
 - [ ] R-PAPER-3 (later): each line's ISIN a fact on `Line`.
 - [ ] R-PAPER-16 (later): IDTL in dollars unlisted at the broker (needs R-PAPER-3); SPY, QQQ can leave the lines.
 
@@ -179,7 +180,7 @@ Windows tasks: `python -m desk.supervisor install ROOT` (#2102, #2110; each task
 - R-MONEY-55: done in #1066; R-RUNNER-418: done in #1417 (steps joined day_parts, desk/ at its file ceiling); R-RUNGS-29 declined in #1417 (a guard file no lane owns)
 - R-RUNNER-410: done in #1264; R-MONEY-58: done in #1267; R-RUNNER-400: done in #1260; R-RUNNER-415: done in #1280; R-RUNNER-283: done in #1350; R-RUNNER-348: done in #1366; R-RUNNER-202: done in #1371; R-RUNNER-281: done in #1393; R-RUNNER-310: done in #1395; R-RUNNER-394: done in #1403 (stops half is R-PAPER-37); R-RUNNER-395: done in #1406
 - R-MONEY-54: done in #1414; R-MONEY-61: done in #1428; R-MONEY-56: done in #1514; R-RUNNER-160: done in #1478 (morning message tells the heat); R-RUNNER-208: done in #1482 (compact phone layout, `pnl.icon` public); R-MONEY-58: last Sale carries `session` in #1472
-- R-RUNNER-436: done in #2019; R-PAPER-38: done in #1852; R-PAPER-39: done in #1925; R-RUNNER-447: done in #2038; R-RUNNER-462: done in #2059; R-RUNNER-453: done in #2068; R-RUNNER-461: done in #2079; R-RUNNER-468: done in #2075 (held for A6 review); R-RUNNER-475: done in #2096; R-RUNNER-478: done in #2109; R-MONEY-73: done in #2164; R-RUNNER-486: done in #2166; R-RUNNER-505: done in #2178; R-RUNNER-507: done in #2195; R-RUNNER-473: done in #2200; R-RUNNER-546: done in #2209; R-RUNNER-454: done in #2264; R-RUNNER-513: done in #2251
+- R-RUNNER-436: done in #2019; R-PAPER-38: done in #1852; R-PAPER-39: done in #1925; R-RUNNER-447: done in #2038; R-RUNNER-462: done in #2059; R-RUNNER-453: done in #2068; R-RUNNER-461: done in #2079; R-RUNNER-468: done in #2075 (held for A6 review); R-RUNNER-475: done in #2096; R-RUNNER-478: done in #2109; R-MONEY-73: done in #2164; R-RUNNER-486: done in #2166; R-RUNNER-505: done in #2178; R-RUNNER-507: done in #2195; R-RUNNER-473: done in #2200; R-RUNNER-546: done in #2209; R-RUNNER-454: done in #2264; R-RUNNER-513: done in #2251; R-RUNNER-568: done in #2351; R-RUNNER-536: done in #2347 (hourly message half; naming half is R-PAPER-44)
 
 ### Found, not fixed
 

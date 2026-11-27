@@ -747,6 +747,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2102 paper-supervisor-windows: install command built, tested. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2109 R-RUNNER-478 done, desk/ -49 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2110 paper-supervisor-windows: install command fixed to start in the code folder; box still needs the operator's one run. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2264 R-RUNNER-454 IDTL contract built in desk/listing.py. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
 
 ### GRID
 

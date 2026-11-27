@@ -413,7 +413,9 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
     elif len(args) == 2 and args[0] == "--polled":
-        done = [polled(home, now, int(args[1]), live.minutes(home, home / HOT))]
+        minutes = int(args[1])
+        ask = live.minutes(home, home / HOT, client=live.POLLED_CLIENTS[minutes])
+        done = [polled(home, now, minutes, ask)]
     else:
         done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
         done += rolled(home / HOT, LINES, now)
