@@ -252,6 +252,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2184 four rules' holding periods settled; fade's 20-session hold waits on its spec.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2187 money-simcity-withdrawn-day done; deep SimCity worlds live past a withdrawn day.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2210 R-RUNNER-533 test pinned: reconcile books an unsent broker fill; root cause not yet found on the broker side.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2212 money-fills-replay-unknown-rule done: fills-replay returns a verdict instead of a crash.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2216 R-RUNNER-480 zoo-size-pins N2: test pins one fills read per buy.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2224 R-RUNNER-538 four eponymous rules declare their holding period (none, stated).
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2243 money-size-live-price early test restored, 1 test line pair.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2248 R-RUNNER-481 zoo drops non-ISA lines; zoo now 9 London + 7 US lines.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2275 R-RUNNER-535 done, gap-up sizing within room.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2276 R-RUNNER-539 met: four rules declare no holding period, each test red then green.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2168 R-RUNNER-488 reworked after review block; fresh Fable blind review, one blocker fixed.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2287 money-simcity-withdrawn-day: withdrawn-day gate pinned by a test.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2288 R-RUNNER-540 met: four rules' holding periods stated from their own sell logic, tests pinned.
 
 
 ### DATA
