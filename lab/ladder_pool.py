@@ -53,6 +53,7 @@ _kept = ExitStack()  #: holds the worker's tape context open
 
 
 STOP = "STOP"  #: the file the runner writes in the ladder's folder to ask a pass to end
+STOPPED = "stopped after a unit"  #: how a pass cut short by STOP begins its answer
 
 
 def _asked(stop: Path, began: float) -> str | None:
@@ -292,7 +293,7 @@ def run(
         out.truncate(last.end)
         why = _write(Yielding(inner, size, memory), tasks, out, tally, (stop, began))
     if why:
-        return f"stopped after a unit: {why}"
+        return f"{STOPPED}: {why}"
     return (
         f"ladder set {plan.tag} on {size} cores: {len(todo)} cells, judged against "
         f"{count} trials: {tally['judged']} judged now, {tally['kept']} kept from before, "

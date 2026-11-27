@@ -15,15 +15,28 @@ a line with no plateau is named so, never dropped.
 from __future__ import annotations
 
 import json
+import os
+import sys
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 from desk.lines import LINES
-from lab import basket, ladder, ladder_pool, ladder_sets, plateau, rulebook, variants, verdict
+from lab import (
+    basket,
+    history_bars,
+    ladder,
+    ladder_pool,
+    ladder_sets,
+    plateau,
+    rulebook,
+    variants,
+    verdict,
+)
 from lab.batch import Bars
 from lab.blocks import BLOCKS
 from lab.cell import Cell
@@ -146,3 +159,51 @@ def report(home: Path, bars: Bars, pounds: Rates, tag: str) -> Path:
     path = folder / f"{tag}-chain.md"
     path.write_text(chr(10).join(out) + chr(10), "utf-8")
     return path
+
+
+def _pooled(
+    make: Callable[[], Bars], home: Path, _: object, pounds: Rates, todo: Any, **kw: Any
+) -> str:
+    """The variants on the pool, the bars made in each worker by `make`."""
+    return ladder_pool.run(home, make, pounds, todo, **kw)
+
+
+def stale(folder: Path, tag: str) -> bool:
+    """Whether the set's table is there and its chain is missing or older than the table."""
+    table, made = folder / f"{tag}.json", folder / f"{tag}-chain.json"
+    return table.exists() and (not made.exists() or made.stat().st_mtime < table.stat().st_mtime)
+
+
+def _said(folder: Path, tag: str) -> str:
+    """The set's line: its variants, the trials it was judged against, the plateaus found."""
+    data = json.loads((folder / f"{tag}-chain.json").read_text("utf-8"))  # bounded: one set
+    table = json.loads((folder / f"{tag}.json").read_text("utf-8"))  # bounded: one set
+    found = sum(bool(r["plateau"]) for r in data["rows"])
+    return f"{tag}: {len(cells(table))} variants, {data['trials']} trials, {found} centres"
+
+
+def main(env: Mapping[str, str]) -> int:
+    """The command: each set's table with no chain, or a chain older than it, is chained, one
+    line each (variants, trials, centres found); 1 only when a set could not be chained."""
+    if not env.get("KESTREL2_DATA"):
+        sys.exit("chain: KESTREL2_DATA names no data folder, so the sets have no home")
+    home = Path(env["KESTREL2_DATA"])
+    folder, failed = home / ladder.FOLDER / "sets", False
+    make = partial(history_bars.reader, home)
+    for tag in (str(ladder_sets.EPON.tag), str(ladder_sets.LEV.tag)):
+        if not stale(folder, tag):
+            continue
+        try:
+            pounds, own = history_bars.pounds(home), make()
+            sweep(home, own, pounds, tag, go=partial(_pooled, make))
+            report(home, own, pounds, tag)
+        except (ValueError, OSError, KeyError) as why:  # said on its line, and the exit is 1
+            sys.stdout.write(f"{tag}: not chained: {why}" + chr(10))
+            failed = True
+            continue
+        sys.stdout.write(_said(folder, tag) + chr(10))
+    return int(failed)
+
+
+if __name__ == "__main__":
+    sys.exit(main(os.environ))

@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
+from desk import eponymous_faber_tactical
 from desk.eponymous_faber_tactical import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -29,3 +30,9 @@ def test_buys_over_the_ten_month_average_and_sells_under_it() -> None:
 def test_waits_for_ten_months_of_month_ends() -> None:
     assert _trades([*range(100, 109), 120]) == {}  # nine month-ends only
     assert _trades([*range(100, 110), 120]) == {20: Action.BUY}  # the tenth arrives: in
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; stated, no time stop
+    assert "Holding period: none" in eponymous_faber_tactical.__doc__
+    assert all(r.declared.hold is None for r in eponymous_faber_tactical.EPONYMOUS.values())

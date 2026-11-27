@@ -96,7 +96,20 @@ def _contracts(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> lis
     venue = EXCHANGES[line.venue]
     primary = next(iter(venue)) if len(venue) == 1 else ""
     kind, isin = ("ISIN", line.isin) if line.isin else ("", "")
-    asked = (number, 0, line.symbol, "STK", "", "0.0", "", "", ROUTE, primary, line.currency)
+    #: with an ISIN the security type is left empty: the ISIN names the thing, the type may not
+    asked = (
+        number,
+        0,
+        line.symbol,
+        "" if isin else "STK",
+        "",
+        "0.0",
+        "",
+        "",
+        ROUTE,
+        primary,
+        line.currency,
+    )
     send(paper.message(ASK_LINE, 8, *asked, "", "", 0, kind, isin, ""))
     found: list[list[str]] = []
     while True:
