@@ -54,6 +54,11 @@ GOLDEN = [
                 "over 6160 days, 13.13 standard errors beyond -0.01 of ISF's moves and 15.68 "
                 "beyond 0.42 of its own line's; 2 asked of both",
             ),
+            "plateau": (
+                "PASS",
+                "NOT APPLICABLE: breakout_20_10 carries no settings to choose among, so none was "
+                "picked from a peak (decision a)",
+            ),
             "regime": ("WEAK", "up days THIN on 20 trades, down days PASS on 39; both must pass"),
             "regimes": (
                 "PASS",
