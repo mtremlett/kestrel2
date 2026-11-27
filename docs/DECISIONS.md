@@ -2678,3 +2678,15 @@ for every rule with no figure, Faber's too, whose author's test binds (`publishe
 let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
 that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
 first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
+
+## 27 Nov - the desk/ 100-file count retired for ownership and naming guards (his words)
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", the operator
+answered **"Yes, all of it"** (Fri 27 Nov, recorded in the after-first-light queue). This loosens a
+guard, so it is his alone; his words are quoted here before the commit that changes `BUDGET.json`.
+Why: the count contradicts the 800-line file cap and the hub splits (a split needs a file; at 100
+of 100 none fits), it blocked DATA six times today (stooq-into-desk), and 25 desk/ files under 70
+lines are `_parts` fragments made to dodge it. Kept hard: desk/ 30,000 and lab/ 20,000 lines, 800
+per file, 50 per function. In its place, two guards (`tests/guards/test_guards.py`): every desk/
+module is a row of its lane's manifest file with one owner and the one thing it owns; and no
+`_parts`, `_parts2` (or like fragment) name may be added in desk/ or lab/, the existing ones only
+falling (failure pattern 6 extended).
