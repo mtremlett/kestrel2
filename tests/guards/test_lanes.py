@@ -27,6 +27,8 @@ import json
 import os
 import re
 import subprocess
+import sys
+import tempfile
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -58,6 +60,7 @@ def _git(*args: str) -> str:
         cwd=ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     ).stdout
 
@@ -275,6 +278,13 @@ def _open_work(plan: str) -> dict[str, list[str]]:
     return work
 
 
+def _box_fields(text: str) -> dict[str, list[str]]:
+    """A box's note as its fields, each a list of values; {} for a box with no note."""
+    note = NOTE.search(text)
+    parts = (p.partition(":") for p in note[1].split(";")) if note else ()
+    return {k.strip(): [v.strip() for v in vals.split(",") if v.strip()] for k, _, vals in parts}
+
+
 def test_every_open_box_names_its_check() -> None:
     """THE BOX IS THE CARD (the operator's 'Yes, all of it', 27 Nov). The runner runs an open
     box's `check:` on main before it spends a session: green is a tick, never a hand-out. A
@@ -285,19 +295,60 @@ def test_every_open_box_names_its_check() -> None:
     unproven = []
     for lane, boxes in _open_work(plan).items():
         for text in boxes:
-            note = NOTE.search(text)
-            fields = (
-                {k.strip(): v for k, _, v in (p.partition(":") for p in note[1].split(";"))}
-                if note
-                else {}
-            )
-            checks = [c.strip() for c in fields.get("check", "").split(",") if c.strip()]
-            files = [f.strip() for f in fields.get("files", "").split(",") if f.strip()]
+            fields = _box_fields(text)
+            checks, files = fields.get("check", []), fields.get("files", [])
             outside = [c for c in checks if not any(fnmatch(c.split("::")[0], f) for f in files)]
             if not checks or outside:
-                unproven.append(f"{lane}: {fields.get('id', text[:60]).strip()} {outside or ''}")
+                unproven.append(f"{lane}: {(fields.get('id') or [text[:60]])[0]} {outside or ''}")
     assert not unproven, (
         "every open box of a lane's book names `check: tests/<file>.py::test_<name>` in its "
         "note, the test that proves it, in a file the box may change (a test it will write is "
         f"named before it exists): {unproven}"
+    )
+
+
+def _checks(plan: str) -> dict[str, list[str]]:
+    """Each open lane box's id with the checks its note names."""
+    fields = (_box_fields(text) for boxes in _open_work(plan).values() for text in boxes)
+    return {f["id"][0]: f.get("check", []) for f in fields if f.get("id")}
+
+
+def _passes_at(base: str, check: str) -> bool:
+    """Whether `check` is a test at the commit `base` that passes there, run in a scratch
+    worktree of that commit. A test not yet written at `base` cannot pass there."""
+    path, name = check.split("::")
+    if path not in _git("ls-tree", "-r", "--name-only", base, "--", path).split():
+        return False
+    if not re.search(rf"^def {name}\(", _git("show", f"{base}:{path}"), re.MULTILINE):
+        return False
+    with tempfile.TemporaryDirectory() as scratch:
+        tree = str(Path(scratch) / "main")
+        _git("worktree", "add", "--detach", tree, base)
+        try:
+            run = subprocess.run(  # noqa: S603
+                [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", check],
+                cwd=tree,
+                capture_output=True,
+                check=False,  # its exit code is the answer
+            )
+        finally:
+            _git("worktree", "remove", "--force", tree)
+    return run.returncode == 0
+
+
+def test_a_box_opened_here_fails_its_check_on_main() -> None:
+    """A BOX OPENED ALREADY MET is busy work: pre-flight ticks it at once, or a session finds
+    nothing to do (20 of 27 Nov's runs). Every check this change gives an open box, new or
+    changed, must not pass on main: a test not yet written, or one that fails there. The
+    runner calls this on a branch that opens boxes, before the train."""
+    base = _git("merge-base", "HEAD", "origin/main").strip()
+    was = _checks(_git("show", f"{base}:docs/PLAN.md"))
+    now = _checks((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8"))
+    opened = sorted(
+        (box, c) for box, checks in now.items() for c in checks if c not in was.get(box, [])
+    )
+    met = [f"{box}: {check}" for box, check in opened if _passes_at(base, check)]
+    assert not met, (
+        f"boxes opened already met on main: {met}. Tick a met box instead; an open box's "
+        "check names the test its work will make pass."
     )

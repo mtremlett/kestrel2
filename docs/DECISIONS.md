@@ -2786,3 +2786,17 @@ two endings without a tick set it aside), its runner drives marked OWED until th
 "the deny hook is OWED" was stale: the hook is `hooks/guard.py` in the notes, built 22 Nov.
 FAILURE_PATTERNS 3's progress number is plan boxes ticked on main per 24 hours, as CLAUDE.md says,
 no longer scenes passing out of seven.
+
+## 27 Nov - a box opened already met is refused (the box is the card; his "Yes, all of it")
+A box whose `check:` already passes on main when it is opened is busy work: pre-flight ticks it
+at once, or a session finds nothing to do. `tests/guards/test_lanes.py::test_a_box_opened_here_fails_its_check_on_main`
+reads every check this change gives an open lane box, new or changed against main, and refuses
+one that passes on main: a test not yet written there passes this guard at once; one that exists
+is run in a scratch worktree of main's commit. The runner may call it on any branch that opens
+boxes. Driven RED on its first run, on #2388's branch before it landed: `rungs-each-rung` ("Remains: none")
+names `test_lab_rung_registry.py::test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired`,
+green on main, "boxes opened already met on main". Green once #2388 is main (no check new).
+`_git` there now decodes as UTF-8: Windows' codepage dropped `git show` of PLAN.md to None.
+Driven again on main after #2388: `rungs-sets` given an existing passing test of its file
+(`test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected`), RED,
+"boxes opened already met on main"; given a test not yet written, green. Both reverted.
