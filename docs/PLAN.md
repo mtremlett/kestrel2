@@ -1147,11 +1147,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
         Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
-        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
+        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py, tests/unit/test_lab_rung.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         Remains (#2293): in-repository parts are on main (#2257, #2189, #2312); the runner's 24x7 catalogue job obeys job-ladder.hold until the known-answer kit passes on main (waits on R-RUNGS-46); stale-market crash at publish (lab/basket.py)
-        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; waits: R-RUNGS-46; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; waits: R-RUNGS-46; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
   - [x] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
