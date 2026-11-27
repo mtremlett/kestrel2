@@ -3,23 +3,26 @@ as the author counted, and set beside the figure the author printed."""
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
+from collections import Counter
+from collections.abc import MutableMapping, Sequence
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import cast
 
 import pytest
+from test_lab_rung import _walk
 
 from desk import venues
 from desk.lines import LINES
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, published, reproduce, rung
+from lab import cell, ladder_parts, published, reproduce, rung, verdict
 from lab.cell import Cell
 from lab.published import Case, Published
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Figure, Fill, Hand, Measure, Reproduction, Stated
+from lab.rung import Answer
 
 AAPL = next(line for line in LINES if line.symbol == "AAPL")
 
@@ -204,3 +207,49 @@ def test_the_first_rung_waits_for_the_authors_own_result(monkeypatch: pytest.Mon
     monkeypatch.setattr(reproduce, "FIGURES", (astray,))
     with pytest.raises(ValueError, match="against the replication's 22.36"):
         judge(reproduce.reproduce(astray, bars))
+
+
+def test_a_rule_with_no_figure_is_judged_on_determinism_and_a_planted_coin_fails_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    #: seat 215's ruling (26 Nov): no author's figure, so the cell is run again on the same bars,
+    #: code and seed, and passes only on the identical verdict; the verdict names the form
+    isf = next(line for line in LINES if line.symbol == "ISF")
+    own = _walk(3, 0.004, 0.004, days=3100)[-2400:]
+    c = Cell("breakout_20_10", isf, own[0].day, own[-1].day)
+    first = verdict.ready(c, own, {}, ())
+    assert first.trades, "a verdict with trades to differ in"
+    said, why = verdict._determined(c, own, {}, first)
+    assert said is Answer.PASS and why.startswith(f"{verdict.DETERMINED}: run again"), why
+    assert f"the identical verdict, {len(first.trades)} trades" in why
+    run, runs = cell.run, [0]
+
+    def coin(c: Cell, bars: Sequence[Bar]) -> cell.Record:  #: planted: a trade lost every other run
+        runs[0] += 1
+        made = run(c, bars)
+        return replace(made, trades=made.trades[:-1]) if runs[0] % 2 else made
+
+    monkeypatch.setattr(cell, "run", coin)
+    said, why = verdict._determined(c, own, {}, first)
+    assert said is Answer.FAIL and why.startswith(f"{verdict.DETERMINED}: run again"), why
+    assert f"another verdict, {len(first.trades) - 1} trades" in why
+
+
+def test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism() -> None:
+    #: the blind review's finding (26 Nov): determinism stands in only where no author's test
+    #: binds; Faber's binds (`published_epon.TESTED`), so with no figure on file it stays UNRUN
+    isf = next(line for line in LINES if line.symbol == "ISF")
+    own = _walk(3, 0.004, 0.004, days=3100)[-2400:]
+    c = Cell("faber_tactical", isf, own[0].day, own[-1].day)
+    assert verdict._reproduced(c, own, {}, verdict.ready(c, own, {}, ()), ()) is None
+
+
+def test_a_cell_counts_behind_an_authors_result_only_when_it_reproduced_one() -> None:
+    """The run's line counts a cell 'behind an author's result' by its reproduction, never by a
+    reproduce rung judged on determinism, which no author's figure stands behind."""
+    determined = {"every": True, "rungs": {"reproduce": ["PASS", verdict.DETERMINED]}}
+    made = determined | {"reproduction": ["reproduced: the author's result"]}
+    tally: Counter[str] = Counter()
+    for row in (determined, made):
+        ladder_parts._count(tally, cast(verdict.Row, row), None)
+    assert (tally["every"], tally["behind"]) == (2, 1)

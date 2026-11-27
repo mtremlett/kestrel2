@@ -15,6 +15,9 @@ sessions (one week) before. Secondary sources (blogs and courses, undated here) 
 average from 30 weeks to 40 weeks and its slope test from "rising" to "flat or rising", so the
 RANGE of the setting is 30 to 40 weeks; this port takes the book's 30.
 
+Holding period: none. The book sells on the close under the average alone, never a count of
+sessions.
+
 The old desk is a quarry for the reading only; none of its code is copied.
 """
 

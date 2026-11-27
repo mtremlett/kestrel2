@@ -177,10 +177,10 @@ escape hatch is not a guard** (failure pattern 1).
   (one share, one switch, off by default): never evidence, promoted or near live (his 22 Nov).
 
 # Part C — seats, cards and memory (his rulings, 22 Nov)
-Every rule names its check. One marked OWED is built before any new work.
-- **Memory is code.** Seats change every hour or two and prose orders die with them. An
-  agreement is done only when a test, guard, drive or runner gate fails on its breach; the
-  register names that check. Check: the coordinator refuses a row without one (OWED: test).
+Every rule names its check. A lesson is done only when its gate exists; owed gates block new work (check: item 0).
+- **Memory is code.** Seats change hourly and prose dies with them: an order lives only as a
+  line of the open-orders list, never only in a message; an agreement is done only when a test,
+  guard, drive or runner gate fails on its breach, and the register names it (OWED: a test).
 - **Rules arrive by load.** The start-up hook ticks CLAUDE.md and CANON.md against main and
   prints the agreements; a hard line is a hook that denies, never a word. Check: the hook,
   driven stale and current; the deny hook is OWED.

@@ -37,7 +37,7 @@ from desk.bars_form import entered
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
-from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
+from desk.lines import ADJUSTED, DOLLARS, LINES, POLLED_LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 from desk.store_scope import judge as scoped_judge
 
@@ -70,7 +70,7 @@ def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) ->
     """One `--polled <minutes>` run at the kept rate (floor first); keeps pace()'s next rate."""
     kept = home / f"polled_{minutes}.rate"
     rate = int(kept.read_text()) if kept.is_file() else POLLED[minutes][0]  # bounded: one integer
-    words, _, refusals = keeper_live.polled_round(home / HOT, LINES, now, ask, minutes, rate)
+    words, _, refusals = keeper_live.polled_round(home / HOT, POLLED_LINES, now, ask, minutes, rate)
     (tmp := kept.with_suffix(".tmp")).write_text(str(pace(minutes, rate, refusals)))
     tmp.replace(kept)
     return words
@@ -158,7 +158,8 @@ def _kept_in(
         held, gave = _held(hot, line), broker if isinstance(broker, list | tuple) else ()
         theirs = {(g.day, entered(g)) for g in gave}
         ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
-        fresh = [b for b in kept if b not in held]  # a held bar keeps its label
+        standing_bars = frozenset(held)
+        fresh = [b for b in kept if b not in standing_bars]  # a held bar keeps its label
         judged.append((line, fresh, _dropped(held, answer, broker) - {b.day for b in kept}))
         parked += [park] if park else []
         named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
@@ -412,7 +413,9 @@ def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | N
         words, missed = keeper_live.minute_round(home / HOT, LINES, now, ask)
         done = [words]
     elif len(args) == 2 and args[0] == "--polled":
-        done = [polled(home, now, int(args[1]), live.minutes(home, home / HOT))]
+        minutes = int(args[1])
+        ask = live.minutes(home, home / HOT, client=live.POLLED_CLIENTS[minutes])
+        done = [polled(home, now, minutes, ask)]
     else:
         done, missed = keep(home, now, broker=broker or history.daily(now, home=home))
         done += rolled(home / HOT, LINES, now)

@@ -45,14 +45,14 @@ sides. Values are whole numbers or exact decimals, compared exactly.
 THE RUNG (L17). A cell tried at its settings passes when its own setting is DEPTH deep, inside
 a plateau of its rule's variants (`lab/variants.py`), and fails on a peak or an edge. A rule
 with no settings to try (no ranges) is FIXED: plateau is NOT APPLICABLE to it, said in the
-rung's reason where it is reviewed, and never blocks it (decision a). A cell judged with
-neither handed in keeps plateau UNRUN (`verdict.UNRUN`).
+rung's reason where it is reviewed, and never blocks it (decision a). A cell's own setting
+that failed its first rung is 0 deep whatever its neighbours, so `at` runs no variant for it.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
 from fractions import Fraction
 from itertools import product
@@ -110,6 +110,19 @@ def of(rule: str, book: Mapping[str, Spec], firsts: Mapping[str, Verdict]) -> Su
     written = tuple(row.params[places.split("+")[0]][param] for places, param in row.ranges)
     own = next((v.setting for v in made if v.spec.name == rule), written)
     return Surface(tuple(row.ranges.values()), tried, own)
+
+
+def at(
+    rule: str, book: Mapping[str, Spec], own: Verdict, first: Callable[[str], Verdict]
+) -> Surface | Fixed:
+    """A cell's plateau built for `verdict.judge` (L17): FIXED, or its row's variants' first
+    rungs asked of `first` by name; a cell whose own first rung failed is 0 deep, its own
+    verdict alone on the surface, and no variant is run for it."""
+    found = of(rule, book, {})
+    if isinstance(found, Fixed) or not own.passed:
+        return found if isinstance(found, Fixed) else replace(found, tried={found.own: own})
+    named = rule.partition("[")[0]
+    return of(rule, book, {v.spec.name: first(v.spec.name) for v in variants.variants(book[named])})
 
 
 def judged(surface: Surface | Fixed) -> tuple[Answer, str]:
