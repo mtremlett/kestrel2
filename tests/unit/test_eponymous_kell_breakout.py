@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_kell_breakout
 from desk.eponymous_kell_breakout import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -26,3 +27,9 @@ def test_buys_the_close_over_the_base_and_sells_under_the_ten_day_average() -> N
 def test_waits_for_a_full_base_and_for_a_close_strictly_over_it() -> None:
     assert _trades([100] * 19 + [110]) == {}  # only 19 sessions of base
     assert _trades([100] * 25 + [100, 100]) == {}  # a tie with the base's high is no break
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; stated, no time stop
+    assert "Holding period: none" in eponymous_kell_breakout.__doc__
+    assert all(r.declared.hold is None for r in eponymous_kell_breakout.EPONYMOUS.values())
