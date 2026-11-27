@@ -178,3 +178,18 @@ def test_the_scorecard_rule_over_the_rungs() -> None:
     assert verdict.scorecard([weak, weak, weak], 1.0) == "FAIL"
     assert verdict.scorecard([ok, Answer.FAIL], 1.0) == "FAIL"
     assert verdict.scorecard([ok], 2.1) == "STOP"
+
+
+def test_a_basket_with_a_stale_market_line_publishes_naming_the_line_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", True)
+    stale = Against(YARDSTICK, _bars([100] * 3), POUND)  #: its bars end before the sales
+    late = [_line_verdict(s) for s in LINE_NAMES]  #: 36 trades: judged, so the market is read
+    sold = [
+        replace(v, trades=tuple(replace(p, held=(DAY, DAY + timedelta(30))) for p in v.trades))
+        for v in late
+    ]
+    row = basket.row(7, "breakout_20_10", sold, 50, Answer.PASS, stale)
+    answer, why = row["rungs"]["retail"]
+    assert answer == "FAULT" and YARDSTICK.symbol in why and "stale" in why
