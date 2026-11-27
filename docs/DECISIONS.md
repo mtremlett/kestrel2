@@ -2904,3 +2904,18 @@ mine, `files:` fields only: each foreign file leaves its box (a session ends BLO
 outside its claim), and so do manifest.toml and manifest/money.toml (item 4). money-round-cap moves
 whole to PAPER's book: MONEY's half landed (#2084), and what remains, running's CARRIED resend, and
 its check are desk/running.py's (as paper-step-time was split from it, 23 Nov). Green after.
+
+## 27 Nov - no file in more open boxes than its lane has slots; no hub in any box (design item 4, G30)
+Two sessions never hold one file, so a file named by more of a lane's open boxes than the lane has
+slots leaves slots idle behind it (claims-wait idle on 15, 21, 22 and 26 Nov; manifest.toml in 56
+cards on 26 Nov; his 26 Nov "can we mechanically never forget? add in code?"). The slot counts had
+one home, the runner's `slots.SLOTS`, which GitHub cannot read (pattern 5), so they move to
+`BUDGET.json` `slots_per_lane` at the runner's values (money 10, data 3, paper 2, grid 2, rungs 8)
+and the runner reads them there (Builder 1). Raising a lane's slots now loosens this guard, so it
+is his, as each raise was before. Hubs are in no box at all: a lane never changes manifest.toml,
+its own manifest file is its own outside any claim (that is the registry modules ride with), and
+the train folds STATUS and PLAN. `test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots`
+was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was green, and RED again
+on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
+desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 16 and 17 boxes against
+10 slots). A file named by a glob counts once per box for every tracked file it matches.
