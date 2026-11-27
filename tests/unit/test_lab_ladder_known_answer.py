@@ -74,8 +74,12 @@ def _crowds(seed: int, rise: float) -> tuple[Bar, ...]:
 
 def _plant(patch: pytest.MonkeyPatch) -> None:
     """The crowd in the book, with its own known answer, so the ladder's door lets it in."""
-    book: dict[str, type[Rule]] = {**rulebook.rules(), "crowd": Crowd}
-    patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
+    real_rules = rulebook.rules
+
+    def rules(folder: Path | None = None) -> dict[str, type[Rule]]:
+        return {**real_rules(folder), "crowd": Crowd}
+
+    patch.setattr(rulebook, "rules", rules)
     days = [QUIET, CROWDED, CROWDED, QUIET, CROWDED, QUIET]
     rows = tuple(
         Bar(FIRST.replace(day=n + 1), Decimal(10), Decimal(11), Decimal(9), Decimal(10), v)
