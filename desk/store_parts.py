@@ -4,7 +4,6 @@ with its neighbours (a wrong unit, another currency) or keeps the move as a last
 
 from __future__ import annotations
 
-from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -48,10 +47,10 @@ class Fault:
 
 
 def pound_on(rates: Rates, day: date) -> Decimal | None:
-    """The pound's newest close in dollars on or before day, if no older than RATE_AGE."""
-    days = sorted(rates)
-    last = days[bisect_right(days, day) - 1] if rates and day >= days[0] else None
-    return rates[last] if last and day - last <= RATE_AGE else None
+    """The pound's newest close in dollars on or before day, if no older than RATE_AGE: found by
+    the days it may fall on, never by sorting every close for each bar judged (27 Nov)."""
+    closes = (rates.get(day - timedelta(back)) for back in range(RATE_AGE.days + 1))
+    return next((close for close in closes if close is not None), None)
 
 
 def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> bool:
