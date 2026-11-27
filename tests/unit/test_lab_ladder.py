@@ -35,6 +35,7 @@ from lab import (
     rung_ci,
     rung_costs,
     rung_cpcv,
+    rung_liquidity,
     rung_regimes,
     shuffle,
     stress,
@@ -52,8 +53,12 @@ from lab.rung import Answer
 VUSA, ISF, AAPL = (
     next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL")
 )
-#: a breakout that goes on rising, planted from 2010 to past the window's end; and none
-EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
+#: a breakout that goes on rising, planted from 2010 to past the window's end; and none; each a
+#: deep line of a million shares a day, so the liquidity rung reads a market the desk can trade
+EDGE, NOISE = (
+    tuple(replace(bar, volume=1_000_000) for bar in _walk(seed, push, push, days=3100))
+    for seed, push in ((1, 0.012), (2, 0))
+)
 ROOM = Settings(CAPITAL)
 RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
@@ -121,6 +126,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
             verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
         ).answer.name,
         "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
+        "liquidity": rung_liquidity.RUNG.judge(verdict, EDGE, {})[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
         "plateau": "PASS",  #: L17: the breakout carries no settings, NOT APPLICABLE
         "reproduce": "PASS",  #: no author's figure: the same verdict on a re-run

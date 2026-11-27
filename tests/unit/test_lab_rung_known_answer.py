@@ -12,7 +12,7 @@ import json
 import math
 import random
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 from decimal import Decimal
 from functools import cache
@@ -25,9 +25,10 @@ from test_lab_rung import _bars, _walk
 
 from desk.lines import LINES, Line
 from desk.store import Bar
-from desk.strategy import CLOSES, Declared, Rule, Timeframe
+from desk.strategy import CLOSES, STRATEGIES, Declared, Rule, Timeframe
 from lab import ladder, ladder_sets, rulebook, tape, verdict
 from lab.cell import Cell
+from lab.published import PUBLISHED
 from lab.published_case import FIRST, Published, known
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.verdict_parts import goes
@@ -86,6 +87,8 @@ KIT = (
     Known(12, "noise basket", "retail", "FAIL", "a basket of noise does not"),
     Known(9, "drift", "shuffle", "FAIL", "random entries on a rising line", "share among them"),
     Known(6, "drift", "market", "FAIL", "they earn only their own line's rise", "its own line's"),
+    Known(13, "clone", "liquidity", "PASS", "a deep line takes under 1% of its day", "capacity"),
+    Known(13, "paid", "liquidity", "FAIL", "one share a day cannot take its trades", "volume on"),
 )
 
 
@@ -172,6 +175,27 @@ def _paid(seed: int) -> tuple[Bar, ...]:
     return tuple(out)
 
 
+#: The desk's breakout copied under another name, not a subclass (which is its family, a
+#: variant): a rule that only repeats one the book already trades.
+Clone = type(
+    "Clone",
+    (),
+    {
+        k: v
+        for k, v in vars(STRATEGIES["breakout_20_10"]).items()
+        if k not in ("__dict__", "__weakref__", "__module__", "__qualname__")
+    },
+)
+
+
+def _deep() -> Mapping[Line, Sequence[Bar]]:
+    """The breakout's planted edge on the four US lines, each trading a million shares a day."""
+    return {
+        line: tuple(replace(bar, volume=1_000_000) for bar in _walk(n, 0.012, 0.012, days=3100))
+        for n, line in enumerate(US, 1)
+    }
+
+
 def _lucky() -> Mapping[Line, Sequence[Bar]]:
     """A breakout that loses a little every year but one, and earns its whole profit there."""
     pushes = [0.03 if year == LUCKY else -0.003 for year in range(2010, 2027)]
@@ -198,20 +222,28 @@ CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
     "thin": ("breakout_20_10", _thin),
     "noise": ("breakout_20_10", _noise),
     "drift": ("dart", lambda: {line: _rising(n) for n, line in enumerate(US, 1)}),
+    "clone": ("clone", _deep),
 }
 
 
 def plant(patch: pytest.MonkeyPatch) -> None:
     """The kit's planted rules in the book, each with its own known answers, so the ladder's
-    door lets them in: the churner and the drift-rider."""
-    book: dict[str, type[Rule]] = {**rulebook.rules(), "churner": Churner, "dart": Dart}
+    door lets them in: the churner, the drift-rider and the clone."""
+    book: dict[str, type[Rule]] = {
+        **rulebook.rules(),
+        "churner": Churner,
+        "dart": Dart,
+        "clone": Clone,
+    }
     patch.setattr(rulebook, "rules", lambda folder=None: book)  # noqa: ARG005
     churns = known("in on bars 0, 2 and 4", [10] * 5, ((0, 1), (2, 3), (4, None)))
     patch.setitem(EPONYMOUS_PUBLISHED, "churner", Published("the kit's churner", (churns,)))
     darts = known("its coin's days", [10] * 60, _darts(60))
     patch.setitem(EPONYMOUS_PUBLISHED, "dart", Published("the kit's drift-rider", (darts,)))
     real = tape.code_of_rule  #: the test module is not under the code's root: keyed by name
-    patch.setattr(tape, "code_of_rule", lambda s: s if s in ("churner", "dart") else real(s))
+    patch.setitem(EPONYMOUS_PUBLISHED, "clone", PUBLISHED["breakout_20_10"])
+    named = {"churner": "planted", "clone": "planted", "dart": "dart"}
+    patch.setattr(tape, "code_of_rule", lambda s: named.get(s) or real(s))
 
 
 @pytest.fixture(scope="module")
@@ -305,8 +337,14 @@ def test_the_churners_edge_is_real_and_the_lucky_year_is_the_whole_profit(
 def test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it(
     judged: Callable[[str], Rows],
 ) -> None:
-    """L17's gate: with plateau and reproduce judged, a planted edge goes forward on every
-    line, and a rule with no settings is NOT APPLICABLE for plateau, never blocked by it."""
+    """L17's gate: with plateau and reproduce judged, no rung is unrun on the planted edge, and
+    a rule with no settings is NOT APPLICABLE for plateau, never blocked by it. Its one rung
+    short of going forward is liquidity (#2230): the paid lines trade one share a day."""
     rows = judged("paid")
-    assert rows and all(goes(row) for row in rows), [row.get("unrun") for row in rows]
+    held = [
+        {k for k, (a, _) in row["rungs"].items() if a != "PASS" and k not in verdict.GRADED}
+        for row in rows
+    ]  #: a graded rung's mark is the scorecard's, never a hold
+    assert rows and all(row["unrun"] == {} and row["answer"] == "PASS" for row in rows)
+    assert held == [{"liquidity"}] * len(rows) and not any(goes(row) for row in rows), held
     assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in rows)

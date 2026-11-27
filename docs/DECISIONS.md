@@ -2527,6 +2527,52 @@ WEAK is a scorecard mark like the regime rung's and its FAIL still holds a cell 
 names "fit" (`rung_fit.RUNG.name` once #2233 lands). Seen red first: a WEAK fit held a cell back in
 `test_lab_verdict.py`'s scorecard test.
 
+## 26 Nov - two rungs before EPON: liquidity and capacity, and fit with the book (his order)
+
+**His order** (Thu 26 Nov 20:2x, through chat seat 215): two new rungs on the ladder before the
+overnight EPON run, each able to fail a rule, their bars written here before any EPON result.
+Written before either rung's code, and before any EPON row exists.
+
+**Both read the first rung and only lower its PASS** (as the costs rung does): a cell the first
+rung did not pass keeps its answer, so noise passes them at the first rung's rate and nothing is
+computed for it. THIN and FAULT stay THIN and FAULT (LAD-06).
+
+**Liquidity (`lab/rung_liquidity.py`).** Each judged trade's shares, as the first rung sized them
+by the desk's one sizing home (`orders.size`, from the one capital), set against the line's volume
+on the day each leg filled. FAIL when any leg is more than `orders.LIQUIDITY` (1%) of its day's
+volume. *A day of no volume recorded* is not read: the history database holds such days on 634
+of its 2,063 lines (85,559 of 11.0 million bars; WPP, a FTSE 100 company, on 3,277), so a zero is
+the record's gap, not a market that did not trade; failing on it would fail a line on its data
+(pattern 10). Each such leg is counted in the reason; with no leg read the rule is THIN. Found by
+the blind review of #2230, before any EPON result. *Why 1%:* it is already the desk's
+number (SIZ-10: no position above 1% of a line's traded value), so it keeps one home (pattern 8);
+under 1% of a day's volume is the usual retail participation bar, below which a market order's
+impact is small (Almgren, Thum, Hauptmann and Li 2005, square-root impact). The desk holds it to
+20 days' value; the rung asks the stricter question his order named, the trade's own day, and the
+worst leg, as the worst fold is judged on. *Options not taken:* 5% or 10% of volume (an
+institution's participation, not a family's market order); the median leg (a thin day would hide).
+**Capacity**, in its reason: the largest pot at which the worst leg is still at 1%, the capital
+times 1% over the worst leg's share, since shares grow with the pot.
+
+**Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`) and the zoo's daily
+rules (`intraday.ZOO_DAILY`), less any of the cell's own class. A day's return is the line's
+close-to-close move when the rule held after the close before, else nothing, the same formula for
+both, so costs (a level, not a co-movement) do not enter. Pearson over the cell's window; a rule
+that never held there says nothing and is passed over. WEAK (`Answer.DOUBT`) above 0.70; FAIL above
+0.90. *Why 0.90:* it is the desk's own correlation gate (`Settings.correlation`): a buy that moves
+past 0.90 with a line held is refused, so such a rule could not be traded beside the other; one
+home. *Why 0.70:* a correlation of 0.70 shares about half (0.49) of its day-to-day swings with a
+rule already running, so half its risk is not new; the rung's own number, homed in the module.
+*Options not taken:* one bar (no grade between new and copied); across lines (the desk's
+correlation gate and `lab/bets.py` own the book's lines together). `lab/verdict.py`'s
+`GRADED` names `fit` (#2239), so a WEAK is the scorecard's and only a FAIL holds a cell back.
+*Golden (B5, the desk approves goldens, his 22 Nov):* no answer moves. The ladder's fixture book
+(`tests/unit/test_lab_ladder.py`) traded one share a day, which the liquidity rung rightly FAILS;
+its two lines now trade a million shares a day, so the planted edge still passes every rung, and
+`tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
+of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
