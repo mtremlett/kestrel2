@@ -23,13 +23,14 @@ import inspect
 import operator
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_EVEN, Context, Decimal, localcontext
 from enum import Enum
 from typing import ClassVar, Protocol
 
 from desk.lines import LINES, Line
 from desk.store import Bar
+from desk.store_parts import upto
 from desk.strategy_parts import ZERO as ZERO  # re-exported: callers import from here
 from desk.strategy_parts import _Exponential as _Exponential
 from desk.strategy_parts import _Wilder as _Wilder
@@ -353,7 +354,11 @@ def _run(
         if last is not None and n == len(bars) - 1:
             holding = last
             #: STP-11: the age is the book's, never the replay's
-            since = sum(b.day >= opened for b in bars[:-1]) if last and opened else 0
+            since = (
+                len(bars) - 1 - upto(bars[:-1], opened - timedelta(days=1))
+                if last and opened
+                else 0
+            )
         wants, since = _step(rule, bar, holding, since, limit)
         #: a sale only of what is held, a buy only of what is not, whatever the rule answered
         sells, buys = holding and not wants, wants and not holding

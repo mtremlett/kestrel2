@@ -88,8 +88,8 @@ store fitted a line at a time (14 Nov: three rule changes in twenty minutes on s
 `desk/bars_form.py`, on which source takes a held day (#861, #2361, #2404): the keeper reads a marked
 day as unheld, the writer as held, so each re-clean met the gap live. → *Caught by:* the runner's
 halt on a lane's second `fix` to a file within ten landed changes; `tests/unit/test_store_rules.py`
-(#225) pins every store rule to a row of one fixture table (driven red, R-RUNNER-43, #227); and
-`test_the_withdraw_rule_table` pins the keeper's and the writer's marks; the hover names off-IBKR days.
+(#225) pins every store rule to a fixture row (R-RUNNER-43, #227); the hover names off-IBKR days;
+`test_every_withdraw_rule_of_the_keeper_and_the_writer_is_pinned_by_a_row` each mark rule (27 Nov).
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
@@ -143,8 +143,8 @@ grid file, the runner's own request list, all on 16 November; and the shared clo
 `.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
 sections) until READY's reads failed (19 November).
 → *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
-Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
-shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
+Elsewhere `test_file_replaces_never_rise` holds the replaces at 19. *Debt:* one way to read and
+write each shared file, readers and writer under one lock; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
 runs: the rehearsal barred on any trading date or held line (16 Nov); `desk/running.py` set London
@@ -206,11 +206,11 @@ old Cancelled state: London's 09:00 round sent nothing (20 November).
 **26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
 re-judged cell adding a line and none removed, and read and parsed the whole file on every
 start: at 1.2 GB it held 12.8 GB, EPON idle nine hours (21 Nov); 37 reads like it on main.
-Twin: `desk/book_parts.py`'s rates, records, fills re-read each ask: deep SimCity 2 h (22, 27 Nov).
-→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`; `book_parts.read_once` (each read
-once until written) and SimCity's reads-per-day test. *Debt:* a day still re-prices the whole
-ledger and rewrites every record (per-day work 200k calls at day 50, 546k at 700); the 37
-growing stores streamed (ladder first, R-RUNNER-432), one line per cell, compacted as written.
+Twin: each SimCity day redid the desk's whole past (`desk/book_parts.py`, `desk/book_parts2.py`,
+`desk/orders.py`: files re-read and rewritten, every fill re-priced, astuple): deep 2.8 h (27 Nov).
+→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`; `book_parts.read_once` and `add`
+(grown, never re-read), `book._summed`; SimCity's reads-per-day and flat-day tests. *Debt:* the
+37 growing stores streamed (ladder first, R-RUNNER-432), one line per cell, compacted as written.
 
 **27. The folder guessed from another.** `rates` read the store above the records folder
 `desk/command.py` gave it: true live, false in the rehearsal (records two deeper), so Monday read
