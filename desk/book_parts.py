@@ -53,7 +53,9 @@ def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
 
 
 def read_once(path: Path, parse: Callable[[Path], T]) -> T:
-    """A file's reading by parse, read again only once the file has changed (_READ)."""
+    """A file's reading by parse, read again only once the file has changed (_READ). Its
+    writers go through keep: a rewrite in place of the same size, inside the clock's tick,
+    keeps the stamp and would be read stale."""
     seen = path.stat()
     stamp, kind = (seen.st_ino, seen.st_mtime_ns, seen.st_size), (path.name, parse)
     kept = _READ.get(kind)

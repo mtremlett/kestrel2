@@ -206,7 +206,7 @@ old Cancelled state: London's 09:00 round sent nothing (20 November).
 **26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
 re-judged cell adding a line and none removed, and read and parsed the whole file on every
 start: at 1.2 GB it held 12.8 GB, EPON idle nine hours (21 Nov); 37 reads like it on main.
-Twin: the desk's rates, records, fills re-read on every ask: deep SimCity's 2 h (22, 27 Nov).
+Twin: `desk/book_parts.py`'s rates, records, fills re-read each ask: deep SimCity 2 h (22, 27 Nov).
 → *Caught by:* the ratchet `test_whole_file_reads_never_rise`; `book_parts.read_once` (each read
 once until written) and SimCity's reads-per-day test. *Debt:* a day still re-prices the whole
 ledger and rewrites every record (per-day work 200k calls at day 50, 546k at 700); the 37

@@ -2678,3 +2678,24 @@ for every rule with no figure, Faber's too, whose author's test binds (`publishe
 let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
 that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
 first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
+
+## 2026-11-27 — MONEY: the desk's files read once until written (deep SimCity 7200 s)
+
+**What.** The deep run timed out every run on 27 Nov. It was never stuck: since #2187/#2287 a
+world lives every session from VUAG's first bar (about 1,600 days), and a day's work grew with
+the days behind it (one world of the saved lines: 220k Python calls a day at day 50, 1.12M at day
+1,500; 0.3 s to 1.3 s). `book_parts.read_once` keeps one reading per file kind under the file's
+stamp, dropped by `keep`; the ledger's split, the rates and the records read through it;
+`book.interest` finds a day's earning once per run of idle days and adds it per day (the same
+sum). After: 200k at day 50, 707k at day 1,500 (-37%), still growing.
+
+**Test changed, not weakened.** `test_a_round_trip_pairs_each_sale...` counted calls of
+`rates_kept`; `pounds_per` no longer calls it, so the count moved to opens of `rates.csv` after a
+fresh write: still exactly one read for all the trips. Seen red first:
+`test_a_day_reads_the_desks_files_no_more_often_however_many_days_lie_behind_it` (rates 4 reads
+for 1 write each day on the old code). Blind review (27 Nov): nothing blocking; its one note, a
+rewrite in place keeps the stamp, is said on `read_once`.
+
+**Left.** The record still re-prices the whole ledger and rewrites every row, and even flat the
+20 worlds x ~1,600 days at 0.3 s is about 2.8 h > 7200 s: a bounded world span, parallel worlds,
+or a LIMIT sized to the night is the next card's choice (open orders O54).
