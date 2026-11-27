@@ -169,6 +169,15 @@ Options: move the SimCity start past 2019-06-18 (rejected: it hides the fault); 
 ### 2026-11-23 — #2098 (data-members): unmeasured sources named, never bought (DATA)
 Options: buy FTSE Russell/funds data (rejected: no paid data before profit; his 22 Nov "nothing parks on him but hard lines"); store by-date members in a file (left: the nightly line is the record for now); name them UNMEASURED in the nightly line (chosen).
 
+### 2026-11-26 — #2201 (R-RUNNER-522): only stale spans are named (DATA)
+Options: name held-but-behind spans only (chosen: they are faults; never-held spans are gaps, already counted, and the line stays short); name both; a new command. No new command.
+
+### 2026-11-26 — #2205 (R-RUNNER-525): a missing old bar is named, vouching not repeated (DATA)
+Options: judge vouching again for each old bar (rejected: the check must not repeat the adoption); name every old bar absent from the one store as missing, whether never vouched or lost (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-26 — #2208 (R-RUNNER-524): the live-day copy is silent in `keep` (DATA)
+Options: add a report line, or stay silent. Silent keeps the output the runner and tests read unchanged. The `--live` one-minute round does not copy; the next five-minute round does.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
@@ -675,3 +684,42 @@ Options: code 162 only, or the word "pacing". Took the word, which covers 162 an
 
 ### 2026-11-26 — the golden row joins `table`, no new command (DATA, #2144)
 One table, no new code path: `desk.quality table` carries one golden row per database.
+
+### 2026-11-27 — the keeper's copy to history is silent in `keep` (DATA, #2208)
+Options: add a report line, or stay silent. Took silent: the output the runner and tests read stays unchanged. The `--live` one-minute round does not copy by itself; the next five-minute round does.
+
+### 2026-11-27 — the quality job names only held-but-behind spans (DATA, #2201)
+Never-held spans are gaps, counted already; only a held span that is behind is a fault and is named. Cheapest option, no new command.
+
+### 2026-11-27 — the old-store check names a missing bar without judging why (DATA, #2205)
+Options: judge vouching again to tell never-vouched from lost (rejected: the check must not repeat the adoption); name every absent bar as missing (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-27 — daily rows reuse the five-minute Tally (DATA, #2274)
+Options: a second type for days, or the same Tally with days shown as midnight UTC. Took the Tally, to stay small. A line absent from an old store is skipped; one absent from the one store counts all its days missing.
+
+### 2026-11-27 — `quality.escalate` kept, not deleted (DATA, #2258)
+A small tested step of data-monitor restored from an unfinished branch rather than deleted; it has no caller yet.
+
+### 2026-11-27 — the unconfirmed-step pin row is named `_unconfirmed:1` (DATA, #2263)
+The rule pin test names rules by function, so the row follows the function that holds the rule.
+
+### 2026-11-27 — four boxes' waits on requests are written as a date (DATA, scribe)
+The runner asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80` on data-isa-twins, data-survivorship, data-second-source and data-dividends. `tests/guards/test_requirements.py::test_every_id_the_plan_names_is_known` refuses two-digit R-DATA ids in a box (red on the first try). Options: write the ids (guard red; loosening it is his alone); drop the waits; write a date. Took the date 2026-12-04, the requests stay named in STATUS; the next scribe moves each wait to its request when the guard allows.
+
+### 2026-11-27 — the waits stay a date, again (DATA, scribe)
+The runner again asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80`; `test_every_id_the_plan_names_is_known` is red on them (two-digit ids), driven this run. Same options and choice as the entry above: the date 2026-12-04 stays, the requests stay named in STATUS.
+
+### 2026-11-27 — a pound-sized newest bar parks its line until a later bar (DATA, #2301)
+Options: A, park until a later bar removes the fault (chosen, per the request); B, park until the broker's bar for that day confirms it (left for a later step). The bar is still kept.
+
+### 2026-11-27 — monthly bars start on the month's first day 00:00 UTC (DATA, #2304)
+Options: start on the last session of the month, or on the first day as weekly starts on Monday (chosen). The store names a bar by its start, so a start on the last session was rejected. A month is written only when every session was held.
+
+### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
+Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
+
+### 2026-11-27 — Shiller's table lives in lab/, not desk/ (DATA, #2308)
+desk/ is at its 100-file ceiling, a guard, not loosened. The free CSV route (datahub s-and-p-500) was preferred over a library, as requested.
+
+### 2026-11-27 — the hourly old-store check reuses headstart_hours' reader (DATA, #2317)
+One owner for reading old hours rather than a second reader. Deleting the originals still waits on his yes, asked once the real run is clean (hard line).

@@ -16,7 +16,8 @@ verdict is the one rule over those six: no folds, or an author's figure not repr
 none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
 line (UNRUN). Nothing goes to paper before all eleven.
 
-THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
+THE RUNG MAP (L2): the plan's eleven rungs, easing 4's twelfth and his 26 Nov 13th and 14th, each
+`n name: module, test`.
 A row's names differ:
 `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
 not yet there; after the dash, what is owed. BUILT: its module declares a RUNG, so the ladder
@@ -33,6 +34,8 @@ judges by it; every other row owes `no RUNG` first (the test holds the two to ag
 10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
 11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - wired: holds ci's PASS
 12 retail, basket beside market: lab/basket.py, tests/unit/test_lab_basket.py - no RUNG; merged
+13 liquidity and capacity: lab/rung_liquidity.py, tests/unit/test_lab_rung_liquidity.py
+14 fit with the book: lab/rung_fit.py, tests/unit/test_lab_rung_fit.py
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
@@ -379,7 +382,9 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     every = rulebook.eponymous(folder)
     python = tuple(n for n, make in every.items() if not _needs_data(make))
     return python + tuple(
-        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+        n
+        for n, spec in rulebook.specs(book, folder).items()
+        if n not in python and not _needs_data(every.get(n) or rulebook._made(spec))
     )
 
 

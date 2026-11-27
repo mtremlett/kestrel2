@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
-from desk.rollup import Candle, merged, rollup, weekly
+import pytest
+
+from desk import venues
+from desk.rollup import Candle, merged, monthly, rollup, weekly
 
 OPEN = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)  # a London Monday in winter: 08:00 to 16:30
 
@@ -70,6 +75,30 @@ def test_weekly_bars_need_every_session_of_the_week() -> None:
     assert weekly("LSE", week[:3] + week[4:]) == []  # Thursday missing
 
 
+@pytest.mark.parametrize(
+    ("venue", "year", "month", "last"),
+    [("LSE", 2026, 8, 28), ("US", 2026, 11, 30), ("LSE", 2026, 11, 30)],
+)
+def test_a_monthly_bar_closes_on_the_calendars_last_session(
+    venue: str, year: int, month: int, last: int
+) -> None:
+    """LSE shuts Monday 31 August (bank holiday), so August closes on Friday the 28th."""
+    first = datetime(year, month, 1, tzinfo=UTC).date()
+    held = venues.sessions(venue, first, (first + timedelta(31)).replace(day=1) - timedelta(1))
+    assert held[-1].day == last
+    days = [
+        Candle(datetime(d.year, d.month, d.day, tzinfo=UTC), Decimal(i + 10), Decimal(i + 20),
+               Decimal(i + 5), Decimal(i + 11), 100, "stooq")
+        for i, d in enumerate(held)
+    ]  # fmt: skip
+    (bar,) = monthly(venue, days)
+    assert (bar.start, bar.open, bar.close, bar.volume) == (
+        datetime(year, month, 1, tzinfo=UTC), Decimal(10), Decimal(len(held) + 10), 100 * len(held),
+    )  # fmt: skip
+    assert (bar.high, bar.low) == (Decimal(len(held) + 19), Decimal(5))
+    assert monthly(venue, days[:-1]) == []  # the last session missing: no bar
+
+
 def test_a_pulled_bar_wins_over_a_rolled_one_and_a_disagreement_is_a_fault() -> None:
     built = rollup("LSE", [minute(n) for n in range(15)], "5m")  # 08:00, 08:05, 08:10
     same = replace(built[0], source="ibkr")
@@ -95,3 +124,23 @@ def test_a_rolled_hour_equals_its_twelve_five_minute_bars() -> None:
         sum(c.volume for c in fives),
     )
     assert len(fives) == 12 and hour.source == "rollup:5m"
+
+
+def test_the_calendar_is_asked_once_per_day_not_once_per_candle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[str] = []
+    sessions, hours = venues.sessions, venues.hours
+
+    def counted(name: str, real: Callable[..., Any]) -> Callable[..., Any]:
+        def ask(*args: Any) -> Any:
+            asked.append(name)
+            return real(*args)
+
+        return ask
+
+    monkeypatch.setattr(venues, "sessions", counted("s", sessions))
+    monkeypatch.setattr(venues, "hours", counted("h", hours))
+    got = rollup("LSE", [minute(n) for n in range(510)], "5m")
+    assert len(got) == 102 and got[0].open == Decimal(0) and got[-1].close == Decimal(510)
+    assert len(asked) <= 2

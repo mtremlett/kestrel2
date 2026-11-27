@@ -27,6 +27,7 @@ from desk import (
     command,
     command_parts,
     day,
+    gateway,
     halt,
     history,
     keeper,
@@ -335,6 +336,19 @@ def test_a_real_step_is_followed_by_the_hourly_pnl_once_an_hour(
         command.hourly(desk, moment)
     assert [call.args[0] for call in post.call_args_list] == ["the day so far"] * 2
     assert told.call_args.args[-1] == open_london.replace(hour=10)
+
+
+def test_with_the_broker_unreachable_the_hourly_says_not_trading_and_counts_no_fills(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    post = Mock(side_effect=range(1, 9))
+    monkeypatch.setattr(pnl, "told", Mock(side_effect=AssertionError("profit told while down")))
+    monkeypatch.setattr(gateway, "known", Mock(return_value=gateway.Known(gateway.State.HIS, "x")))
+    desk, at = command._desk(tmp_path, post, tmp_path), MON.replace(hour=9, minute=0)
+    command.hourly(desk, at)
+    said = post.call_args.args[0]
+    assert "NOT trading: the paper Gateway is down since 09:00 UK" in said
+    assert "orders are not sent" in said and "filled" not in said and "✅" not in said
 
 
 def test_the_email_fallback_is_wired_only_when_his_smtp_settings_are_set(tmp_path: Path) -> None:

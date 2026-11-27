@@ -49,7 +49,7 @@ def test_three_thin_lines_make_one_basket_of_36_trades_judged_on_the_pooled_gain
     assert row["trials"] == 50
     assert "36 trades judged" in row["rungs"]["first"][1]
     assert "8.87 standard errors" in row["rungs"]["first"][1]
-    assert row["unrun"] == verdict.UNRUN  #: a basket's pass is no pass of the whole ladder
+    assert row["unrun"] == basket.UNRUN  #: a basket's pass is no pass of the whole ladder
     assert not verdict.goes(row)
 
 
@@ -154,6 +154,22 @@ def test_days_pair_the_sale_days_pounds_with_the_markets_closes_and_grade_waits_
     assert basket.grade(b, against) is None  #: off: nothing is asked
     monkeypatch.setattr(verdict, "EASED", True)
     assert (basket.grade(b, against) or (None,))[0] is Answer.THIN
+
+
+def test_a_sale_on_a_day_the_market_is_shut_is_booked_to_its_next_bar() -> None:
+    """A London line judged on a US proxy sells on a UK bank holiday, New York open: ISF has
+    no bar that day, so the sale's pounds land on ISF's next bar; after its last, refused."""
+    bars = _bars([100, 110, 99, 99])
+    shut = bars[:2] + bars[3:]  #: the market has no bar on the third day
+    sale = (bars[0].day, bars[2].day)
+    trade = Priced(Trade(*sale), 1, Decimal(100), Decimal(150), FREE, sale, None)
+    window = Cell("breakout_20_10", YARDSTICK, *sale)
+    b = Verdict(Key(window, "code", "x"), "b", (trade,), Decimal(3), Answer.PASS, ())
+    assert basket.days(b, Against(YARDSTICK, shut, POUND)) == pytest.approx(
+        ([0.0, 0.005], [0.1, -0.1])
+    )
+    with pytest.raises(ValueError, match="no bar on or after"):
+        basket.days(b, Against(YARDSTICK, bars[:2], POUND))
 
 
 def test_the_scorecard_rule_over_the_rungs() -> None:

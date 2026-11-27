@@ -1,8 +1,9 @@
-"""simcity_faults: the matrix names every class and moment; its two built cells (the Friday
-blip, 2110 and 2157 after accept) keep their promises; a planted resend or kill turns one red."""
+"""simcity_faults: the matrix names every class and moment; its seven built cells (the Friday
+blip, 1100-1102, hang-up) keep their promises; a planted resend or kill turns one red."""
 
 from __future__ import annotations
 
+from contextlib import suppress
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from desk import simcity_faults as faults
-from desk.broker import Pretend
+from desk.broker import Crash, Disconnected
 from desk.lines import Line
 from desk.orders import Order, Settings
 from desk.store import Bar
@@ -21,7 +22,7 @@ ORDER = Order("o-1", A, 10, *map(Decimal, (50, 1, 45)))
 
 
 def _run(cell: faults.Cell, root: Path, plant: str = "") -> list[str]:
-    broker = Pretend({A: (BAR,)}, {}, link_breaks={"A"})
+    broker = faults.pretend(cell, {A: (BAR,)})
     broker.open(MON)
     if plant == "resend":
         broker.report = lambda _: None  # type: ignore[method-assign,assignment]
@@ -29,7 +30,8 @@ def _run(cell: faults.Cell, root: Path, plant: str = "") -> list[str]:
         place = broker.place
 
         def boom(order: Order) -> object:
-            place(order)
+            with suppress(Crash, Disconnected):
+                place(order)
             raise RuntimeError("2157")
 
         broker.place = boom  # type: ignore[method-assign,assignment]
@@ -41,6 +43,7 @@ def test_the_table_names_every_class_and_moment_and_counts_what_is_not_built() -
         assert name in faults.CLASSES
     assert {"100", "162", "hang-up"} <= set(faults.CLASSES) and len(faults.MOMENTS) == 5
     assert len(faults.CELLS) == len(faults.CLASSES) * 5 and set(faults.BUILT) <= set(faults.CELLS)
+    assert len(faults.BUILT) == 7 and "7 of 325 cells built" in faults.summary()
     assert f"{len(faults.BUILT)} of {len(faults.CELLS)} cells built" in faults.summary()
     with pytest.raises(NotImplementedError):
         faults.run(("201", "before transmit"), Path(), None, ORDER, None)  # type: ignore[arg-type]

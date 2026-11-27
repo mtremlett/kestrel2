@@ -3,7 +3,8 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
-from desk.eponymous_raschke_swing import decide
+from desk import eponymous_raschke_swing
+from desk.eponymous_raschke_swing import RaschkeTurtleSoup, decide
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -37,3 +38,9 @@ def test_a_falling_market_with_failed_breakdowns_buys_each_time() -> None:
     block = [(99, 100), *[FLAT] * 19, (98, 105), (100, 106), (96, 97)]
     days = [(lo - 10 * k, c - 10 * k) for k in range(5) for lo, c in block]
     assert list(_trades(days).values()).count(Action.BUY) == 5
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; the book's stop alone
+    assert "Holding period: none" in eponymous_raschke_swing.__doc__
+    assert RaschkeTurtleSoup.declared.hold is None

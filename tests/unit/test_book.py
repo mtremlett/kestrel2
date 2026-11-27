@@ -106,6 +106,25 @@ def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
     assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
 
 
+def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The side figure of a buy over 300 held lines asks for the fills once (pattern 26)."""
+    names = [f"L{n}" for n in range(300)]
+    ids = ("d-zoo_a-1", "d-rule-1")
+    planted = [Fill(f"x-{n}", ids[n % 2], s, 1, Decimal(5), MON) for n, s in enumerate(names)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    asked, real = list[int](), book.fills
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        asked.append(1)
+        return real(root)
+
+    monkeypatch.setattr(book, "fills", counted)
+    mine = book.side(tmp_path, dict.fromkeys(names, 1), "d-rule-2")
+    assert len(mine) == 150 and len(asked) == 1, f"{len(asked)} reads of the fills, not one"
+
+
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -165,20 +184,21 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     broker.inject("A", 3)
     assert book.reconcile(tmp_path, broker) == ("A", "E")
     with pytest.raises(Refused, match=r"o-3: .*\['A', 'E'\]"):
-        _send(tmp_path, broker, "o-3", SIX[3])
+        _send(tmp_path, broker, "o-3", A)  #: a line that differs is refused, the others trade
+    assert _send(tmp_path, broker, "o-9", SIX[3]).filled == 10, "D agrees: one line never stops all"
     with pytest.raises(Refused, match="s-0: .*not the broker's"):
         book.send(tmp_path, broker, Sale("s-0", A, 10), ROOM)
     assert book.send(tmp_path, broker, Sale("s-1", SIX[1], 10), ROOM).filled == 10, "B agrees"
-    assert broker.submitted() == ("o-0", "o-1", "o-2", "s-1"), "sent while the books differ"
+    assert broker.submitted() == ("o-0", "o-1", "o-2", "o-9", "s-1"), "sent while the books differ"
     broker.inject("E", -7)
     broker.inject("A", -3)
-    assert _send(tmp_path, broker, "o-3", SIX[3], 1).filled == 1, "the books agree again"
+    assert _send(tmp_path, broker, "o-3", SIX[5], 1).filled == 1, "the books agree again"
     broker.open(TUE)  #: A's stop sells it: the ledger learns of it before the books are compared
     assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)
     broker.cancel_stop("C")
     assert book.reconcile(tmp_path, broker) == ("C",), "a held line with no stop resting"
     with pytest.raises(Refused, match=r"o-4: .*\['C'\]"):
-        _send(tmp_path, broker, "o-4", SIX[4])
+        _send(tmp_path, broker, "o-4", SIX[2])
     assert book.send(tmp_path, broker, Sale("s-2", SIX[2], 10), ROOM).filled == 10, "unprotected"
     broker.inject("D", -1)  #: all of D sold by hand and its stop cancelled: only the book has it
     broker.cancel_stop("D")
@@ -264,7 +284,7 @@ def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names
     book.turn(tmp_path / "calm", book.Switch.ON, at, "his word")
     for desk, blocker in ((tmp_path / "calm", Blocker.KILL), (tmp_path / "new", Blocker.BOOK)):
         with pytest.raises(Stopped) as refusal:
-            _send(desk, broker, "o-4", SIX[3])
+            _send(desk, broker, "o-4", Line("E", "LSE", "GBP", 1))
         assert refusal.value.blocker is blocker
     with pytest.raises(Stopped, match="long only") as refusal:  #: and the gate
         book.send(tmp_path / "bare", Pretend(WEEK, {}), Sale("s-9", A, 10), ROOM)
@@ -317,7 +337,7 @@ def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_add
         book.send(tmp_path, door, Sale("s-1", A, 10), ROOM)
     door.rows = [("A", 10), ("A CFD", 3)]  #: another product under A's name is not the line
     with pytest.raises(Refused, match=r"o-2: .*\['A CFD'\]"):
-        _send(tmp_path, door, "o-2", SIX[1])
+        _send(tmp_path, door, "o-2", Line("A CFD", "LSE", "GBP", 1))
     assert book.send(tmp_path, door, Sale("s-2", A, 10), ROOM).filled == 10, "A's shares agree"
     assert door.read == 6, "the broker's holdings read more than once for an order"
     door.rows = []
@@ -487,3 +507,27 @@ def test_a_fill_the_broker_reports_and_the_send_path_never_recorded_is_booked_by
     assert book.reconcile(tmp_path, broker) == (), "the book is the broker's once it has collected"
     assert book.positions(tmp_path) == {"A": 10} and book.fills(tmp_path) == broker.fills()
     assert _send(tmp_path, broker, "o-3", n=1).filled == 1, "the next send is not refused"
+
+
+class _Gapped:
+    def __init__(self, *told: Fill) -> None:
+        self.told = told
+
+    def fills(self) -> tuple[Fill, ...]:
+        return self.told
+
+    def cancel(self) -> tuple[str, ...]:
+        return ()
+
+
+@pytest.mark.parametrize(("price", "stands_down"), [(45, False), (44, True)])
+def test_a_stop_filled_past_its_level_beyond_the_gap_loss_stands_the_desk_down_at_collect(
+    tmp_path: Path, price: int, stands_down: bool
+) -> None:
+    buy = Fill("1.1.01", "o-1", "A", 10, Decimal(50), MON)
+    sale = Fill("2.1.01", "o-1-stop", "A", -10, Decimal(price), TUE)  #: limit 5% of 1,000 = 50
+    told: list[str] = []
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    stub: Broker = _Gapped(buy, sale)  # type: ignore[assignment]  # a stub broker
+    book.collect(tmp_path, stub, SIX, Settings(Decimal(1000)), lambda *w: told.extend(w))
+    assert bool(halt.in_force(tmp_path)) is stands_down and bool(told) is stands_down

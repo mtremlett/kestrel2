@@ -69,14 +69,17 @@ def test_the_pool_writes_the_serial_runs_rows_in_its_order_and_a_workers_break_i
 
 @pytest.mark.usefixtures("eased_off")  #: its units are the off ladder's, with no placebo rung
 def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_workers(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     (one,) = _cells(VUSA)
     cut = ladder_pool.units([one, *_cells(ISF)])
     assert len(cut) == 2 * (1 + folds.YEARS) and len({u for u in cut}) == len(cut)
     assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
-    ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2, memory=PLENTY)
-    warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
+    monkeypatch.setitem(ladder_pool._held, "bars", _book())  #: warmed here, as a worker would:
+    with tape.on(tmp_path):  #: a spawned worker (Windows) never sees the switch set off above
+        for unit in (u for u in cut if u[0] == one):
+            ladder_pool._warm(unit)
+    warmed = len(list(tmp_path.glob("*.tape")))
     assert 1 <= warmed <= 2  # the line, and its market where reached: never a tape per fold
 
 
@@ -169,9 +172,13 @@ def test_a_change_re_runs_only_its_own_specs_and_the_set_table_says_rungs_built(
     first = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, pooled, records={})
     built, of = ladder.rungs_built()
     table = next((tmp_path / ladder.FOLDER / "sets").glob("*.md")).read_text("utf-8")
-    assert f"rungs built: {built} of {of}\n" in table and of == 12
+    assert f"rungs built: {built} of {of}\n" in table and of == 14
     assert "4 judged now, 0 kept from before" in first
     changed = tape.rule_code
     monkeypatch.setattr(tape, "rule_code", lambda s: "edited" if s == rules[1] else changed(s))
     again = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, ladder.run, records={})
     assert "2 judged now, 2 kept from before" in again
+    one = ladder_sets.first(tmp_path / "one", _book, {}, _cells(VUSA, ISF), CLOCK)
+    table = (tmp_path / "one" / ladder.FOLDER / "sets" / "1.md").read_text("utf-8")
+    assert f"rungs built: {built} of {of}\n" in table and "2 judged now" in one  #: set 1 too
+    assert "survivorship: 2 of 2 lines not corrected" in one and "SET 1: 1 rules" in one
