@@ -15,6 +15,7 @@ zero, so the line is held while its 12-month return is positive; (2) the relativ
 against world) and the bond fallback need other series and are not here. A month's call is
 made on the first bar of the next month from the closes of the month-ends (known by then, so
 never a later bar), one session after the author's month-end. No rule here is tuned.
+Holding period: none; the author's sale is the month-end call, never a count of sessions.
 It is a module the paper desk does not trade: it is in no list of strategy.STRATEGIES.
 """
 
