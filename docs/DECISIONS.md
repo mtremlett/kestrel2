@@ -2619,6 +2619,7 @@ the check refuses to call such a run green. Failure pattern 5's twin, folded int
 running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
 .venv's python it passes.
 
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
@@ -2678,6 +2679,58 @@ for every rule with no figure, Faber's too, whose author's test binds (`publishe
 let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
 that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
 first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
+
+## 26 Nov - the rest of the answer key (PLUMB LINE v2 step 2, RUNGS)
+
+Seat 215's order, the rest of the key, every rung real (no rung's own result stubbed):
+- **The drift-rider** (`Dart`, in or out with a chance of a tenth a day by the day's own seed) on four
+  US lines rising 0.1% a day, run EASED as EPON runs: the real shuffle FAILs it on every line
+  (shares 0.23 to 0.91) and the market rung FAILs it beyond its own line's moves; on NVDA its first
+  rung PASSes (2.45), so the key shows the first rung fooled and the later rungs catching it.
+- **Noise: 160 cells in the unit check, 1,008 once outside it.** There is no nightly tier and a
+  unit shard holds about five minutes; 1,000 cells take 15 to 18 minutes. Chosen: 10 sets of 16
+  (about 3 minutes), passing at most 2% (3 cells). Honestly sized: at a true false pass of 2% the
+  160 show over 3 about a third of the time, at 5% nine times in ten, so it catches a ladder that
+  lets noise through, not the 2% edge itself. The 1,008 (63 sets of 16, seeds 1000 on) were run
+  once on 26 Nov through the same ladder with plateau and reproduce wired: 0 went forward, every one
+  FAIL, 952 s.
+- **Planted edges at a true t of 1, 2, 3 and 4** (the churner on the kit's paid line, its tilt set
+  from the mean and spread measured at no tilt): stated first-rung pass rates 0.16, 0.50, 0.84, 0.98
+  (a normal above 2 - t), found 0.20, 0.65, 0.95, 1.00 on 20 lines each, within 0.25 and rising; the
+  first rung is the rung a true t governs, so the rates are stated for it. The blind review judged the
+  calibration FAIL: every group's mean t runs about 0.3 high (found rates fit t + 0.3: 0.24, 0.62,
+  0.90, 0.99), so the plant is t + 0.3 and the tolerances (0.5 on t, 0.25 on a rate) hide it.
+  **Fixed (R-RUNNER-553, 27 Nov):** the first rung's t measured at the tilt on 200 seeds the test
+  never uses at each planted t of 0 to 4 (found 0.24, 1.25, 2.23, 3.35, 4.27), fitted as a line in
+  the tilt (residuals under 0.07) and read back: B -0.00158 -> -0.00132, SD 0.0541 -> 0.0532. On
+  the test's own 80 lines a t: mean t 1.02, 1.99, 3.08, 4.03 (within 0.25), pass rates 0.11, 0.50,
+  0.94, 0.99 against 0.16, 0.50, 0.84, 0.98 (within 0.15), rising. Seen red first with the old B
+  and SD under the new tolerances (means 1.27, 2.26, 3.37, 4.33). A seed's found t spreads about
+  0.71, not 1, so the found rates sit beyond the stated ones away from t 2, inside 0.15.
+- **A delisted line** (AMD cut at 2023-06-30 among 16): judged, FAIL, never an error; the 2025 fold
+  pooled over the 15 lines still trading. Found: its regimes rung FAULTs (STATUS, found not fixed).
+- **L17's gate met:** the kit's paid edge goes forward on every line.
+
+**Driven (A7)**, each against a planted fault from a plugin outside the tree: the shuffle replaced
+by a constant pass (main's fake proof) turns the drift-rider's shuffle row red; a ladder that
+passes everything turns the noise test red (9 of 160 went forward); a first rung passing any t
+above nothing turns the planted-edge rates red. The paid-edge test was red on the plateau branch
+alone, reproduce still UNRUN.
+
+**Shard weights.** `check.py` SECONDS gains the two key files (220 s, 205 s, measured on the PC), so
+the sharder does not weigh them by size as near nothing. A weight loosens nothing.
+
+**Merged with the liquidity rung (#2230).** The paid edge's lines trade one share a day, which
+the liquidity rung rightly FAILS (its own kit row), so the paid edge no longer goes forward. Its L17
+test now asks what L17 owns: no rung unrun, plateau NOT APPLICABLE, and liquidity the one hard rung
+holding it back. Still red if plateau or reproduce is left unrun.
+## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
+Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
+"Work in progress is capped" becomes "A box is the only unit of work" (pre-flight, typed endings,
+two endings without a tick set it aside), its runner drives marked OWED until they land. CANON C's
+"the deny hook is OWED" was stale: the hook is `hooks/guard.py` in the notes, built 22 Nov.
+FAILURE_PATTERNS 3's progress number is plan boxes ticked on main per 24 hours, as CLAUDE.md says,
+no longer scenes passing out of seven.
 
 ## 27 Nov - the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
 
