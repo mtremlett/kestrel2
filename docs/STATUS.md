@@ -233,8 +233,7 @@ Open: members' FTSE Russell announcement reader (lseg.com has no stable machine-
 - **Keeper/collector:** desk/collector.py:199 and desk/keeper_live.py:130 do not yet name a lock wait (#856); IDTL has no security definition at the broker (#844). **Operator:** IB1T not ISA-holdable; nothing else waits on him (data-members takes the free route; data-isa-twins waits on R-DATA-64, -65, -66). **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session, 5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; `quality` runner job needs its card ticked; archive limits unmeasured (#685); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 - **The one door (22 Nov):** 172 lines differ from the old CSVs beyond rounding (GOOG on 3,398 days, AAPL 270 CSV-only days, most on one day); the database is read.
 ## GRID
-
-Last updated: 26 November 2026.
+Last updated: 27 November 2026.
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -242,28 +241,25 @@ the desk's), a key per rung that ignores the modules that run it, auto-tune, the
 book (with each rule's variants swept as cells, #1487) with the catalogue's specs (catalogue-only rows served by `rulebook.rule`, #2104; `ladder.py:384` can drop `specs()`'s unused `folder`), the transfer study (`lab/transfer.py`; a refused line answers REFUSED). The default
 pass runs each strategy on its declared universe (22 lines); all-on-all is `--transfer`, never a verdict. A pass reports
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
-`lab/chain.py` (#2190, #2202, #2227; R-RUNNER-364 to 366): a published set's variants at x2/3 and x3/2, `sweep` runs them under the set's plan, `report` writes each plateau's centre per rule and line (PRE-REVIEW). Remains: the real ladder refuses a variant name (R-GRID-9); the runner wires `chain.report` as a job.
-
+`lab/chain.py` (#2190, #2202, #2227; R-RUNNER-364 to 366), `python -m lab.chain` chains the EPON and LEV set tables older than their chain file (#2247; sweep's pass calls it, a failed chain does not fail the pass): a published set's variants at x2/3 and x3/2, `sweep` runs them under the set's plan, `report` writes each plateau's centre per rule and line (PRE-REVIEW). Remains: the real ladder refuses a variant name (R-GRID-9); 
 ### Next step
 grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
 each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612, and again #2021 after #2007 dropped the filter; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563, #1748: failed cells read `Invalid isoformat string: ''`, last written 21 Nov 03:27 under code 86bce5; a raising pass is logged and the week carries on, #1562). The week must restart unbroken once the runner updates
 its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555, #1700): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 The 2,810 failures were journals the old CSV door wrote on 21 Nov; current code runs them (#2007), they heal on a full pass. Every other box is ticked. Unknown: why the week stopped 15-21 Nov (no log). Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
-
 ### Done for other lanes
 - R-DATA-1: done in #73; R-DATA-10: #391; R-RUNNER-4: #171; R-RUNNER-8: #391; R-RUNNER-19: #197; R-RUNNER-82: #263
 - R-RUNNER-362: done in #1487
 - R-RUNNER-365: done in #2202
 - R-RUNNER-366: done in #2227
-- R-RUNNER-451: done in #2021; R-RUNNER-465: done in #2073; R-RUNNER-474: done in #2104
-- R-DATA-61: done in #1555; R-RUNGS-34 rule half met in #1700, pound half in #1683
+- R-RUNNER-367: done in #2247
+- R-RUNNER-451: #2021; R-RUNNER-465: #2073; R-RUNNER-474: #2104; R-DATA-61: #1555; R-RUNGS-34 rule half #1700, pound half #1683
 - R-RUNNER-89: #281; R-RUNNER-128: #360; R-RUNNER-140: #330; R-RUNNER-164: #397; R-RUNNER-167: #359; R-RUNNER-170: #372; R-RUNNER-112: #449
 ### Requests to MONEY
 - [ ] R-GRID-1 (later, 2026-11-13 18:15): the five rules at other settings in `desk/strategy.py`, each with a grid and
   a name per setting in `transfer.families()`; the grid runs the published five until then.
 ### Requests to RUNGS
-- [x] R-GRID-2: RUNGS side done (#392); `Cell.symbol` dropped in #2073.
 - [ ] R-GRID-3 (later, 2026-11-13 21:10 UK): stamp each verdict with `record.key.rung("lab.rung")`, each luck
   correction with `.rung("lab.luck")`; include capital and exchange rate in what a kept verdict is found by.
 - [ ] R-GRID-6 (blocking, 2026-11-14 10:30 UK): the rungs' tests (`test_lab_rung/trials/bets/regime/reproduce.py`) name
@@ -275,16 +271,14 @@ The 2,810 failures were journals the old CSV door wrote on 21 Nov; current code 
 - [ ] R-GRID-8 (blocking, 21 Nov 11:00 UK): bring the week's clone (HEAD 5e4a6e61) to current main, restart `lab.sweep --days 7`; keep its stdout/stderr files (#1562).
 ### Requests to DATA
 - [ ] R-GRID-5 (later, 2026-11-13 22:20 UK): the research store's home (data-research-home) built on this PC.
-
 ### Found, not fixed
 - **60 of 110 cells failed in the cold declared pass** (#403); cause unread (journals): look first.
 - `lab/cell.py` import takes 1-3 min on a loaded PC (R-GRID-7). The grid refuses runs of equal closes (desk engine decides).
-- Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin).
-- Cell key leaves out Python version, paths, capital and exchange rate. `lab/fast.py` not yet wired into the sweep.
+- Grid breaks no series found can show (Supertrend band, Bollinger past 2**53, Wilder window, band margin). Cell key leaves out Python version, paths, capital and exchange rate. `lab/fast.py` not yet wired into the sweep.
 - Rung key still holds batch, folds, published*, shuffle, desk/*; narrowing needs a per-rung declaration in `lab/ladder.py`.
 - Week: a pass over 48 h is cut and logged failed; a torn `week.jsonl` line needs hand-mending; results grow ~9 MB a day
   (pruning owed, R-GRID-1); an outside pass, a PC restart, or the copied store cleared breaks the run.
-- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright. Scratch owed removal: `.claude/worktrees/`, `C:\tmp\unebreaks`, `C:\tmp\unedriver`.
+- Flaky `tests/unit/test_bars.py` once under load (#171). Busy flag stale if a pass is killed outright.
 
 ## RUNGS
 Last updated: 26 November 2026.
