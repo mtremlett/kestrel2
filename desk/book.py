@@ -57,9 +57,11 @@ from desk.orders import (
     Sale,
     Settings,
     charges,
+    gapped,
     gate,
     is_zoo,
     leg_of,
+    stop_under,
     strategy_of,
 )
 from desk.risk import Standing
@@ -266,9 +268,36 @@ def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     return tuple((name, shares) for name, shares in left if shares > 0)
 
 
-def collect(root: Path, broker: Broker) -> None:
-    """Write in the ledger every fill the broker gives that it lacks."""
+def collect(
+    root: Path,
+    broker: Broker,
+    lines: Iterable[Line] = (),
+    settings: Settings | None = None,
+    tell: Tell | None = None,
+) -> None:
+    """Write in the ledger every fill the broker gives that it lacks. Given the lines and the
+    settings, a stop's sale newly read that lost past the gap limit (STP-10, orders.gapped) halts
+    buying, once for each, until he lifts it: a gap is held against the limit as it is collected."""
+    before = {f.execution_id for f in fills(root)}
     _record(root, broker.fills())
+    known, buys = {line.symbol: line for line in lines}, {f.order_id: f for f in fills(root)}
+    for sale in (f for f in fills(root) if f.execution_id not in before and f.quantity < 0):
+        buy, line = buys.get(sale.order_id.removesuffix("-stop")), known.get(sale.symbol)
+        if settings is None or buy is None or line is None or buy.quantity < 0:
+            continue
+        priced = Order(
+            buy.order_id,
+            line,
+            -sale.quantity,
+            buy.price,
+            rate(root, line.currency, buy.day),
+            stop_under(line, buy.price),
+        )
+        if gapped(priced, sale.price, settings):
+            why = f"{sale.order_id}: the stop sold at {sale.price}, a gap past the loss limit"
+            halt.stop(root, broker, datetime.now(UTC), why, by="gap")
+            if tell:
+                tell(f"gap {sale.order_id}", f"{why}. Buying is halted until he lifts it.")
 
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
