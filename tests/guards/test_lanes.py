@@ -35,7 +35,7 @@ from collections import Counter
 from fnmatch import fnmatch
 from pathlib import Path
 
-from test_guards import manifest
+from test_guards import _budget, manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 LANE_BRANCH = re.compile(r"lane/([a-z]+)-")  #: every lane branch; an unknown lane fails
@@ -395,9 +395,7 @@ def test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots() -> None:
     forget?'; design item 4). Two sessions never hold one file, so a file in more of a lane's
     open boxes than the lane has slots leaves slots idle behind it (manifest.toml was in 56 cards
     on 26 Nov). Such a file is split, or its boxes are; a hub is never named at all."""
-    slots: dict[str, int] = json.loads((ROOT / "BUDGET.json").read_text(encoding="utf-8"))[
-        "slots_per_lane"
-    ]
+    slots: dict[str, int] = _budget()["slots_per_lane"]
     tracked = _git("ls-files").splitlines()
     hubs, crowded = [], []
     for lane, boxes in _open_work((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")).items():
