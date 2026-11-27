@@ -399,3 +399,27 @@ def test_the_old_hourly_bars_are_checked_against_the_one_stores_hours(
         )
     got = headstart.compare_hours(one, tmp_path, [UK])[UK]
     assert (got.old, got.held, got.same, got.missing) == (2, 1, True, (gone.start,))
+
+
+def test_an_old_store_is_named_deletable_only_once_counts_checksums_and_the_drill_pass(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    old, one = tmp_path / "old.db", tmp_path / "bars.db"
+    rows = [
+        ("3LGO.L", "5m", f"{b.start:%Y-%m-%dT%H:%M}:00+00:00", 10, 11, 9, 10, 5) for b in _gone()
+    ]
+    _database(old, rows)
+    register = tmp_path / "register.md"
+    register.write_text(f"| IMPORT | `{old}` |\n", encoding="utf-8")
+    with bars.writing(one) as round_:
+        round_.five(LINES[0], _gone()[:1])
+    headstart.checked(register, one, tmp_path / "r1")
+    assert "old.db: KEEP: not proven" in capsys.readouterr().out
+    with bars.writing(one) as round_:
+        round_.five(LINES[0], _gone())
+    headstart.checked(register, one, tmp_path / "r2")
+    assert "old.db: deletable on his yes" in capsys.readouterr().out
+
+
+def _gone() -> list[Five]:
+    return [_at(0), _at(5)]

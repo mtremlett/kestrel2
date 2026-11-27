@@ -2735,6 +2735,43 @@ rewrite in place keeps the stamp, is said on `read_once`.
 20 worlds x ~1,600 days at 0.3 s is about 2.8 h > 7200 s: a bounded world span, parallel worlds,
 or a LIMIT sized to the night is the next card's choice (open orders O54).
 
+## 2026-11-27 — MONEY: a SimCity day's work is flat however many days lie behind it
+
+**What.** After #2400 a day still grew with the days behind it (real store, one world: 267k calls
+at day 100, 531k at 800, 684k at 1,500). Every source fixed where the work is made, no result
+changed: `book_parts.add` appends a record's new rows (still written whole and swapped in) and
+grows its `Rows` reading by them, so the records, the rates and the ledger are never parsed whole
+again after the desk's own write; `publish` adds one row, `record_rates` the day's new rates, the
+ledger its new fills (a correction still rewrites it); `Charges.amounts` reads the five lines off
+(astuple deep-copied them: a third of a day); `round_trips` and `interest` are carried on from the
+last asking over the fills since (`book._summed`, the same additions in the same order, afresh on
+any other ledger); `standing` reads the week back from the last record; bars are sliced by
+bisection (`store_parts.upto`). After, same store: 114k at day 100, 154k at 800, 156k at 1,500
+(the rise to 800 is lines begun, not days lived).
+
+**Seen red first.** `test_a_days_work_does_not_grow_with_the_days_the_desk_has_lived` (a market
+whose months are alike: day 280's calls within 1.1x of day 200's): 87,780 -> 126,288 on main.
+`test_the_round_trips_and_interest_carried_on_each_day_are_those_summed_afresh` driven red by a
+planted 1E-20 in the carried interest; the unended-file case of
+`test_a_record_added_to_is_read_as_if_read_whole...` red with the newline check taken out.
+
+**Tests changed, not weakened.** The ledger is opened once, not twice, after the desk's own fill
+(its reading grown): the count tightened 2 -> 1, another writer's rewrite still exactly one read.
+The round trips' "one read of the rates" now follows a rewrite by another hand: re-keeping a day's
+kept rates writes nothing. The reads-per-day sanity line "the rates are read daily" became "the
+rates and records are written every day and read whole at most twice in the world".
+
+**Blind review (27 Nov).** Nothing blocking; a fuzz of 12 seeds x 60 days (late fills,
+corrections, earlier days asked) against the old code found 0 differences. Fixed: `add` refused a
+file whose last row is unended (it would run on into it), and a rates file of another hand is
+written whole again rather than refused. Minor, kept: bars must run in day order (they do, the
+day already reads `bars[-1]`); a parse error now names its file.
+
+**Found, not fixed.** `Pretend.fills()` gives every fill since the world began, so `collect`
+scans them all (the Broker contract, IBKR gives the day's); `simcity._market` rebuilds a line's
+tuple per bar (quadratic in a world's making, not its days); a few cheap per-fill scans remain
+(`positions`, `side`, `_holders`), about 9% over 90 days in the test world.
+
 ## 26 Nov - the rest of the answer key (PLUMB LINE v2 step 2, RUNGS)
 
 Seat 215's order, the rest of the key, every rung real (no rung's own result stubbed):
@@ -2818,3 +2855,37 @@ flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the 
 costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
 `test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
 green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
+
+## 27 Nov - every limit has one home (design item 7, Builder 3b)
+A limit copied out of `BUDGET.json` stays behind when the file changes, and the copy is what a
+session reads (pattern 8; the runner's own pin of its budget did this today). Options weighed: (a)
+search every file for every number in `BUDGET.json`: 50 and 20,000 also mean seconds and bytes in
+`check.py`, so it cries wolf; (b) search where a limit is restated, the guards that enforce limits
+and the three rulebooks, for any number past a day of the month or any fraction: chosen. A guard
+reads the figure from `BUDGET.json`; a rulebook names the file. `test_each_limit_has_one_home` was
+RED on main with four copies (CANON.md:4 200, CANON.md:74 50 and 800, test_guards.py:192 1.5), and
+RED again on a planted `PLANTED_CAP = 8914 + 30000` in a guard (30000 named, 8914 rightly not: it is
+the runner's figure, and its drive is the runner's). The two CANON lines now name `BUDGET.json` in
+place of the figures, same rule, same line count; the comment lost its copy. Green after.
+## 27 Nov - file replaces may fall, never rise (design L16, Builder 3b)
+Windows refuses to swap a file another process holds open (pattern 19), so every `path.replace`
+in `desk/` and `lab/` is a place a live job can fail. Options weighed: (a) build the one locked
+writer first: right, but it touches every lane's writers at once; (b) a ratchet now, so the count
+can only fall while the writer is built: chosen, as for whole-file reads. A replace is a call of
+`replace` or `rename` with one argument and no names (a text's replace takes two, a time's takes
+names) or `os.replace`/`os.rename`: 19 on main, each checked by hand against a grep.
+`test_file_replaces_never_rise` was RED on a planted `tmp.replace(path)` in desk/quality.py
+("rise from 19 on main to 20"), green with it removed.
+
+## 27 Nov - book.send's fault matrix (design L8, pattern 23, Builder 3b)
+The send path learnt each broker behaviour from a live fault (#373, #860, #1008, #1014, #1031). One
+table now crosses the six moments a send asks the broker's door something (report, holdings,
+stops, before and after place, fills) with four answers in place of the one asked (Disconnected,
+Crash, a timeout, an unknown word): 24 rows, each judged by two rules, through the pretend broker
+with a door that breaks once. An order the broker received is never forgotten (its fills booked,
+its note kept, or the kill switch on), and the next send never buys it twice nor leaves the book
+apart from the broker. `tests/unit/test_book_matrix.py`: green on main; RED on a planted
+`going.unlink()` on a disconnect after the send (the 20 Nov fault, "the broker holds o-1, the book
+forgot it"), and on a send that never asks the broker first (6 rows). Tests only, no desk change.
+Left of pattern 23's debt: which of these four answers each real gateway message becomes
+(desk/paper.py's table), and the same rows in SimCity (R-RUNNER-392).

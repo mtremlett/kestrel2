@@ -4,10 +4,12 @@ with its neighbours (a wrong unit, another currency) or keeps the move as a last
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from operator import attrgetter
 from types import MappingProxyType
 
 from desk.lines import Line
@@ -36,6 +38,12 @@ class Bar:
     low: Decimal
     close: Decimal
     volume: int
+
+
+def upto(bars: Sequence[Bar], day: date) -> int:
+    """How many of a line's bars, which run in day order, are dated by day: halved to it, never
+    walked (27 Nov: each SimCity day walked every bar of every line, and grew with the days)."""
+    return bisect_right(bars, day, key=attrgetter("day"))
 
 
 @dataclass(frozen=True)

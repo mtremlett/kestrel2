@@ -23,9 +23,9 @@ from typing import IO, Any
 
 import pytest
 
-from desk import book, day, orders, simcity, simcity_incidents, strategy
+from desk import book, day, orders, simcity, simcity_incidents, strategy, venues
 from desk.broker import Crash, Disconnected, Fault, Pretend
-from desk.lines import YARDSTICK
+from desk.lines import NO_TAX, YARDSTICK, Line
 from desk.orders import Settings
 from desk.simcity_census import Census, parts
 from desk.store import Bar
@@ -149,7 +149,63 @@ def test_a_day_reads_the_desks_files_no_more_often_however_many_days_lie_behind_
             (n, r[name], r["+" + name]) for n, r in enumerate(reads) if r[name] > r["+" + name] + 1
         ]
         assert not often, f"{name}: (day, reads, writes) read twice for a write: {often[:5]}"
-    assert sum(r[book.RATES] for r in reads) > len(reads), "the rates were never read: no count"
+    written = {name: sum(r["+" + name] for r in reads) for name in (book.RATES, day.RECORDS)}
+    assert min(written.values()) >= lived[1].days, f"not written each day: no count {written}"
+    #: each is added to (book_parts.add), its reading grown by the day's rows: never read whole
+    #: again (27 Nov), so in all the world's days it is read but once or twice
+    assert all(sum(r[name] for r in reads) <= 2 for name in written), "read whole again by a day"
+
+
+def _repeating(symbol: str, base: int) -> tuple[Line, tuple[Bar, ...]]:
+    """A line whose every MONTH of sessions is the same rise and fall, so that a world, which deals
+    the months again, is the same market however they are dealt: each day's work is the same."""
+    line, bars = Line(symbol, "LSE", "GBP", 1, NO_TAX), list[Bar]()
+    for t, on in enumerate(venues.sessions("LSE", date(2020, 1, 2), date(2021, 6, 30))[:330]):
+        k = t % simcity.MONTH
+        rise = k if k < simcity.MONTH // 2 else simcity.MONTH - k
+        close = Decimal(base) * (100 + 3 * rise) / 100
+        start = bars[-1].close if bars else close
+        bars.append(Bar(on, start, max(start, close) + 1, min(start, close) - 1, close, 10_000))
+    return line, tuple(bars)
+
+
+def test_a_days_work_does_not_grow_with_the_days_the_desk_has_lived(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """THE DEEP RUN'S DAY IS FLAT (27 Nov): a world lives some 1,600 sessions, and a day that reads
+    every bar, fill, record and rate behind it again grew from 220k calls at day 50 to 1.12M at day
+    1,500, so twenty worlds never ended inside the deep run's 7200 s. In a market whose months are
+    alike, once every rule's window is full (200 sessions), the calls of a day 80 sessions on are
+    the calls of a day then, within a tenth: only the day's own work is done."""
+    market = dict(_repeating(f"R{n}", 40 + 5 * n) for n in (1, 2))
+    market[YARDSTICK] = next(iter(market.values()))
+    calls, live = list[int](), simcity._Life.live
+
+    def counted(life: simcity._Life, on: date) -> day.Record:
+        made = [0]
+
+        def profiled(_frame: object, event: str, _arg: object) -> None:
+            made[0] += event in ("call", "c_call")
+
+        sys.setprofile(profiled)
+        try:
+            return live(life, on)
+        finally:
+            sys.setprofile(None)
+            calls.append(made[0])
+
+    class Quiet(Census):  #: the census is a profiler too, and two cannot watch at once
+        def now(self, scenario: str | None) -> None:
+            self.scenario = scenario
+
+    monkeypatch.setattr(simcity, "Census", Quiet)
+    monkeypatch.setattr(simcity._Life, "live", counted)
+    monkeypatch.setattr(simcity, "EVENTFUL", 10**9)  #: the same plain days, nothing done to them
+    monkeypatch.setattr(simcity, "FAULTY", 10**9)
+    night = simcity.run(tmp_path, market, ROOM, {"GBP": Decimal(1)}, NOW, (7,))
+    assert night.trips >= 20 and len(calls) >= 320, f"{night.trips} trips in {len(calls)} days"
+    then, now = (sum(calls[at : at + 40]) / 40 for at in (200, 280))
+    assert now <= then * 1.1, f"a day's calls grew from {then:.0f} to {now:.0f}"
 
 
 def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ran_it(

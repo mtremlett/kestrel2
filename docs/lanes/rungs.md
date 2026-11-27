@@ -570,6 +570,22 @@ then the break was removed:
 - How to detect a stopped pass. Options: compare the answer text inline; one constant both modules read; a typed return from `go`. Chose the constant `ladder_pool.STOPPED`: one home, smallest change; a typed result touches every `go` and its fakes (the debt in failure pattern 14).
 - The reviewer's three non-blocking findings. Options: fix here or record. Chose record: they change published counts and cache keys, not a verdict, and the first needs lab/verdict_parts.py, outside the claim.
 
+### 2026-11-26 — the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
+
+The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
+well. Once a sixth does, no shuffle left can change the answer, so the rung stops there instead
+of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
+Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
+of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
+is about 20 rules of mostly failing cells). The text changes: a FAIL's reason now says
+"its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
+is unchanged; a trial of under two trades, never shuffled, says "1 (under two trades: no shuffle
+run)". A FAIL's exact share is no longer recorded anywhere; nothing reads it. No threshold or
+answer changes. Proven by
+`tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
+(the early answer equals a full run's on a passing and a failing walk) and
+`test_five_as_good_passes_the_sixth_fails_and_stops_there` (the edge, ties and None scripted).
+
 ### 2026-11-27 — set 1 publishes; the stress reason names untested episodes; secondary figure for RSI-2 (#2257, #2254, #2273, #2266)
 - Claim gap rungs-pound-gap (runner ops asked in #2254, #2256, #2257, #2266, #2273: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), under his standing words "please always go with recommended to avoid waiting for me to attend". Options: edit those files in a session whose claim lacks them (refused; failure pattern 21), or hand it on. Taken: hand it on; rungs-pound-gap is ticked on main (#1992), so runner ops only widens the card's claim if a session is still wanted. rungs-epon-first stays held until R-RUNGS-38 (#2273).
 - Survivorship note for set 1 (#2257). Options: (a) leave it off, (b) name every line "not corrected". Taken (b): set 1 trades each rule on its declared lines over the whole window, so saying none was corrected is the honest line.
