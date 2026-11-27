@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pytest
 
+from desk import eponymous_mansfield_rs_momentum
 from desk.eponymous_mansfield_rs_momentum import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -33,3 +34,9 @@ def test_a_stock_trailing_the_index_is_not_bought_and_no_index_raises() -> None:
     assert _trades([*range(100, 400)], [*range(100, 700, 2)]) == {}
     with pytest.raises(ValueError, match="SPY"):
         decide({"X": _bars([100])})
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; stated, no time stop
+    assert "Holding period: none" in eponymous_mansfield_rs_momentum.__doc__
+    assert all(r.declared.hold is None for r in eponymous_mansfield_rs_momentum.EPONYMOUS.values())
