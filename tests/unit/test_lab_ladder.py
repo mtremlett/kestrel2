@@ -29,6 +29,7 @@ from lab import (
     ladder_parts,
     ladder_sets,
     market,
+    plateau,
     published,
     reproduce,
     rung,
@@ -130,6 +131,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "liquidity": rung_liquidity.RUNG.judge(verdict, EDGE, {})[0].name,
         "fit": rung_fit.RUNG.judge(verdict, EDGE, {})[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
+        "plateau": "PASS",  #: a rule with no settings, FIXED: none was picked from a peak (L17)
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
     assert (won["trials"], one.luck.trials, won["trades"]) == (2, 2, len(verdict.trades))
@@ -146,7 +148,12 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     }
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "plateau"}  #: no rung module is off the path
+    assert set(won["unrun"]) == {"reproduce"}  #: no rung module is off the path
+    #: a ranged row's plateau is its every variant's first rung on the cell's line and window
+    row = Cell("donchian_channel_breakout", VUSA, EDGE[0].day, ladder.END)
+    surface = ladder._surface(row, EDGE, {})
+    assert isinstance(surface, plateau.Surface) and len(surface.tried) == 12
+    assert surface.own in surface.tried and plateau.judged(surface)[0].name in {"PASS", "FAIL"}
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 

@@ -36,9 +36,10 @@ def test_a_planted_edge_goes_forward_and_planted_noise_is_refused(
     assert {row["answer"] for row in noise} == {"FAIL"} and not any(r["every"] for r in noise)
     assert "error" not in {k for row in edge + noise for k in row}
     #: the edge is heard, the noise is not: most edge lines are THIN alone (too few trades to be
-    #: judged, the rule's lines pooled PASS the folds); it cannot yet go forward while `plateau`
-    #: is unrun (L17), and when it is wired this pins "goes forward" in its place.
+    #: judged, the rule's lines pooled PASS the folds); plateau is judged on every cell (L17, a
+    #: rule with no settings FIXED), so what holds the edge back now is each line's trade count
     said = [row["answer"] for row in edge]
     assert said.count("THIN") > len(said) // 2 and not any(r["every"] for r in edge)
     assert {row["rungs"]["folds"][0] for row in edge} == {"PASS"}
-    assert set(edge[0]["unrun"]) == {"plateau", "reproduce"}
+    assert {row["rungs"]["plateau"][0] for row in edge + noise} == {"PASS"}
+    assert {k for row in edge for k in row["unrun"]} == {"reproduce"}

@@ -78,7 +78,20 @@ from desk.command import CAPITAL, POUND
 from desk.lines import DOLLARS, LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
+from lab import (
+    batch,
+    cell,
+    folds,
+    plateau,
+    published,
+    reproduce,
+    rulebook,
+    rung,
+    tape,
+    trials,
+    variants,
+    verdict,
+)
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.ladder_parts import (
@@ -356,8 +369,8 @@ def _one(
         if gap := _unrated(c, ((c.line, own), (beside, held)), pounds):
             raise ValueError(gap)  #: the cell's reason, kept under its key; never a FAULT
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        look = None if first is None else pool.among(c)  #: L18: among its rule's own lines
-        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, None, look)
+        both = _surface(c, own, pounds), None if first is None else pool.among(c)  #: L17, L18
+        judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, *both)
         done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
     except FAILED as error:
@@ -368,6 +381,18 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
+
+
+def _surface(c: Cell, own: Sequence[Bar], pounds: Rates) -> plateau.Surface | plateau.Fixed:
+    """The cell's plateau (L17): each variant of its row judged at the first rung on the cell's
+    line and window, its own setting among them; a rule with no settings FIXED (`plateau.of`)."""
+    book = rulebook.specs()
+    row = book.get(c.strategy.partition("[")[0])
+    made = variants.variants(row) if row is not None and row.ranges else ()
+    tried = (Cell(v.spec.name, c.line, c.start, c.end) for v in made)
+    return plateau.of(
+        c.strategy, book, {t.strategy: verdict.ready(t, own, pounds, ()) for t in tried}
+    )
 
 
 def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
