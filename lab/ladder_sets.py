@@ -349,14 +349,15 @@ def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
 
 
 def told(home: Path, said: str, now: datetime, door: Callable[[], messenger.Post]) -> str:
-    """A finished set's summary sent once, under its tag and day, through `messenger.send` with
-    its record in the ladder's folder; a set cut short (no `SET` line) is not told. Its line
-    says the message's number, or why his phone was not told."""
-    tag = next((s[4:].split(":")[0] for s in said.split(NL) if s.startswith("SET ")), None)
-    if tag is None:
-        return "telegram: not told, the set did not finish"
+    """A finished set's summary sent once a day for each `SET` line it ends with (a set judged
+    again to another answer is told again), through `messenger.send`, its record in the ladder's
+    folder; a set with no `SET` line (stopped, or cells left unjudged) is not told. Its line says
+    the message's number, or why his phone was not told."""
+    ended = [one for one in said.split(NL) if one.startswith("SET ")]
+    if not ended:
+        return "telegram: not told, the set ended with no SET line"
     try:
-        sent = messenger.send(home / FOLDER, now, f"ladder {tag} {now.date()}", said, door())
+        sent = messenger.send(home / FOLDER, now, f"ladder {now.date()} {ended[-1]}", said, door())
     except (ValueError, messenger.Undelivered) as why:
         return f"telegram: NOT TOLD, {why}"
     return f"telegram: told, message {sent.number}"
@@ -366,6 +367,7 @@ def main(
     env: Mapping[str, str],
     argv: Sequence[str] = (),
     door: Callable[[Mapping[str, str]], messenger.Post] = messenger.telegram,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> int:
     """Set EPON on every line the research store holds; `first` runs the first set instead and
     `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set INTRADAY
@@ -406,6 +408,6 @@ def main(
         said = epon(home, make(), pounds, held, go=_pooled(make))
         said += "\n" + weather_line(home, make(), held)
     sys.stdout.write(said + "\n")
-    phone = told(home, said, datetime.now(UTC), partial(door, env))
+    phone = told(home, said, now(), partial(door, env))
     sys.stdout.write(phone + "\n")
     return int("NOT TOLD" in phone)
