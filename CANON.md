@@ -183,13 +183,12 @@ Every rule names its check. A lesson is done only when its gate exists; owed gat
   guard, drive or runner gate fails on its breach, and the register names it (OWED: a test).
 - **Rules arrive by load.** The start-up hook ticks CLAUDE.md and CANON.md against main and
   prints the agreements; a hard line is a hook that denies, never a word. Check: the hook,
-  driven stale and current; the deny hook is OWED.
+  driven stale and current; the deny hook, `hooks/guard.py` in the notes (built 22 Nov).
 - **One outcome number** (`CLAUDE.md`), read from one function by the Telegram, STATUS and
   SCOREBOARD. Check: the runner's hourly table; the shared function is OWED.
-- **Work in progress is capped.** No new card in a lane whose open boxes rose and none
-  closed in 24 h; a card ending twice without a tick is parked with its cause; a fault fixed
-  a third time stops its lane until its failure pattern has a check. Ready cards match the
-  slots, never a quota. Check: runner gates, OWED (empty sessions: done, runner 2947b46).
+- **A box is the only unit of work:** pre-flight proves it can land; a session ends MET,
+  BLOCKED or BUILT; two endings without a tick set it aside. Check: every open box names its
+  `check:` (`test_lanes.py`); the runner's pre-flight and endings drives, OWED.
 - **Subtract first.** The runner, notes, drives and seats only shrink unless he rules; a
   review ends in deletions and failing checks, never in new cards. Check: RUNNER_BUDGET
   only down; the notes OWED.

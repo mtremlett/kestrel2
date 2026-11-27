@@ -2698,3 +2698,10 @@ malformed check. Driven RED on main before the checks were added: all 48 boxes n
 ("data: data-isa-twins", ... "rungs: rungs-leveraged"); planted `::A_line_moves...` (not a test id):
 "a check is a test id"; planted `data-tiers` checking `tests/unit/test_day.py` (outside its files):
 named with the file. Each plant reverted; the guard green with the 48 checks.
+## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
+Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
+"Work in progress is capped" becomes "A box is the only unit of work" (pre-flight, typed endings,
+two endings without a tick set it aside), its runner drives marked OWED until they land. CANON C's
+"the deny hook is OWED" was stale: the hook is `hooks/guard.py` in the notes, built 22 Nov.
+FAILURE_PATTERNS 3's progress number is plan boxes ticked on main per 24 hours, as CLAUDE.md says,
+no longer scenes passing out of seven.
