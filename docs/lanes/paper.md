@@ -626,3 +626,9 @@ Options: a new send path for the morning's CARRIED list, or let `running._again`
 
 ### 2026-11-27 — the refused line stays the conformance reference line (#2209)
 Options: keep the refused line (a US line, sends nothing) as reference, or find a non-retail London line. None exists, and the line only labels a step that sends nothing, so kept; `_barred` now judges the run's own market only.
+
+### 2026-11-27 — an ISIN line is asked of the broker with an empty security type (#2264)
+Options: always an empty type, or only when the line has an ISIN. Chose the latter so lines without an ISIN keep STK; no symbol special case. Not yet seen against the real gateway.
+
+### 2026-11-27 — conformance sizes at the lower of close and latest price (#2251)
+Options: pass `market` to size(), which would refuse the buy (emergency rule) instead of resting the stop under the market, or size at min(close, latest 5-minute close). Chose the latter; a store with no bar of today leaves the close standing.
