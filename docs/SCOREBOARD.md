@@ -268,6 +268,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2330 claim gap closed for money-small (desk/strategy.py and its tests named); no box ticked. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2324 R-RUNNER-541 done: three rules declare their hold limit (zweig 230 sessions, two none). |
 
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2333 R-RUNNER-534 done: one differing line no longer stops London or the zoo. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2354 R-RUNNER-510 fault matrix: 7 of 325 cells built. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2363 R-RUNNER-542 part: a gap past the loss limit halts buying at collect; no caller passes lines yet. |
 
 ### DATA
 

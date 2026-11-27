@@ -765,3 +765,12 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-27 - money-small's claim widened to desk/strategy.py (#2330)
 - Options: widen the claim to MONEY files (taken, his 13 Nov "always go with recommended") or ask RUNGS. R-RUNNER-504 and R-RUNNER-509 declined: #2168 is closed; #2325 and #2324 carry the follow-ups.
+
+### 2026-11-27 - A book differing on one line refuses that line only (#2333, R-RUNNER-534)
+- Options: a stranger holding in a line the day has no order for (Z) blocks every buy as before, or blocks only that line. Took the second, from the request: Z is said on the morning list and blocks no one. The kill switch stays the desk-wide stop.
+
+### 2026-11-27 - Broker fault matrix, five more cells (#2354, R-RUNNER-510)
+- Options: play the hang-up as a ConnectionError from the door (needs desk/paper.py, outside the claim: rejected), or as Fault.CRASH as the request orders (taken). The next order's refusal counts as trading not resumed. The matrix counts 7 of 325 (65 classes x 5 moments), not the request's 330. PAPER request R-MONEY-75 records the real door's gap.
+
+### 2026-11-27 - collect's gap check takes optional arguments (#2363, R-RUNNER-542)
+- Options: a new function, or required arguments breaking other lanes' callers. Took optional arguments, so every caller keeps working until the callers pass lines.
