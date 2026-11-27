@@ -57,6 +57,7 @@ from desk.simcity_incidents import (
 from desk.simcity_parts import MONTH, Archive, Night, _behind, _gapped, _killed
 from desk.simcity_parts import _market as dealt
 from desk.store import Bar
+from desk.store_parts import upto
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
@@ -151,9 +152,7 @@ class _Life:
     def live(self, on: date) -> day.Record:
         """One day whole, from the data saved by its end, and its record."""
         saved = {
-            x: [b for b in bars if b.day <= on]
-            for x, bars in self.market.items()
-            if bars[0].day < on
+            x: list(bars[: upto(bars, on)]) for x, bars in self.market.items() if bars[0].day < on
         }
         scenario, buys = self.census.scenario, self.pretend.bought.copy()
         record = self._run(saved, on)

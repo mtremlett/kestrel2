@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Any
 import pytest
 import test_keeper as tk
 
-from desk import bars, keeper, store_scope
+from desk import bars, bars_form, keeper, store_scope
 from desk.lines import Line
 from desk.store import Bar
 
@@ -128,6 +129,43 @@ ROWS = {
         False,
     ),
 }
+
+
+#: Each row's rule sites: the functions of the keeper and the writer it pins (`_sites`).
+SITES = dict(
+    zip(
+        ROWS,
+        (
+            ("keeper._dropped", "keeper._kept_in"),
+            ("keeper._dropped",),
+            ("keeper._kept_in", "keeper._upheld"),
+            ("keeper._upheld", "bars.daily"),
+            ("keeper._upheld",),
+            ("bars_form._barred", "bars_form.restated"),
+            ("bars_form.barred", "bars.daily"),
+        ),
+        strict=True,
+    )
+)
+#: The names a withdraw rule reads or is: the marks' own statements and the rules over them.
+MARKS = {"WITHDRAW", "RESTORE", "UNDER", "_barred", "_dropped", "_upheld"}
+
+
+def _sites() -> set[str]:
+    """Every function of the keeper and the writer that is a withdraw rule or uses one."""
+    found = set()
+    for module in (keeper, bars, bars_form):
+        tree = ast.parse(Path(str(module.__file__)).read_text(encoding="utf-8"))
+        for fn in (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)):
+            used = {getattr(n, "id", getattr(n, "attr", "")) for n in ast.walk(fn)}
+            if fn.name in MARKS or used & MARKS:
+                found.add(f"{module.__name__.split('.')[-1]}.{fn.name}")
+    return found
+
+
+def test_every_withdraw_rule_of_the_keeper_and_the_writer_is_pinned_by_a_row() -> None:
+    pinned = {site for sites in SITES.values() for site in sites}
+    assert _sites() == pinned, "a withdraw rule has no row in ROWS (SITES), or a row no rule"
 
 
 @pytest.mark.parametrize("row", ROWS)

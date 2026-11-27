@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import sqlite3
 from contextlib import closing
@@ -200,6 +201,26 @@ def test_rolloff_rows_lists_safe_only_a_file_whose_every_row_the_store_holds(
     safe, kept = quality.rolloff_rows([held, lacking], tmp_path, [SPY])
     assert (safe, kept) == ([held], [lacking])
     assert held.exists() and lacking.exists()
+
+
+def test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it(tmp_path: Path) -> None:
+    seeded(tmp_path, set())
+    old = tmp_path / "old"
+    old.mkdir()
+    head = "symbol,day,open,high,low,close,volume\n"
+    (old / "held.csv").write_text(
+        head + f"SPY,{DAYS[0]},{bar(DAYS[0]).open},{bar(DAYS[0]).high},"
+        f"{bar(DAYS[0]).low},{bar(DAYS[0]).close},1000\n",
+        "utf-8",
+    )
+    (old / "lacking.csv").write_text(head + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    (old / "store.parquet").write_bytes(b"\x00\xff")
+    path = quality.write_rolloff_rows(old, tmp_path, [SPY])
+    assert path == tmp_path / "rolloff_rows.json"
+    said = json.loads(path.read_text("utf-8"))
+    assert [Path(p).name for p in said["safe"]] == ["held.csv"]
+    assert [Path(p).name for p in said["kept"]] == ["lacking.csv", "store.parquet"]
+    assert len(list(old.iterdir())) == 3
 
 
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:

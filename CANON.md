@@ -1,7 +1,7 @@
 # The canon
 Rules that keep this desk converging instead of doom looping, for every session: lanes
 (Parts A, B) and seats (Part C). Facts live in `CLAUDE.md`; recurring failures and their
-checks in `docs/FAILURE_PATTERNS.md`. **Limit: 200 lines, held by a guard** (`BUDGET.json`):
+checks in `docs/FAILURE_PATTERNS.md`. **Its length is capped by a guard** (`BUDGET.json`):
 a new rule replaces or merges one, or becomes a check. The first desk forgot 56 lessons.
 
 # Part A — engineering
@@ -71,7 +71,7 @@ a new rule replaces or merges one, or becomes a check. The first desk forgot 56 
 - **Fail loudly.** No broad or empty exception handlers, no silent fallbacks, no
   suppression without a reason on the same line. Errors say what failed, with which ids.
 - Type annotations everywhere. Typed models instead of loose dictionaries.
-- Small units: functions under 50 lines, files under 800 (his ruling, 21 Nov). Both guarded.
+- Small units: functions and files under their caps in `BUDGET.json` (his ruling, 21 Nov). Guarded.
 - Scripts only call into the package; no business logic lives in them.
 - Optimise only when a benchmark tied to a requirement shows the need.
 - One dependency list, `requirements.txt`, pinned; a new one only when it replaces code we

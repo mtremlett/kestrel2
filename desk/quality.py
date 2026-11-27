@@ -244,6 +244,20 @@ def rolloff_rows(
     return safe, kept
 
 
+def write_rolloff_rows(folder: Path, home: Path, lines: Iterable[Line]) -> Path:
+    """Every file under the folder judged by `rolloff_rows`; the lists are written to
+    `rolloff_rows.json` in the data home, where the runner job reads them. Nothing is deleted."""
+    files = sorted(p for p in folder.rglob("*") if p.is_file())
+    safe, kept = rolloff_rows(files, home, lines)
+    path = home / "rolloff_rows.json"
+    temp = path.with_suffix(".tmp")
+    temp.write_text(
+        json.dumps({"safe": [str(p) for p in safe], "kept": [str(p) for p in kept]}), "utf-8"
+    )
+    temp.replace(path)
+    return path
+
+
 Pull = Callable[[Line, str], Sequence[Timed] | Refused]  #: a source's bars of one line's span
 Pulls = Sequence[tuple[Source, Pull]]  #: the sources in the order they are tried
 
@@ -558,6 +572,9 @@ if __name__ == "__main__":
     if sys.argv[1:2] == ["rolloff"]:
         gone, left = rolloff(Path(sys.argv[2]), home)
         sys.stdout.write(f"rolloff: {len(gone)} duplicates deleted; for his yes: {left}\n")
+        sys.exit(0)
+    if sys.argv[1:2] == ["rolloff-rows"]:
+        sys.stdout.write(f"rolloff-rows: {write_rolloff_rows(Path(sys.argv[2]), home, LINES)}\n")
         sys.exit(0)
     said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
     sys.stdout.write(f"{said}\n")

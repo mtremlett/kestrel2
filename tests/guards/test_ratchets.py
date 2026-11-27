@@ -9,6 +9,11 @@ main on every change, so no session has to keep a count up to date by hand:
   hours (21 November 2026). A file that grows is read a line at a time. A file that
   cannot grow (a source file, a small marker or config) says why on the same line:
   `# bounded: <why>`; a mark with no reason after it counts.
+- the file replaces in `desk/` and `lab/`: `path.replace(new)`, `path.rename(new)`,
+  `os.replace` and `os.rename`. On Windows a file replaced while another process reads it
+  refuses ("Access denied"): the store's daily files, a grid file and the runner's list on
+  16 November (failure pattern 19). Each shared file gets one locked writer; until then a
+  new writer reuses an old one, never adds a replace of its own.
 
 Approved in the after-first-light queue, 14 November 2026 (docs/DECISIONS.md).
 """
@@ -131,6 +136,39 @@ def test_whole_file_reads_never_rise() -> None:
         f"whole-file reads rise from {sum(before.values())} on main to {sum(now.values())}; "
         f"files that grew (main, now): {grown}. Read a file that grows a line at a time; "
         "for one that cannot grow, say why on the same line: `# bounded: <why>`."
+    )
+
+
+#: what swaps one file for another: a path's replace or rename, and the os module's
+MOVES = frozenset({"replace", "rename"})
+
+
+def _replaces(source: str) -> list[tuple[int, int]]:
+    """Each call that replaces a file, by (line, column): `x.replace(y)` or `x.rename(y)` with
+    one argument (a text's replace takes two, a time's takes names), or `os.replace(a, b)`."""
+    return sorted(
+        (node.lineno, node.col_offset)
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in MOVES
+        and not node.keywords
+        and (
+            len(node.args) == 1
+            or (isinstance(node.func.value, ast.Name) and node.func.value.id == "os")
+        )
+    )
+
+
+def test_file_replaces_never_rise() -> None:
+    """A FILE REPLACED WHILE IT IS READ (failure pattern 19; design L16). Windows refuses the
+    swap while any reader holds the file, so each new replace is a new place for a live job to
+    fail. A change may route a writer through another's; it may not add a replace."""
+    before, now = _count(_base(), _replaces), _count_tree(_replaces)
+    grown = {p: (before.get(p, 0), n) for p, n in now.items() if n > before.get(p, 0)}
+    assert sum(now.values()) <= sum(before.values()), (
+        f"file replaces rise from {sum(before.values())} on main to {sum(now.values())}; "
+        f"files that grew (main, now): {grown}. Write through the file's existing writer."
     )
 
 
