@@ -132,3 +132,12 @@ def test_a_refusal_is_named_by_status_and_the_rest_is_kept_but_all_refusing_is_a
     assert collector.run(tmp_path, env, NOW, _refuse) == 1
     err = capsys.readouterr().err
     assert "tiingo: HTTP 401" in err and "fred: HTTP 401" in err
+
+
+def test_alpha_vantage_earnings_are_kept_raw_and_cross_checked_with_finnhub(tmp_path: Path) -> None:
+    both = {"ALPHAVANTAGE_API_KEY": HIDDEN, "FINNHUB_API_KEY": HIDDEN}
+    assert collector.run(tmp_path, both, NOW, _ask) == 0
+    held = _held(tmp_path)  # raw answers were kept (its count is asserted there)
+    assert held[("earnings", "NVDA")] == [("2026-11-19", "")] * 2  # two vendors, one date
+    assert ("earnings", "ZZZZ") not in held  # a ticker the desk holds no line for
+    assert ("2027-02-01", "") not in held[("earnings", "NVDA")]  # beyond the 14 days asked
