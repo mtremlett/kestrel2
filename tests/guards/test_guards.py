@@ -233,6 +233,55 @@ def test_every_module_is_registered_in_the__manifest() -> None:
     assert listed - actual == set(), f"in the manifest but absent: {sorted(listed - actual)}"
 
 
+#: a fragment's name: a module cut by size, not by what it owns (failure pattern 6)
+FRAGMENT = re.compile(r"_(?:parts?|more|extra|rest|bits|helpers?|misc|aux)\d*$|[a-z]\d$")
+
+
+def _git_out(*args: str) -> str:
+    return subprocess.run(  # noqa: S603
+        ["git", *args],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def test_every_desk_module_has_one_owner_and_one_job() -> None:
+    """SPRAWL, held by ownership, not a file count (his 'Yes, all of it', 27 Nov). Each desk/
+    module is a row of one lane's manifest file, saying the one thing it owns; a module two
+    lanes list fails the loader."""
+    spec = manifest()
+    unowned = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if name.startswith("desk/")
+        and Path(name).name != "__init__.py"
+        and not (spec["owner"].get(name) and str(spec["modules"].get(name, "")).strip())
+    )
+    assert not unowned, (
+        f"desk/ modules with no lane or no stated job: {unowned}. Each is a row of "
+        'manifest/<lane>.toml: "desk/x.py" = "the one thing it owns".'
+    )
+
+
+def test_no_fragment_names_are_added() -> None:
+    """SPRAWL, by name. A module split off because its parent is full (`book_parts.py`,
+    `orders_parts2.py`) owns no concept of its own. Those on main may only fall; a change may
+    add none: name the new module for what it owns."""
+    base = _git_out("merge-base", "HEAD", "origin/main").strip()
+    was = set(_git_out("ls-tree", "-r", "--name-only", base, "--", *PRODUCT_DIRS).split())
+    added = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if FRAGMENT.search(Path(name).stem) and name not in was
+    )
+    assert not added, (
+        f"fragment names added: {added}. Name a module for the one thing it owns, never its "
+        "parent's name plus a suffix (failure pattern 6)."
+    )
+
+
 def _imports(path: Path) -> set[str]:
     names: set[str] = set()
     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):

@@ -2690,3 +2690,7 @@ per file, 50 per function. In its place, two guards (`tests/guards/test_guards.p
 module is a row of its lane's manifest file with one owner and the one thing it owns; and no
 `_parts`, `_parts2` (or like fragment) name may be added in desk/ or lab/, the existing ones only
 falling (failure pattern 6 extended).
+Driven RED before the file count was removed: a planted `desk/book_parts3.py`, registered,
+"fragment names added: ['desk/book_parts3.py']"; a planted `desk/plantowner.py` whose row says
+`" "`, "desk/ modules with no lane or no stated job: ['desk/plantowner.py']". Both reverted; both
+green on main's 100 desk/ files (14 desk/ and 6 lab/ fragments stand and may only fall).
