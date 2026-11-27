@@ -169,6 +169,15 @@ Options: move the SimCity start past 2019-06-18 (rejected: it hides the fault); 
 ### 2026-11-23 — #2098 (data-members): unmeasured sources named, never bought (DATA)
 Options: buy FTSE Russell/funds data (rejected: no paid data before profit; his 22 Nov "nothing parks on him but hard lines"); store by-date members in a file (left: the nightly line is the record for now); name them UNMEASURED in the nightly line (chosen).
 
+### 2026-11-26 — #2201 (R-RUNNER-522): only stale spans are named (DATA)
+Options: name held-but-behind spans only (chosen: they are faults; never-held spans are gaps, already counted, and the line stays short); name both; a new command. No new command.
+
+### 2026-11-26 — #2205 (R-RUNNER-525): a missing old bar is named, vouching not repeated (DATA)
+Options: judge vouching again for each old bar (rejected: the check must not repeat the adoption); name every old bar absent from the one store as missing, whether never vouched or lost (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-26 — #2208 (R-RUNNER-524): the live-day copy is silent in `keep` (DATA)
+Options: add a report line, or stay silent. Silent keeps the output the runner and tests read unchanged. The `--live` one-minute round does not copy; the next five-minute round does.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read

@@ -4,11 +4,14 @@ day-trader's sale before the close, and 15-minute bars rolled from the 5-minute 
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Sequence
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import ClassVar
+
+import pytest
 
 from desk import bars, intraday, venues
 from desk.grimes import GRIMES
@@ -55,12 +58,21 @@ def test_the_zoo_is_thirty_machines_over_every_regime_and_none_a_candidate() -> 
     assert all(m.source for m in ZOO)
 
 
-def test_the_zoo_trades_ten_plain_london_lines_and_every_us_security() -> None:
+def test_the_zoo_trades_nine_plain_london_lines_and_seven_us_securities_all_isa() -> None:
     lines = intraday.zoo_lines()
     london = [line for line in lines if line.venue == "LSE"]
-    assert len(london) == 10 and all(line.leverage == 1 for line in london)
+    assert len(london) == 9 and all(line.leverage == 1 for line in london)
     us = [line for line in lines if line.venue == "US"]
-    assert len(us) == 9 and all(line.isin for line in us)
+    assert len(us) == 7 and all(line.isin for line in us)
+
+
+def test_a_line_the_master_marks_not_isa_never_reaches_the_zoo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plain = intraday.zoo_lines()[0]
+    banned = dataclasses.replace(plain, symbol="NOISA", isa=False)
+    monkeypatch.setattr(intraday, "LINES", (plain, banned))
+    assert intraday.zoo_lines() == (plain,)
 
 
 def test_opening_range_breakout_buys_over_the_first_bar_and_sells_under_its_low() -> None:

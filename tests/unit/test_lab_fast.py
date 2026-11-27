@@ -149,3 +149,8 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
     demark = {"name": "demark_sequential", **book["demark_sequential"]}
     with pytest.raises(ValueError, match="case 0 gives"):  # a setting, not the book's constant
         Spec.parse({**demark, "params": {"entry": {"n": 7}, "exit": {"n": 7}}})
+
+
+def test_a_close_exactly_on_the_keltner_band_is_not_over_it() -> None:
+    bars = _walk(9, 1200)[:375]  # its last close is the upper band to the penny: 30 * 55.5 = sums
+    assert not fast.Shared(bars).fires("close_over_keltner_band", {"n": 10})[-1]

@@ -2520,6 +2520,13 @@ JSON line. Decided by rule, with the options:
 Checked: `tests/unit/test_progress.py`, seen red (no module) then green; on main at ba666d4b it
 printed 3 for 24 h, the three DATA boxes the plan's own diff shows ticked.
 
+## 26 Nov - a WEAK fit with the book is graded, not held back (RUNGS)
+
+Ruled by chat seat 215, asked by the fit rung's session (#2233): the fit rung is a soft rung, so its
+WEAK is a scorecard mark like the regime rung's and its FAIL still holds a cell back. `verdict.GRADED`
+names "fit" (`rung_fit.RUNG.name` once #2233 lands). Seen red first: a WEAK fit held a cell back in
+`test_lab_verdict.py`'s scorecard test.
+
 ## 26 Nov - two rungs before EPON: liquidity and capacity, and fit with the book (his order)
 
 **His order** (Thu 26 Nov 20:2x, through chat seat 215): two new rungs on the ladder before the
@@ -2560,9 +2567,8 @@ past 0.90 with a line held is refused, so such a rule could not be traded beside
 home. *Why 0.70:* a correlation of 0.70 shares about half (0.49) of its day-to-day swings with a
 rule already running, so half its risk is not new; the rung's own number, homed in the module.
 *Options not taken:* one bar (no grade between new and copied); across lines (the desk's
-correlation gate and `lab/bets.py` own the book's lines together). *Owed:* `lab/verdict.py`'s
-`GRADED` does not yet name `fit`, so until its owner adds it a WEAK holds a cell back from going
-forward as a FAIL would: stricter, never looser.
+correlation gate and `lab/bets.py` own the book's lines together). `lab/verdict.py`'s
+`GRADED` names `fit` (#2239), so a WEAK is the scorecard's and only a FAIL holds a cell back.
 *Golden (B5, the desk approves goldens, his 22 Nov):* no answer moves. The ladder's fixture book
 (`tests/unit/test_lab_ladder.py`) traded one share a day, which the liquidity rung rightly FAILS;
 its two lines now trade a million shares a day, so the planted edge still passes every rung, and
