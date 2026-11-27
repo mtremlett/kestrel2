@@ -158,3 +158,11 @@ def test_no_rule_is_proven_on_an_indicator_that_does_not_give_its_published_tabl
                 ):
                     published_tables.indicators()
         monkeypatch.setitem(held, name, table)
+
+
+def test_a_variant_is_held_to_its_rows_publication_and_refused_without_one() -> None:
+    #: a variant is its row's code at other settings (L17): the row's known answers prove it
+    row = "donchian_channel_breakout"
+    assert published.proven(f"{row}[entry.n=40,exit.n=80]") is published.proven(row)
+    with pytest.raises(ValueError, match=r"no_such_rule: no published rule on file"):
+        published.proven("no_such_rule[entry.n=40]")

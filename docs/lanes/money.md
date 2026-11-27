@@ -775,3 +775,16 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-27 - The zoo drops only lines the master marks isa=no (#2248, R-RUNNER-481)
 - Options: drop unrecorded isa (None) too (removes nothing today, hides unrecorded lines) or keep them. Took keep: the card says "marks isa=no". IB1T, SPY, QQQ leave; the count test moved 10/9 to 9/7.
+
+### 2026-11-27 - Gap-up sizing uses the dearer of signal and live price (#2275, R-RUNNER-535)
+- Options: overwrite `order.price` with the live price (rejected: the order's id and stop contract stays) or size at max(signal close, live price) and leave `order.price` the signal price (taken). The stop still rests 10% under min(price, market). The binary search moved to `_most()` to hold the complexity cap.
+
+### 2026-11-27 - Eponymous rules declare no holding period (#2276, #2288, R-RUNNER-539, R-RUNNER-540)
+- Options: invent a limit per rule or declare none with its reason. Took none for faber_tactical, kell_breakout, keltner_channel_trend, mansfield_rs_momentum, minervini_breakout, momentum and raschke_swing: no published sell logic gives a day limit (his 21 Nov ruling: each limit from its own sell logic). swing keeps five sessions (Jegadeesh/Lehmann week). No golden day moves.
+
+### 2026-11-27 - A line owed its close is refused by name, the rest trade (#2168, R-RUNNER-488)
+- The refusal rides the record's mismatches with one wording constant (`day_money.CloseOwed`). Options: a new Record field (rejected: changes the comma file's columns, outside the claim); a raise (rejected: that is the fault). The day's profit is withheld, never priced by an older bar, and the record is published.
+- A held yardstick owed its close still gives no record, since its close is every record's yardstick. Options: publish without a market figure, or refuse; chose refuse, unchanged.
+
+### 2026-11-27 - A buy in the replay day is sized with the live price (#2300, R-RUNNER-514)
+- Options: refuse a buy through its stop, or rest the stop under the market. The sizer already does both, so it is used as is. `live` stays optional until the live round (`desk/running.py`, PAPER's, R-MONEY-74) passes it, then becomes required.

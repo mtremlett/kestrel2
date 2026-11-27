@@ -151,6 +151,8 @@ def grade(basket: Verdict, against: Against) -> tuple[Answer, str] | None:
 
 
 NAME = ("BASKET", "all lines pooled")  #: the line and the venue of a basket's cell in the table
+#: A basket is judged on its pooled first rungs only, so its pass is no pass of the whole ladder.
+UNRUN = {"ladder": "a basket is its lines' trades pooled: a line goes forward on its own rungs"}
 
 
 def pool(lines: Sequence[Verdict]) -> Verdict:
@@ -197,7 +199,7 @@ def row(
         "trials": looks,
         "trades": len(basket.trades),
         "rungs": verdict.reported(rungs),
-        "unrun": verdict.UNRUN,
+        "unrun": UNRUN,
         "every": verdict.every(rungs),
         "answer": verdict.basket_answer(basket, stressed),
     }
