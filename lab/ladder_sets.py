@@ -9,6 +9,7 @@ verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the b
 runs set LEV (STR-18): six trend rules, named in `TREND`, on the leveraged lines only, judged
 on their own trial count. `variants` names set VAR before any result (canon B6): every variant
 of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
+`transfer` publishes set 2, the grid's transfer study, from the file `lab/transfer.py` wrote.
 A set that ends with its `SET` line is told to his phone once (LAD-09), through the one door.
 """
 
@@ -35,6 +36,7 @@ from lab import (
     rulebook,
     scalping,
     tape,
+    transfer,
     trials,
     variants,
     verdict,
@@ -343,6 +345,26 @@ def entered(home: Path) -> str:
     return f"SET VAR: {len(made)} variants entered, {count} trials counted; none judged yet (GC)"
 
 
+def transferred(home: Path) -> str:
+    """Set 2, the grid's transfer study (`lab/transfer.py`, PRE-REVIEW, never a verdict), read from
+    the results file the study wrote and closed with its `SET` line: its rules, how many scored
+    PASS on some line, and that none goes forward. No study written: refused, naming the file."""
+    path = home / transfer.FOLDER / f"{transfer.NAME}.json"
+    if not path.exists():
+        sys.exit(f"ladder: no transfer study at {path}; `python -m lab.transfer` writes it first")
+    data = json.loads(path.read_text("utf-8"))  # bounded: one study, rewritten whole each run
+    rows, label = data["rows"], data["label"]
+    rules = dict.fromkeys(row["rule"] for row in rows)
+    passed = {row["rule"] for row in rows if row["answer"] == Answer.PASS.name}
+    fits = f"{data['fits']} fitted, {data['bare']} bare"
+    counts = f"{data['lines']} lines, {len(rows)} scores, {fits}"
+    return (
+        f"set TRANSFER ({label}): {counts}{NL}SET TRANSFER: {len(rules)} rules, {len(passed)} "
+        f"scored PASS on a line, none goes forward ({label}, never a verdict), "
+        f"table {path.with_suffix('.md')}"
+    )
+
+
 def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
     """The lines that make more than their market's daily move."""
     return tuple(line for line in lines if line.leverage > 1)
@@ -372,8 +394,9 @@ def main(
     """Set EPON on every line the research store holds; `first` runs the first set instead and
     `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set INTRADAY
     (five-minute rules), `scalping` set SCALP (one-minute rules); `variants` only enters set
-    VAR's trials. The sets run on the pool (R-RUNNER-110): every core but two. A finished set
-    is told to his phone by `told`; 1 when it could not be."""
+    VAR's trials; `transfer` publishes set 2, the grid's study. The sets run on the pool
+    (R-RUNNER-110): every core but two. A finished set is told to his phone by `told`; 1 when
+    it could not be."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
@@ -384,15 +407,25 @@ def main(
         ["intraday"],
         ["scalping"],
         ["variants"],
+        ["transfer"],
     )
     if list(argv) not in sets:
         sys.exit(
             f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged`, "
-            "`intraday`, `scalping` or `variants`"
+            "`intraday`, `scalping`, `variants` or `transfer`"
         )
     if argv == ["variants"]:  #: names a family; reads no bars
         sys.stdout.write(entered(home) + NL)
         return 0
+    said = transferred(home) if argv == ["transfer"] else _judged(home, argv)
+    sys.stdout.write(said + NL)
+    phone = told(home, said, now(), partial(door, env))
+    sys.stdout.write(phone + NL)
+    return int("NOT TOLD" in phone)
+
+
+def _judged(home: Path, argv: Sequence[str]) -> str:
+    """A set judged on the store's bars, named by `argv`, and what it said."""
     make = partial(history_bars.reader, home)
     pounds, held = history_bars.pounds(home), history_bars.lines(home)
     if argv == ["intraday"]:
@@ -406,8 +439,5 @@ def main(
         said = first(home, make, pounds)
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
-        said += "\n" + weather_line(home, make(), held)
-    sys.stdout.write(said + "\n")
-    phone = told(home, said, now(), partial(door, env))
-    sys.stdout.write(phone + "\n")
-    return int("NOT TOLD" in phone)
+        said += NL + weather_line(home, make(), held)
+    return said

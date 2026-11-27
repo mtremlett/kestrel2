@@ -21,6 +21,7 @@ from lab import (
     members,
     rulebook,
     scalping,
+    transfer,
     trials,
     variants,
     verdict,
@@ -34,6 +35,7 @@ RECORD = Record(
     (Change(date(2018, 3, 1), "NEW", True), Change(date(2015, 6, 1), "LEFT", False)),
 )
 LONDON = next(line for line in LINES if line.venue == "LSE")
+TRANSFERRED = (("a", "PASS"), ("a", "FAIL"), ("b", None), ("c", "REFUSED"))  #: set 2's scores
 
 
 def test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected() -> None:
@@ -187,6 +189,20 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
         assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
     register = tmp_path / "ladder" / "VAR.trials.jsonl"
     assert trials.count(register, ladder_sets.VAR.question) == len(made)
+    with pytest.raises(SystemExit, match="lab.transfer"):  #: set 2 before its study: refused
+        ladder_sets.main(env, ["transfer"], door, lambda: noon)
+    scored = [transfer.Row(r, None, (), "X on US", None, a) for r, a in TRANSFERRED]
+    page = transfer.report(transfer.Study(tuple(scored), 0, 0), 2)[1]
+    (tmp_path / transfer.FOLDER).mkdir(parents=True)
+    (study := tmp_path / transfer.FOLDER / f"{transfer.NAME}.json").write_text(json.dumps(page))
+    for _ in range(2):  #: set 2 told once, its counts and its table said
+        assert ladder_sets.main(env, ["transfer"], door, lambda: noon) == 0
+    assert len(phone) == 3 and phone[-1].startswith("set TRANSFER (PRE-REVIEW): 2 lines, 4 scores")
+    assert (
+        "SET TRANSFER: 3 rules, 1 scored PASS on a line, none goes forward (PRE-REVIEW"
+        in (phone[-1])
+        and str(study.with_suffix(".md")) in capsys.readouterr().out
+    )
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])
 
