@@ -2813,3 +2813,20 @@ cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer chang
 cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
 `tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
 and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
+## 27 Nov - the known-answer kit's planted edge is a crowd (L15b, Builder R2)
+The breakout's planted rise cannot go forward (#2402): any trend rule hears it (fit 0.91), so it is
+no edge of its own. Options weighed: (a) deepen and lengthen the breakout walks: fit still FAILS by
+design; (b) the rung kit's paid churner: a next-open jump that a one-bar-late rung (E13) must FAIL,
+so it cannot be the edge that goes forward on every rung; (c) an edge only its rule hears that
+lasts. Chose (c), test data only, no rung touched: `Crowd` is in while the day's volume is crowded
+(2,000,000 shares against 1,000,000); crowded spells of about 8 days rise 0.4% a day, quiet spells
+of about 16 give half of it back, so the line goes nowhere, under 1.5% of noise, on the four US
+lines beside SPY. Why 17 years: an honest edge sits under the yearly Sharpe flag of 2 (canon B6),
+and on 2,400 days a Sharpe that size was too thin for both regime windows to pass apart (t 1.1 to
+2.9, regimes FAIL on every line, probed). Over 6,200 days at a rise of 0.4%: t 4.9 to 6.3, yearly
+Sharpe 1.19 to 1.54, fit 0.43 to 0.55, costs 5.7 to 7.3 times, both windows PASS, every rung run and
+passed on all four lines (`goes`). A rise of 0.3% left every line short; 0.5% also passes, nearer the
+flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the first rung after
+costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
+`test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
+green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
