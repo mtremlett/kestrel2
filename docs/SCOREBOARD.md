@@ -1195,3 +1195,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2273 RUNGS #2270 closed as a duplicate of #2254; the golden change's B5 record restored to DECISIONS. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2278 RUNGS R-RUNNER-552 done: the regimes rung cuts at the line's own last bar, a tradeless half is THIN not FAULT. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2256 RUNGS R-RUNNER-548 done: fake shuffle proof removed, the real shuffle runs in the ladder tests. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2264 PAPER R-RUNNER-454 done: an ISIN line is asked with an empty security type so IDTL resolves from the broker's answer. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 PAPER R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
