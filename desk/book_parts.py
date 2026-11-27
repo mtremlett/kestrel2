@@ -94,7 +94,7 @@ def add(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> 
     try:
         copyfile(path, written)
         with written.open("r+b") as out:
-            if out.read(len(head)) != head or out.seek(-1, SEEK_END) < 0 or out.read() != NEWLINE:
+            if out.read(len(head)) != head or out.seek(-1, SEEK_END) < 0 or out.read(1) != NEWLINE:
                 return False  #: another header, or a last row unended: added to, it would break
             out.seek(0, SEEK_END)
             out.write(text.getvalue().encode())
