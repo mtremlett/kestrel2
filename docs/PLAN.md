@@ -385,7 +385,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores}
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores, money-epon-room}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [x] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
@@ -531,7 +531,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
-- [x] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
+- [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
       #2088, pattern 13), so 14 scenarios never happen and SimCity proves nothing. A day the store withdrew is
       a scenario the world meets (R-RUNNER-246's hole), never the end of the world. Carded in MONEY, which owns
