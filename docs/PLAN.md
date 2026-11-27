@@ -538,8 +538,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the SimCity modules (manifest.toml, the money lane; the lanes guard refuses DATA there). Gate, written
       first: a world whose line has a withdrawn day still lives past it and meets its later scenarios. Check:
       the next deep run's verdict has no 'stops on' line
-      (#2187: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before. Remains: read the next deep run's verdict)
-      {id: money-simcity-withdrawn-day; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
+      (#2187, #2287: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before, pinned by a test. Remains: read the next deep run's verdict, which needs the nightly run)
+      {id: money-simcity-withdrawn-day; waits: 2026-11-28; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
 - [x] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
       desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
@@ -690,8 +690,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
-      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside this claim, B5), then `orders.gapped` at `book.collect`.
-      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
+      {id: money-time-gaps; waits: 2026-11-28; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml, desk/book.py, tests/unit/test_book*.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
