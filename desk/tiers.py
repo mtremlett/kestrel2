@@ -39,11 +39,11 @@ class Feed:
             raise ValueError(f"unknown span {self.span!r}")
 
 
-FEEDS: Mapping[Tier, Feed] = {
+TIER_FEEDS: Mapping[Tier, Feed] = {
     Tier.A: Feed(Source.IBKR, "1m"),
     Tier.C: Feed(Source.ARCHIVE, DAILY),
 }  # Tier B has no feed until a strategy needs the vendor's: bought after the A-GATE
-LONDON = Feed(Source.IBKR, LONDON_BREADTH)
+LONDON_FEED = Feed(Source.IBKR, LONDON_BREADTH)
 
 
 @dataclass(frozen=True)
@@ -56,9 +56,11 @@ class Placement:
 
 def feed_of(tier: Tier) -> Feed:
     """The feed of a tier; Tier B's is not bought yet and says so."""
-    if tier not in FEEDS:
-        raise NotImplementedError(f"tier {tier.value} has no feed: the vendor is bought after the A-GATE")
-    return FEEDS[tier]
+    if tier not in TIER_FEEDS:
+        raise NotImplementedError(
+            f"tier {tier.value} has no feed: the vendor is bought after the A-GATE"
+        )
+    return TIER_FEEDS[tier]
 
 
 def place(
@@ -81,9 +83,9 @@ def place(
     out: dict[str, Placement] = {}
     for name in sorted(set(tickers)):
         if name in chosen:
-            out[name] = Placement(Tier.A, FEEDS[Tier.A])
+            out[name] = Placement(Tier.A, TIER_FEEDS[Tier.A])
         elif name in top and name in set(london):
-            out[name] = Placement(Tier.C, LONDON)
+            out[name] = Placement(Tier.C, LONDON_FEED)
         else:
-            out[name] = Placement(Tier.C, FEEDS[Tier.C])
+            out[name] = Placement(Tier.C, TIER_FEEDS[Tier.C])
     return out

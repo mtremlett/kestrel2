@@ -16,10 +16,12 @@ def test_held_then_signalled_then_watched_fill_the_allowance_and_the_overflow_fa
         names, held=["BBB"], signalled=["AAA", "CCC"], watched=["DDD"], london=["CCC"], allowance=2
     )
     assert [got[n].tier for n in names] == [Tier.A, Tier.A, Tier.C, Tier.C, Tier.C, Tier.C]
-    assert got["AAA"].feed == tiers.FEEDS[Tier.A]  # signalled, name order after the held
+    assert got["AAA"].feed == tiers.TIER_FEEDS[Tier.A]  # signalled, name order after the held
     assert got["BBB"].feed.span == "1m" and got["BBB"].tier is Tier.A
-    assert got["CCC"].feed == tiers.LONDON  # over the allowance, listed in London: 15 minutes
-    assert got["DDD"].feed == tiers.FEEDS[Tier.C] == got["ZZZ"].feed  # watched, not London: daily
+    assert got["CCC"].feed == tiers.LONDON_FEED  # over the allowance, listed in London: 15 minutes
+    assert (
+        got["DDD"].feed == tiers.TIER_FEEDS[Tier.C] == got["ZZZ"].feed
+    )  # watched, not London: daily
 
 
 def test_a_name_moves_tier_when_its_position_goes() -> None:
