@@ -158,7 +158,8 @@ def _kept_in(
         held, gave = _held(hot, line), broker if isinstance(broker, list | tuple) else ()
         theirs = {(g.day, entered(g)) for g in gave}
         ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
-        fresh = [b for b in kept if b not in held]  # a held bar keeps its label
+        standing_bars = frozenset(held)
+        fresh = [b for b in kept if b not in standing_bars]  # a held bar keeps its label
         judged.append((line, fresh, _dropped(held, answer, broker) - {b.day for b in kept}))
         parked += [park] if park else []
         named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
