@@ -3,7 +3,7 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -22,7 +22,9 @@ from desk import (
     keeper_live,
     paper,
     simcity,
+    simcity_parts,
     store,
+    venues,
     watch,
 )
 from desk.lines import YARDSTICK
@@ -65,6 +67,7 @@ from desk.simcity_incidents import (
     unbarred,
     unheld,
 )
+from desk.store import Bar
 
 
 def night(patch: pytest.MonkeyPatch, root: Path) -> simcity.Night:
@@ -88,7 +91,7 @@ def test_without_the_refusal_the_scenario_is_red(
     assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path).broken)
 
 
-def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_counts_it(
+def test_shares_beside_the_book_under_a_stop_are_left_under_it_and_the_census_counts_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
@@ -98,10 +101,15 @@ def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_cou
     assert LEFT in result.census["day.run"]
 
 
-def test_without_taking_the_shares_in_the_scenario_is_red(
+def test_selling_the_stopped_shares_on_top_of_the_stop_is_red(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(book, "adopt", lambda *_a: None)  #: no sale of shares the book lacks
+    old = lambda root, broker: tuple(  # noqa: E731 - the stranger list before a stop covered
+        (d.name, int(d.broker) - d.book)
+        for d in book.differences(book.positions(root), broker.holdings())
+        if d.broker > d.book
+    )
+    monkeypatch.setattr(book, "strangers", old)
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
@@ -290,3 +298,13 @@ def test_a_session_the_store_withdrew_is_no_end_of_the_world(
     monkeypatch.setattr(simcity, "EVENTFUL", 1_000_000)  # no scenario: the plain days alone
     result = simcity.run(tmp_path, archive, ROOM, RATES, NOW, (1, 2, 3))
     assert not [b for b in result.broken if "stops on" in b], result.broken
+
+
+def test_a_session_the_store_withdrew_is_a_still_day_the_world_lives_past() -> None:
+    sessions = venues.sessions(YARDSTICK.venue, date(2019, 5, 20), date(2019, 5, 28))
+    bars_ = [Bar(d, *(Decimal(10 + i),) * 4, 5) for i, d in enumerate(sessions)]
+    gone = bars_.pop(3)
+    world = simcity_parts._restored(YARDSTICK, bars_)  # noqa: SLF001 - the world's own mending
+    assert [b.day for b in world] == list(sessions)
+    assert world[3] == Bar(gone.day, *(bars_[2].close,) * 4, 0)
+    assert day_money.close({YARDSTICK: world}, YARDSTICK, sessions[-1]) == bars_[-1].close

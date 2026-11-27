@@ -325,3 +325,30 @@ def test_a_weekly_bar_is_fresh_for_the_last_complete_week_and_stale_after_a_fort
         with bars.writing(path, bars.Source.IBKR) as held:
             held.timed(SPY, "1wk", [Timed("1wk", at, price, price, price, price, 5)])
         assert quality.cell(path, SPY, "1wk", NOW) == why
+
+
+def test_an_intraday_gap_is_asked_of_the_broker_first_then_the_archive_and_no_gap_asks_nothing(
+    tmp_path: Path,
+) -> None:
+    path, asked = seeded(tmp_path, set()), []
+    start = datetime(2026, 11, 16, 15, 0, tzinfo=UTC)
+    one = Decimal(600)
+
+    def pull(name: str, answer: object):  # type: ignore[no-untyped-def]
+        def ask(_line: object, span: str) -> object:
+            asked.append((name, span))
+            return answer
+
+        return ask
+
+    here = [Timed("15m", start, one, one, one, one, 5)]
+    pulls = (
+        (bars.Source.IBKR, pull("broker", Refused("no"))),
+        (bars.Source.BACKFILL, pull("archive", here)),
+    )
+    wrote = quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("broker", "15m") in asked and ("archive", "15m") in asked
+    assert "SPY/15m: archive, backfilled" in wrote
+    asked.clear()
+    quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("archive", "15m") not in asked and ("broker", "15m") not in asked

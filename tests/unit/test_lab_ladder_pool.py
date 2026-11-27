@@ -69,14 +69,17 @@ def test_the_pool_writes_the_serial_runs_rows_in_its_order_and_a_workers_break_i
 
 @pytest.mark.usefixtures("eased_off")  #: its units are the off ladder's, with no placebo rung
 def test_a_unit_is_one_lines_one_fold_so_one_lines_history_spreads_over_the_workers(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     (one,) = _cells(VUSA)
     cut = ladder_pool.units([one, *_cells(ISF)])
     assert len(cut) == 2 * (1 + folds.YEARS) and len({u for u in cut}) == len(cut)
     assert [y for c, y in cut if c == one] == [None, *range(2021, 2026)]  # five folds, one cell
-    ladder_pool.run(tmp_path, _book, {}, [one], CLOCK, size=2, memory=PLENTY)
-    warmed = len(list((tmp_path / ladder.FOLDER / "tapes").glob("*.tape")))
+    monkeypatch.setitem(ladder_pool._held, "bars", _book())  #: warmed here, as a worker would:
+    with tape.on(tmp_path):  #: a spawned worker (Windows) never sees the switch set off above
+        for unit in (u for u in cut if u[0] == one):
+            ladder_pool._warm(unit)
+    warmed = len(list(tmp_path.glob("*.tape")))
     assert 1 <= warmed <= 2  # the line, and its market where reached: never a tape per fold
 
 

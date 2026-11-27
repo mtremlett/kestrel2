@@ -276,7 +276,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       (the requests to GRID, RUNGS and MONEY) and the tests name lines that stay; they are kept as price references (#455, #543)
       Settled (coordinator 54, 22 Nov: not his: his 13 November ruling is that SPY and QQQ leave the twenty traded lines; kept only as price references in `lines.REFERENCE`, never traded, they honour it; remains: the callers outside the claim read `lines.REFERENCE` and the tests name lines that stay)
       Waits for the three requests to GRID, RUNGS and MONEY (STATUS) to read `lines.REFERENCE`; their ids are two-digit, which the requirements guard refuses in a box, so the wait is dated and the next scribe moves it to the request when it lands. Not the operator's (coordinator 54, 22 Nov).
-      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py}
+      {id: data-isa-twins; files: desk/lines.py, tests/unit/test_lines.py, tests/unit/test_lab_universe.py; waits: 2026-12-04}
 - [x] A home for the research store on his PC, refreshed nightly, a ticker that left a list
       cleared out, and the day and list it reflects written beside it
       {id: data-research-home; files: lab/universe.py, tests/unit/test_lab_universe*.py; after: data-parked-fifth}
@@ -336,8 +336,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       from ONE store: the ladder's daily files miss SPY 2022-09-28 that market_history.db holds
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
-      Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation, gap filling for 15m-1wk, the two-store daily read. #2201: the one line also names each stale span (held but behind, e.g. "stale spans live/1h"; never-held spans stay counted as gaps). #2144: the hourly table also carries one row per database naming each red golden cell and why (SPY, QQQ, VUAG, IITU).
-      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py}
+      Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation (#2258: `quality.escalate` names the model per red kind, Opus for a kind never seen, Sonnet for one seen; no caller yet, and Haiku's naming of the kind is open), gap filling for 15m-1wk, the two-store daily read. #2201: the one line also names each stale span (held but behind, e.g. "stale spans live/1h"; never-held spans stay counted as gaps). #2144: the hourly table also carries one row per database naming each red golden cell and why (SPY, QQQ, VUAG, IITU).
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py; waits: 2026-11-28}
 - [x] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
@@ -385,7 +385,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores, money-epon-room}
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores, money-epon-room; waits: 2026-11-28}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [x] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
@@ -407,7 +407,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       are deleted from C: with his explicit yes, asked then (never copied to E:, his backup
       drive). His mark_the_trend programs are retired (his word, 14 November), so
       `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
-      Built (#2205): `python -m lab.headstart check` sets each IMPORT-tagged old store beside the one store per ticker (five-minute bars: counts, price checksum at shared moments, first missing moments named) and drills a restore on a scratch copy; nothing written or deleted. Remains: daily and hourly timeframes in the comparison; the real run's output; deletion waits on his yes, asked once both pass
+      Built (#2205): `python -m lab.headstart check` sets each IMPORT-tagged old store beside the one store per ticker (five-minute bars: counts, price checksum at shared moments, first missing moments named) and drills a restore on a scratch copy; nothing written or deleted. Daily rows compared too (#2274, `compare_days`). Remains: the hourly timeframe in the comparison; the real run's output; deletion waits on his yes, asked once both pass
       {id: data-consolidated; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history, data-two-stores}
 - [x] 2MU's five real moves recorded from a second source, or its reason confirmed
       {id: data-2mu; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py}
@@ -443,15 +443,15 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       checked against the broker's price of record each day once PAPER connects (DQ-03,
       DAT-07, DAT-01, DAT-02)
       Built (#1658, #1699): the staleness alarm is read by the monitor; `quality.register` names each line's newest-bar source (a report, not a red). Built (#1826): `quality.against_record(path, line, record)` reds a close more than store.AGREE (2%) from the broker's, or a missing day; `quality.check_records` and `python -m desk.quality record` ask the broker for each line's last ended session and judge it (#1834; kept in quality.py, not the monitor, to dial the broker once). Remains: the runner scheduling `record` daily after the close, PAPER answering with broker bars for the twenty lines (a request to PAPER in STATUS), a ranked second source beyond the three.
-      {id: data-second-source; files: desk/archive.py, tests/unit/test_archive*.py, desk/quality.py, tests/unit/test_quality*.py; after: data-polite}
+      {id: data-second-source; files: desk/archive.py, tests/unit/test_archive*.py, desk/quality.py, tests/unit/test_quality*.py; after: data-polite; waits: 2026-12-04}
 - [ ] Dividends and corporate actions: total-return history for the ladder, the paper
       profit and the hold-the-market yardstick (UNI-07)
       DATA's part landed (#1659): `desk.bars.total_return(path, line)` returns a reference series' dividend-adjusted twin, any other line as held (the archive's twin, no new schema). Remains: the ladder, paper profit and yardstick call it (RUNGS, PAPER, MONEY files; filed in DATA's STATUS requests by runner ops 171, 23 Nov, after six empty runs; the runner holds the box on them); dividend events and a split table only if wanted.
-      {id: data-dividends; files: desk/bars.py, tests/unit/test_bars*.py}
+      {id: data-dividends; files: desk/bars.py, tests/unit/test_bars*.py; waits: 2026-12-04}
 - [ ] Survivorship: the research list taken as it stood on each past date, with the names
       that left it, or the bias measured and stated on every verdict (BT-09)
       Built (#1715, #1750): `Members.survived` and `members.bias(name, day)` give the stated line; not wired into verdicts (a request to RUNGS in STATUS). #1839: `members.bias` answers for every list (FTSE350 and ETFS state "past members not recorded, bias unmeasured", never raise). Remains: FTSE 350 and funds' past members. Waits for RUNGS printing the bias on verdicts (request in STATUS; the plan guard refuses two-digit ids here, so the wait stays a date).
-      {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py}
+      {id: data-survivorship; files: lab/members.py, tests/unit/test_lab_members*.py; waits: 2026-12-04}
 - [ ] UK stamp duty and taxes confirmed line by line, in one table by instrument type
       (NS-05): the table is built and the five London funds confirmed; still owed, the five
       London products seen on a contract note, the research list's London shares name by
@@ -540,7 +540,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the next deep run's verdict has no 'stops on' line
       (#2187: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before. Remains: read the next deep run's verdict)
       {id: money-simcity-withdrawn-day; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
-- [ ] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
+- [x] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
       desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
       has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the

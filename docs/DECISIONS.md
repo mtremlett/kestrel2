@@ -2605,3 +2605,16 @@ of them would have turned main red on 26 standing boxes, so it is a ratchet, lik
 *Driven (A7):* planted on this branch, `money-simcity-withdrawn-day` ticked again and `data-tiers`
 ticked with "Remains: planted": FAILED, "rise from 26 on main to 27; new: ['data-tiers']";
 restored, it passes.
+
+## 27 Nov - the check runs the pinned tools (coordinator 221, 01:3x (8))
+
+A lane's "types clean" passed on the PC while GitHub's types step failed (#2233,
+lab/rung_fit.py): `check.py` runs each tool under the python that started it, and the PC's own
+python has mypy 2.3.0 and numpy 2.3.5 where requirements.txt pins 1.14.1 and 2.1.3. Sessions the
+runner starts get .venv first on PATH (checked 27 Nov in Git Bash and PowerShell, profile or
+not); a session started any other way may not. `test_the_check_runs_the_pinned_tools`
+(tests/guards/test_pinned_tools.py) fails when any pinned package runs at another version, so
+the check refuses to call such a run green. Failure pattern 5's twin, folded into its lines.
+*Driven (A7):* run with the PC's own python (Python311), it FAILED: "mypy: pinned 1.14.1,
+running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
+.venv's python it passes.

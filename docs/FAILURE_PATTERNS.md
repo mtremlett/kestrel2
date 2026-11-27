@@ -25,10 +25,10 @@ requires a batch adding net lines to name the scene it advances.
 is never fixed. The predecessor carried 2,221.
 → *Caught by:* a guard forbids skip and expected-failure markers. There is no list.
 
-**5. The test that reads the live desk.** A test passes honestly on the operator's
-machine because it reads his real data or his broker, and proves nothing about the code.
-→ *Caught by:* a guard forbids machine-specific paths, and GitHub runs the whole check on
-a machine with no access to any of it.
+**5. The test that reads the live desk.** A test passes on the operator's machine because it
+reads his real data or broker, or runs his PC's own tools (mypy 2.3.0 for the pinned 1.14.1, #2233).
+→ *Caught by:* a guard forbids machine-specific paths; `test_the_check_runs_the_pinned_tools`;
+and GitHub runs the whole check on a machine with no access to any of it.
 
 **6. The second version of a file.** `_v2`, `_new`, `_fixed`, or a file named after the
 session that wrote it. The predecessor had 1,218 session-named test files.
