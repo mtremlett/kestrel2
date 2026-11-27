@@ -88,7 +88,7 @@ def test_a_cell_the_first_rung_did_not_pass_keeps_its_answer_and_is_not_priced_a
     monkeypatch.setattr(rung_late, "late", priced)
     first = _first("crowd", AMD, bars)
     assert first.answer is Answer.FAIL
-    assert rung_late.RUNG.judge(first, bars, _rates(bars)) == (Answer.FAIL, rung_late.KEPT)
-    assert rung_late.RUNG.read(first) == (Answer.FAIL, rung_late.KEPT)
+    assert rung_late.RUNG.judge(first, bars, _rates(bars)) == (Answer.FAIL, rung_late.NOT_PRICED)
+    assert rung_late.RUNG.read(first) == (Answer.FAIL, rung_late.NOT_PRICED)
     with pytest.raises(ValueError, match="bars"):
         rung_late.RUNG.read(unpriced)

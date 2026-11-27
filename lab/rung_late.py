@@ -33,7 +33,7 @@ from lab import cell, rung
 from lab.cell import Record, Trade
 from lab.rung import Answer, Rates, Rung, Verdict
 
-KEPT = "the first rung did not pass it, so nothing is priced a bar late"
+NOT_PRICED = "the first rung did not pass it, so nothing is priced a bar late"
 
 
 def late(first: Verdict, bars: Sequence[Bar], rates: Rates) -> Verdict:
@@ -56,7 +56,7 @@ def late(first: Verdict, bars: Sequence[Bar], rates: Rates) -> Verdict:
 def _judged(first: Verdict, bars: Sequence[Bar], rates: Rates) -> tuple[Answer, str]:
     """The rung as the ladder reads it: the first rung's rule on the late trades."""
     if first.answer is not Answer.PASS:
-        return first.answer, KEPT
+        return first.answer, NOT_PRICED
     made = late(first, bars, rates)
     return made.answer, (
         f"a bar late, {_side(made)}; on time, {_side(first)};"
@@ -76,7 +76,7 @@ def _unread(first: Verdict) -> tuple[Answer, str]:
     """The rung without the bars: it cannot make a trade late, so only a kept answer is given."""
     if first.answer is Answer.PASS:
         raise ValueError(f"{first.key.cell}: the one-bar-late rung prices on the bars")
-    return first.answer, KEPT
+    return first.answer, NOT_PRICED
 
 
 RUNG = Rung("late", f"{rung.T_PASS} standard errors a bar late", _unread, _judged)

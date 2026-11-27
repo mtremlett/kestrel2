@@ -66,7 +66,6 @@ from lab import rung
 from lab.cell import Key
 from lab.rung import Answer, Priced, Rung, Verdict
 
-ME = "lab.rung_cpcv"  #: this module as the cell knows it
 STRETCHES, HELD_OUT = 6, 2  #: RATE is this pair's alone: change either and derive it again
 EMBARGO = 100  #: the days after a cut that are no stretch's: one in this many of the history's
 RATE = Fraction(2, 2**STRETCHES)  #: the share of rules with no edge it passes, two held out
@@ -156,7 +155,7 @@ def judge(verdict: Verdict) -> Crossed:
             )
         held = all(split.chosen and not split.lost for split in splits)
         answer = Answer.PASS if held else Answer.FAIL
-    return Crossed(verdict.key.rung(ME), kept, len(verdict.trades) - kept, splits, answer)
+    return Crossed(verdict.key.rung(__name__), kept, len(verdict.trades) - kept, splits, answer)
 
 
 def _stretches(priced: Sequence[Priced]) -> list[list[Decimal]]:

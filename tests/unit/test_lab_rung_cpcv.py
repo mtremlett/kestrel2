@@ -177,6 +177,6 @@ def test_the_result_is_keyed_by_the_tape_and_this_rungs_code(
 ) -> None:
     one = _tape(_monthly(EDGE))
     key = rung_cpcv.judge(one).key
-    assert key == one.key.rung(rung_cpcv.ME) != one.key
-    monkeypatch.setitem(cell.RUNGS, rung_cpcv.ME, "this rung edited")
+    assert key == one.key.rung(rung_cpcv.__name__) != one.key
+    monkeypatch.setitem(cell.RUNGS, rung_cpcv.__name__, "this rung edited")
     assert rung_cpcv.judge(one).key not in (key, one.key), "the rung edited: a new key"
