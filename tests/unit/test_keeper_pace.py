@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import bars, keeper
+from desk import bars, keeper, live, paper
 from desk.lines import Line
 from desk.spans import Timed
 
@@ -32,3 +32,22 @@ def test_a_polled_run_keeps_its_rate_between_runs(tmp_path: Path) -> None:
 
     keeper.polled(tmp_path, now, 5, ask)
     assert (tmp_path / "polled_5.rate").read_text() == "33"
+
+
+@pytest.mark.parametrize("minutes", [5, 15, 60])
+def test_a_polled_round_opens_its_own_client_never_the_live_one(
+    minutes: int, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each interval's door starts as POLLED_CLIENTS[minutes]: never keeper-live's 226."""
+    opened: list[int] = []
+    real = paper.Door
+
+    def door(client: int) -> paper.Door:
+        opened.append(client)
+        return real(client)
+
+    monkeypatch.setattr(paper, "Door", door)
+    monkeypatch.setattr(keeper, "polled", lambda *_: "polled")
+    now = datetime(2026, 11, 17, 10, tzinfo=bars.EPOCH.tzinfo)
+    keeper.main(tmp_path, now, ["--polled", str(minutes)])
+    assert opened == [live.POLLED_CLIENTS[minutes]] and live.CLIENT not in opened
