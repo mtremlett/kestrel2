@@ -2830,3 +2830,21 @@ flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the 
 costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
 `test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
 green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
+
+## 27 Nov - rung 15, one bar late (E13, R-RUNNER-572, Builder R2), before any EPON result
+A rule whose edge sits in the one open after its signal is paid on a fill the desk cannot rely on
+(a missed order, a restart, a slow broker), and is often a bar-timing fault in the test itself.
+`lab/rung_late.py` makes every trade the first rung judged one bar later, buy and sale alike, and
+prices them by the first rung's own pricing (`rung.judge`: the desk's sizing, the pretend broker's
+fills and stop, the broker's costs, each leg at its own day's rate), so no second pricing path.
+THE BAR, options weighed: (a) FAIL only when the late mean gain after costs is below nothing; (b)
+the first rung's own rule on the late trades (MIN_TRADES, T_PASS); (c) a share of the on-time
+mean kept. Chose (b): one rule, already calibrated, no new number; (a) passes an edge that is
+noise a bar late, (c) is a number with no home. Its answer is that rule's (PASS, FAIL, THIN or
+FAULT); it only lowers a PASS, as liquidity does, and it is a hard rung (not GRADED): its FAIL
+stops a cell going forward. The reason names both sides: trades, mean gain after costs, t.
+Known answers: the kit's churner on its paid line (the whole gain is the next open's jump) PASSES
+on time and FAILS a bar late; the kit's crowd PASSES a bar late and still goes forward through the
+whole ladder; the fixture breakout's trend edge keeps most of it (12.62% to 11.41% a trade, t 5.09
+to 4.70, golden row pinned); a cell the first rung did not pass is not priced again. The rung
+kit's paid edge is now held by liquidity and late (its L17 test names both).
