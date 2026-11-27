@@ -11,7 +11,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
-from desk.book_parts import keep
+from desk.book_parts import keep, read_once
 from desk.broker import Fill
 from desk.handpark import is_foreign
 from desk.lines import Line
@@ -34,33 +34,29 @@ def levels(root: Path) -> dict[str, Decimal]:
 
 def fills(root: Path) -> tuple[Fill, ...]:
     """Every fill the desk has recorded, in the order it learned of them; found ones are apart."""
-    rows = _ledger(root)
-    apart = {fill.execution_id for fill in rows if is_foreign(fill.order_id)}
-    return tuple(fill for fill in rows if fill.execution_id not in apart)
+    path = root / LEDGER
+    return read_once(path, _apart)[0] if path.exists() else ()
 
 
 def found(root: Path) -> tuple[Fill, ...]:
     """THE FILLS FOUND, not traded: on the account under an order id that is not the desk's own."""
-    return tuple(fill for fill in _ledger(root) if is_foreign(fill.order_id))
+    path = root / LEDGER
+    return read_once(path, _apart)[1] if path.exists() else ()
 
 
-#: each ledger as last read, under the file's (inode, mtime ns, size) then: SimCity asks for the
-#: fills some forty times a simulated day, and reading it whole each time hung the deep run; only
-#: the newest ledger is kept, so a night of a hundred worlds never holds a hundred ledgers
-_READ: dict[Path, tuple[tuple[int, int, int], tuple[Fill, ...]]] = {}
+def _apart(path: Path) -> tuple[tuple[Fill, ...], tuple[Fill, ...]]:
+    """The ledger's rows told apart once for every ask (read_once): the desk's, and the found."""
+    rows = read_once(path, _parse)
+    apart = {fill.execution_id for fill in rows if is_foreign(fill.order_id)}
+    return tuple(f for f in rows if f.execution_id not in apart), tuple(
+        f for f in rows if is_foreign(f.order_id)
+    )
 
 
 def _ledger(root: Path) -> tuple[Fill, ...]:
     """Every row of the ledger file, the desk's and the found; read again only once it changed."""
-    if not (path := root / LEDGER).exists():
-        _READ.pop(path, None)
-        return ()
-    seen = path.stat()
-    stamp = (seen.st_ino, seen.st_mtime_ns, seen.st_size)
-    if (kept := _READ.get(path)) is None or kept[0] != stamp:
-        _READ.clear()
-        _READ[path] = kept = (stamp, _parse(path))
-    return kept[1]
+    path = root / LEDGER
+    return read_once(path, _parse) if path.exists() else ()
 
 
 def _parse(path: Path) -> tuple[Fill, ...]:
@@ -89,7 +85,6 @@ def _record(root: Path, new: Iterable[Fill]) -> None:
         latest[name] = max(latest.get(name, fill), fill, key=lambda f: _revision(f.execution_id)[1])
     if tuple(latest.values()) != tuple(kept):
         keep(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
-        _READ.pop(root / LEDGER, None)  #: the one writer: the next read is of what it wrote
 
 
 def adopt(root: Path, line: Line, shares: int, price: Decimal, on: date) -> None:

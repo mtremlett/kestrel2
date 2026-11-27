@@ -8,6 +8,7 @@ from dataclasses import astuple, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import IO, Any
 from unittest.mock import Mock
 
 import pytest
@@ -407,14 +408,16 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain((share, dollar), trips, book.pounds_per(tmp_path)) == Decimal(-25)
     #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
-    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
-    kept, rates_read = book_parts.rates_kept, list[Path]()
+    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406); counted
+    #: where they are read, the file opened, the rates written just before so one read is owed
+    book.record_rates(tmp_path, TUE, {"GBP": Decimal(1), "USD": Decimal("0.75")})
+    was, rates_read = Path.open, list[Path]()
 
-    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
-        rates_read.append(root)
-        return kept(root)
+    def counted_rates(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
+        rates_read.extend([path] if path.name == book_parts.RATES else [])
+        return was(path, *args, **kwargs)
 
-    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
+    monkeypatch.setattr(Path, "open", counted_rates)
     pounds = book.pounds_per(tmp_path)
     assert book.currency_gain((share, dollar), trips * 20, pounds) == Decimal(-500)
     assert (
