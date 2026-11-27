@@ -35,6 +35,11 @@ GOLDEN = [
                 "the worst of 5 yearly folds, 2022: 6 trades pooled over 2 lines, their mean day "
                 "-0.57 standard errors from nothing; on the history before it, 8.59",
             ),
+            "liquidity": (
+                "PASS",
+                "its worst leg took 0.0213% of VUSA's volume on 2016-02-11, needs at most 1%; "
+                "capacity about 469,484 pounds",
+            ),
             "luck": (
                 "PASS",
                 "its chance of 1.8e-06, times 2 trials of the breakout_20_10 family, is 3.6e-06; "
@@ -87,6 +92,7 @@ GOLDEN = [
                 "fixed pricing (schedule read 13 November 2026)) -0.10 standard errors above "
                 "nothing; 30 trades and 2 asked",
             ),
+            "liquidity": ("FAIL", "the first rung did not pass it, so its volume is not read"),
             "regimes": (
                 "FAIL",
                 "first window FAIL, second FAIL, cut at 2018-06-08; both must pass",
