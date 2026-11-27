@@ -147,9 +147,9 @@ def trade(
 ) -> tuple[book.Sent, ...]:
     """The day's orders, after the market opens: each rule's decision on the session before, its
     position read from the book; the sales first, then each buy sized from the book after the send
-    before it. A line sold this morning, by its rule or its stop, is not bought again today. While
-    the book is not the broker's the send path refuses every buy, and the sale of a line whose
-    shares differ. rates are the day's pounds per unit of each currency. Nothing is sent for a day
+    before it. A line sold this morning, by its rule or its stop, is not bought again today. A line
+    the book is not the broker's on is refused its buy, and its sale where shares differ; the
+    others trade. rates are the day's pounds per unit of each currency. Nothing is sent for a day
     that is over: its record made, or a later fill in the ledger. Every signal has its answer, each
     not filled whole on the morning's list (halt.morning) under its blocker, with the lines no rule
     could decide; the desk dying leaves none unlisted (_unreached). A place the broker disagrees
