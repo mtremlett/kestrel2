@@ -1166,3 +1166,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2195 PAPER R-RUNNER-507 done: the intraday round sends at most 7 new orders a step, the rest carried; blind review finding fixed. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2200 PAPER R-RUNNER-473 done: carried orders are sent again at the next step, once; test red then green. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2209 PAPER R-RUNNER-546 done: London conformance no longer stopped by a US holiday; 6 of 6 steps on VUAG. |
