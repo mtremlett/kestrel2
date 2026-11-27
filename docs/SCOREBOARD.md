@@ -767,6 +767,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2104 R-RUNNER-474 catalogue-only rows served by the rule book. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2190 R-RUNNER-364 part 2 of 5: lab/chain.py makes a published set's variants; fast check and mypy green. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2202 R-RUNNER-365 chain.sweep built and tested on the fixture book; the real ladder still refuses variant names (R-GRID-9). |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2227 R-RUNNER-366 built: chain.report writes the plateau centre per rule and line, PRE-REVIEW. |
 
 ### RUNGS
 
@@ -1166,4 +1168,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L17 ticked: plateau judged on every cell (#2226), reproduce on determinism (#2232), the kit's paid edge goes forward; the rest of the answer key (drift-rider, 160 noise cells, edges at t 1-4, a delisted line) each driven red. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2218 RUNGS L15 blind review of the whole ladder done; its one blocking fault fixed (a stopped pass published old verdicts). |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2195 PAPER R-RUNNER-507 done: the intraday round sends at most 7 new orders a step, the rest carried; blind review finding fixed. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2200 PAPER R-RUNNER-473 done: carried orders are sent again at the next step, once; test red then green. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2209 PAPER R-RUNNER-546 done: London conformance no longer stopped by a US holiday; 6 of 6 steps on VUAG. |

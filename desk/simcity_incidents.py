@@ -19,6 +19,7 @@ from desk import (
     book,
     conformance,
     conformance_parts,
+    day_money,
     halt,
     keeper,
     keeper_live,
@@ -68,28 +69,24 @@ STOP_SILENT = (
 SHUT = (
     "a closed Gateway port outside its restart: the run is not begun, nothing sent, his to look at"
 )
-PROMISE = "a held line with no bar for a session is named when the day is refused"
+PROMISE = "a held line with no bar for a session is named owed and the day's profit withheld"
 
 
 def hole(life: _Life, on: date) -> None:
-    """A held line's bar for the day is missing when the day ends. The desk must refuse to make
-    a record from an older price, naming the line; when the bar arrives it runs the same day."""
+    """A held line's bar for the day is missing when the day ends. The desk must make no record
+    from an older price: its record names the line owed and withholds the profit. The yardstick
+    is not chosen: its own close is owed to every record, and without it the day has none."""
     bars = {x: b for x, b in life.market.items() if any(d.day == on for d in b)}
-    held = [x for x in bars if x.symbol in dict(life.pretend.stops())]
+    held = [x for x in bars if x.symbol in dict(life.pretend.stops()) and x != YARDSTICK]
     if not held:
         life.live(on)
         return
     line, whole = held[0], life.market[held[0]]
     life.market[line] = tuple(bar for bar in whole if bar.day != on)
-    try:
-        life.live(on)
-    except ValueError as refusal:  #: the desk's own word that the day has no record
-        life.promise(PROMISE, line.symbol in str(refusal))
-        life.market[line] = whole
-        life.live(on)
-    else:  #: a stop or a sale ended the holding that day: no close was owed
-        life.market[line] = whole
-        life.promise(PROMISE, line.symbol not in book.positions(life.desk))
+    record = life.live(on)
+    life.market[line] = whole  #: the record names the line owed, or a stop or sale ended it
+    owed = line.symbol + day_money.NO_CLOSE_OWED in record.mismatches and record.profit is None
+    life.promise(PROMISE, owed or line.symbol not in book.positions(life.desk))
 
 
 def beside(life: _Life, on: date) -> None:
