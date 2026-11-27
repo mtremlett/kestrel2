@@ -1218,3 +1218,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2309 RUNGS R-RUNNER-557 done: B2 ticked; Zweig's ratio bars from the universe breadth. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2315 RUNGS fast engine checked on all 7 golden series; second Keltner tie pinned; the desk's Keltner rounding fault located (lab/blocks.py), box not ticked. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2320 RUNGS a finished ladder set is told to his phone once (rungs-sets step, LAD-09). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2328 RUNGS known-answer kit checked on main (noise refused, edge heard); docstring corrected; waits on plateau wiring and a reproduce request. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2345 RUNGS catalogue rows pinned by trade fingerprint, so the eponymous twins can be deleted without losing proof (box still open). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2348 RUNGS P1: the fast engine is proven on all seven golden series except four exact Keltner ties, both bands now pinned; the fault is in the desk's block. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2358 RUNGS set 2, the grid transfer study, now published and told to his phone by the ladder's door (rungs-sets step). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2366 RUNGS R-GRID-9's GRID half reopened as its own request (R-RUNNER-565); no box ticked. |
