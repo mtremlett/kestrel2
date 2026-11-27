@@ -24,6 +24,10 @@ GOLDEN = [
                 "overfitting of 0.00; chosen in all and lost in none asked",
             ),
             "deflated": ("PASS", "a deflated Sharpe of 1.00; 0.9 passes and under 0.5 fails"),
+            "fit": (
+                "FAIL",
+                "FAIL: moves 0.91 with supertrend_10_3 on paper; WEAK above 0.7, FAIL above 0.9",
+            ),
             "first": (
                 "PASS",
                 "61 trades judged, their mean gain after every cost (Interactive Brokers UK, "
@@ -34,6 +38,11 @@ GOLDEN = [
                 "WEAK",
                 "the worst of 5 yearly folds, 2022: 6 trades pooled over 2 lines, their mean day "
                 "-0.57 standard errors from nothing; on the history before it, 8.59",
+            ),
+            "liquidity": (
+                "PASS",
+                "its worst leg took 0.0213% of VUSA's volume on 2016-02-11, needs at most 1%; "
+                "capacity about 469,484 pounds",
             ),
             "luck": (
                 "PASS",
@@ -57,9 +66,19 @@ GOLDEN = [
             "stress": (
                 "PASS",
                 "worst: a black swan's night, waking 2016-07-08 lost 345.99 pounds; the limit is "
-                "2,000.00",
+                "2,000.00; untested: the 2008 crash",
             ),
             "yearly": ("PASS", "a yearly Sharpe of 1.24; over 2.0 is doubted"),
+            "plateau": (
+                "PASS",
+                "NOT APPLICABLE: breakout_20_10 carries no settings to choose among, so none was "
+                "picked from a peak (decision a)",
+            ),
+            "reproduce": (
+                "PASS",
+                "no author's figure: judged on determinism: run again on the same bars and code, "
+                "it gave the identical verdict, 61 trades at 5.09 standard errors",
+            ),
         },
     ),
     (
@@ -76,12 +95,14 @@ GOLDEN = [
                 "chosen in-sample in 9, lost out-of-sample in 7 of those, a probability of "
                 "overfitting of 0.78; chosen in all and lost in none asked",
             ),
+            "fit": ("FAIL", "the first rung did not pass it, so no running rule is set beside it"),
             "first": (
                 "FAIL",
                 "96 trades judged, their mean gain after every cost (Interactive Brokers UK, "
                 "fixed pricing (schedule read 13 November 2026)) -0.10 standard errors above "
                 "nothing; 30 trades and 2 asked",
             ),
+            "liquidity": ("FAIL", "the first rung did not pass it, so its volume is not read"),
             "regimes": (
                 "FAIL",
                 "first window FAIL, second FAIL, cut at 2018-06-08; both must pass",

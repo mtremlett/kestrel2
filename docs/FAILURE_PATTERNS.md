@@ -25,10 +25,10 @@ requires a batch adding net lines to name the scene it advances.
 is never fixed. The predecessor carried 2,221.
 → *Caught by:* a guard forbids skip and expected-failure markers. There is no list.
 
-**5. The test that reads the live desk.** A test passes honestly on the operator's
-machine because it reads his real data or his broker, and proves nothing about the code.
-→ *Caught by:* a guard forbids machine-specific paths, and GitHub runs the whole check on
-a machine with no access to any of it.
+**5. The test that reads the live desk.** A test passes on the operator's machine because it
+reads his real data or broker, or runs his PC's own tools (mypy 2.3.0 for the pinned 1.14.1, #2233).
+→ *Caught by:* a guard forbids machine-specific paths; `test_the_check_runs_the_pinned_tools`;
+and GitHub runs the whole check on a machine with no access to any of it.
 
 **6. The second version of a file.** `_v2`, `_new`, `_fixed`, or a file named after the
 session that wrote it. The predecessor had 1,218 session-named test files.
@@ -128,14 +128,14 @@ a runner session asks him a second time. The lane idles for half an hour.
 `docs/DECISIONS.md`, and the runner's halt holds the card, never the lane. → *Debt:* no
 check reads a session's question against the recorded rulings.
 
-**18. The hand list beside the code.** A rule kept as a list by hand drifts from what the
-code does: the trading-path merge hold missed `desk/bars.py`, which the trading day
-imports, so a change reached it mid-session (16 November); conformance was scheduled
-inside the desk's rounds, which it rightly refuses; a job pointed at a function that had
-moved; the hourly report repeated a state long past.
-→ *Caught by:* the desk's rounds are kept once in the runner and every schedule and
-restart reads them; the hourly report reads current state. → *Debt:* the trading path
-computed from the desk step's imports instead of listed.
+**18. The hand list beside the code.** A rule kept by hand drifts from what the code does: the
+trading-path merge hold missed `desk/bars.py`, which the trading day imports (16 November);
+conformance was scheduled inside the desk's rounds; a job pointed at a moved function; the hourly
+report repeated a state long past. Twin: `lab/basket.py` pairs a basket's sale days to its market
+line's bars by its own date lookup: each calendar edge a fix (#2217 a holiday, #2353 a stale line).
+→ *Caught by:* the desk's rounds kept once in the runner, read by every schedule and restart; the
+hourly report reads current state; `tests/unit/test_lab_basket.py` plants each edge. → *Debt:* the
+trading path computed from imports; the basket's two lines aligned once from the one calendar.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a

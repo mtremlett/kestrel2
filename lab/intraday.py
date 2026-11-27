@@ -213,7 +213,14 @@ def judge_set(home: Path, rates: Rates) -> str:
             rows.append((rule, line, "refused", str(refusal).replace("|", "/")))
     table = home / ladder.FOLDER / "sets" / f"{TAG}.md"
     table.parent.mkdir(parents=True, exist_ok=True)
-    out = [f"# SET {TAG} - {verdict_parts.STATUS}", "", QUESTION]
+    built = ladder.rungs_built()
+    out = [
+        f"# SET {TAG} - {verdict_parts.STATUS}",
+        "",
+        f"rungs built: {built[0]} of {built[1]}",
+        "",
+    ]
+    out += [QUESTION]
     out += [f"Each is judged against {trials.count(register, QUESTION)} trials.", ""]
     out += ["| rule | line | trades | answer |", "|---|---|---|---|"]
     out += [f"| {r} | {ln.symbol} ({ln.venue}) | {t} | {a} |" for r, ln, t, a in rows]

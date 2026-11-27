@@ -18,6 +18,7 @@ from datetime import date
 from decimal import Decimal, localcontext
 
 from desk import orders
+from desk.command import CAPITAL  #: every rule's gain is on the desk's one capital
 from desk.lines import Line
 from desk.orders import Leg
 from desk.store import Bar
@@ -28,7 +29,6 @@ from lab.folds import Fold, Walked
 from lab.rung import Answer, Rates
 
 WINDOW = 20  #: the ATR's days, and the history a trade needs before its fill to be judged
-CAPITAL = Decimal(10_000)  #: pounds a trade's full room; every rule's gain is on it
 #: name -> (k in ATRs, trailing); k None is today's fixed stop
 RULES: dict[str, tuple[int | None, bool]] = {
     "fixed": (None, False),

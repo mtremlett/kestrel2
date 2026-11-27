@@ -170,14 +170,35 @@ def in_regimes(
     }
 
 
-def _judged(first: Verdict) -> tuple[Answer, str]:
-    """The regimes rung as the ladder reads it: the cell's window cut at its middle day, each
-    half judged apart by the first rung's rule; the least answer, both halves in words."""
+def _own_end(first: Verdict, bars: Sequence[Bar]) -> date:
+    """The window's end, or the line's own last bar inside it when the line stops sooner."""
     cell_ = first.key.cell
-    cut = cell_.start + (cell_.end - cell_.start) / WINDOWS
+    own = [bar.day for bar in cell.shown(cell_, bars) if bar.day >= cell_.start]
+    return min(cell_.end, own[-1]) if own else cell_.end
+
+
+def _cut_at(first: Verdict, end: date) -> tuple[Answer, str]:
+    """The window cut at its middle day to `end`, each half judged apart by the first rung's
+    rule; a half that traded not at all is too thin to say (never a FAULT) when the whole traded."""
+    start = first.key.cell.start
+    cut = start + (end - start) / WINDOWS
     split = apart(first.key, first.trades, cut, first.reproduced)
-    words = f"first window {split.first.answer.name}, second {split.second.answer.name}"
-    return split.answer, f"{words}, cut at {cut}; both must pass"
+    halves = [
+        Answer.THIN if first.trades and not v.trades else v.answer
+        for v in (split.first, split.second)
+    ]
+    words = f"first window {halves[0].name}, second {halves[1].name}"
+    return decide(*halves), f"{words}, cut at {cut}; both must pass"
 
 
-RUNG = Rung("regimes", "both halves of the window pass the first rung's rule", _judged)
+def _judged(first: Verdict) -> tuple[Answer, str]:
+    """The regimes rung without the line's bars: cut at the middle of the window."""
+    return _cut_at(first, first.key.cell.end)
+
+
+def _own(first: Verdict, bars: Sequence[Bar], _rates: Rates) -> tuple[Answer, str]:
+    """The regimes rung as the ladder reads it: cut against the line's own last bar."""
+    return _cut_at(first, _own_end(first, bars))
+
+
+RUNG = Rung("regimes", "both halves of the window pass the first rung's rule", _judged, _own)

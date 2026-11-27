@@ -196,3 +196,15 @@ class SpecRule:
         if "size" not in self._blocks:
             raise ValueError("this spec names no size block")
         return self._blocks["size"].shares(risk)
+
+
+def ratio_bars(counts: Mapping[date, tuple[int, int]]) -> tuple[Bar, ...]:
+    """Ratio bars from `lab.universe.breadth`'s (advances, declines) per session: a bar whose
+    every price is advances over advances plus declines, the form Zweig's row reads. A session
+    with no advance and no decline has no ratio and is left out."""
+    bars = []
+    for day, (up, down) in sorted(counts.items()):
+        if up + down:
+            ratio = Decimal(up) / Decimal(up + down)
+            bars.append(Bar(day, ratio, ratio, ratio, ratio, up + down))
+    return tuple(bars)

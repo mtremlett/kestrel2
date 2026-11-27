@@ -297,6 +297,9 @@ def hourly(desk: Desk, now: datetime) -> None:
     today = now.date()
 
     def words() -> str:
+        known = gateway.known(now, door=desk.door)  #: the Gateway's state is read first
+        if since := running.down_since(desk.root, known, now):
+            return pnl.down(now, since) + running.zoo_hour(desk.root, now, down=True)
         daily = desk.held(today)[0]
         told = pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
         return told + running.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone

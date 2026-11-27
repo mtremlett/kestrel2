@@ -21,6 +21,8 @@ rule after costs on the desk's own data. Secondary sources (blogs and forums, un
 vary the lookback from 20 to 40 days and the gap from 3 to 4 sessions, so the RANGE of the
 setting is 20 to 40 days, 3 to 4 sessions; this port takes the book's 20 days and 4 sessions.
 
+Holding period: none; the book's stop is the only published exit, not a count of sessions.
+
 The old desk is a quarry for the reading only; none of its code is copied.
 """
 
