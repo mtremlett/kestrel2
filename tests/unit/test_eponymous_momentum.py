@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
+from desk import eponymous_momentum
 from desk.eponymous_momentum import DualMomentum
 from desk.store import Bar
 from desk.strategy import Action, _run
@@ -34,3 +35,9 @@ def test_calls_fall_on_the_first_bar_after_the_month_end_the_rule_fixes() -> Non
         date(2021, 6, 1): Action.SELL,
         date(2022, 6, 1): Action.BUY,
     }
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; the month-end call alone
+    assert "Holding period: none" in eponymous_momentum.__doc__
+    assert DualMomentum.declared.hold is None

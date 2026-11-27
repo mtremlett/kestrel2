@@ -147,3 +147,10 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
     off = {r["cell"][0] for r in rows if "error" in r}
     assert off == set(found) - set(EPONYMOUS_PUBLISHED)
     assert all("no published rule on file" in r["error"] for r in rows if "error" in r)
+
+
+def test_a_catalogue_row_with_no_python_file_is_listed_through_its_spec_not_refused(
+    tmp_path: Path,
+) -> None:
+    """With no eponymous file in the folder every spec row is still listed, no KeyError."""
+    assert set(ladder.eponymous(tmp_path)) == set(rulebook.specs())

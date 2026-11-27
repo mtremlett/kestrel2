@@ -617,3 +617,12 @@ Desk.rates answers a day's rates from their first record in rates.csv when the d
 ### 2026-11-24 — the conformance share is found beside the desk's root (#2178)
 
 The day check finds the conformance ledger as root.parent/"conformance", only for the desk's own door (222). Options: every caller passes the folder (outside the claim), or derive it in `desk/clearance.py`. Chose derive, so no caller changes. Order filter: only a client-223 SELL stop no bigger than the ledger share is left out, the narrowest rule; any other 223 order is still named.
+
+### 2026-11-27 — the intraday round shares the desk's order cap (#2195)
+Options: a new constant for the intraday round, or reuse `day._send`'s round cap and `paper.MAX_ORDERS`. Chose reuse: one number, one home. A new order is one the broker has no report for; orders it already holds use no slot. Blind review made the cap per step, not per venue.
+
+### 2026-11-27 — carried orders go through the existing round-again path (#2200)
+Options: a new send path for the morning's CARRIED list, or let `running._again` also take those ids. Chose the latter: one code path; the "orders <venue> again" note stops a second send.
+
+### 2026-11-27 — the refused line stays the conformance reference line (#2209)
+Options: keep the refused line (a US line, sends nothing) as reference, or find a non-retail London line. None exists, and the line only labels a step that sends nothing, so kept; `_barred` now judges the run's own market only.
