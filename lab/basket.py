@@ -147,7 +147,13 @@ def grade(basket: Verdict, against: Against) -> tuple[Answer, str] | None:
         return None
     if basket.answer in (Answer.FAULT, Answer.THIN):
         return basket.answer, "the first rung found too few trades, or none, to set beside it"
-    return judge(*days(basket, against))
+    try:
+        paired = days(basket, against)
+    except (
+        ValueError
+    ) as refused:  #: a stale market line: refused by name, the table still publishes
+        return Answer.FAULT, f"{against.line.symbol} refused as the market: {refused}"
+    return judge(*paired)
 
 
 NAME = ("BASKET", "all lines pooled")  #: the line and the venue of a basket's cell in the table

@@ -172,6 +172,22 @@ def test_a_sale_on_a_day_the_market_is_shut_is_booked_to_its_next_bar() -> None:
         basket.days(b, Against(YARDSTICK, bars[:2], POUND))
 
 
+def test_a_basket_beside_a_stale_market_line_publishes_naming_the_line_refused(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The market's bars stop before the basket's last sale: the table still gets its row."""
+    monkeypatch.setattr(verdict, "EASED", True)
+    bars = _bars([100, 110, 99])
+    lines = [_line_verdict(s) for s in LINE_NAMES]
+    late = date(2010, 1, 1) + timedelta(days=400)
+    lines = [
+        replace(v, trades=tuple(replace(p, held=(DAY, late)) for p in v.trades)) for v in lines
+    ]
+    row = basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, Against(YARDSTICK, bars, POUND))
+    answer, why = row["rungs"]["retail"][:2]
+    assert answer == "FAULT" and YARDSTICK.symbol in why and "refused" in why
+
+
 def test_the_scorecard_rule_over_the_rungs() -> None:
     weak, ok = Answer.THIN, Answer.PASS
     assert verdict.scorecard([ok, weak, Answer.DOUBT], 1.0) == "PASS"
