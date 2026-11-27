@@ -119,11 +119,18 @@ class Round:
         held.execute("RELEASE line")
         return landed + given - len(rows)
 
-    def daily(self, line: Line, bars: Iterable[Bar], withdrawn: Iterable[date] = ()) -> None:
+    def daily(
+        self,
+        line: Line,
+        bars: Iterable[Bar],
+        withdrawn: Iterable[date] = (),
+        restored: Iterable[date] = (),
+    ) -> None:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again. A day given twice is refused."""
+        stays, marked, unread until a bar is given for it again or it is `restored`: its mark
+        lifted, its bar and source as held. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
@@ -134,7 +141,8 @@ class Round:
         self._write(PUT, line, DAILY, given)
         held.execute("SAVEPOINT marks")
         try:
-            held.executemany(RESTORE, ((*key, at) for at, _ in given))
+            back = {at for at, _ in given} | {day.toordinal() for day in restored}
+            held.executemany(RESTORE, ((*key, at) for at in sorted(back)))
             gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
             held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
         except BaseException:
@@ -246,9 +254,12 @@ def _read(
     return rows
 
 
-def daily(path: Path, line: Line) -> tuple[Bar, ...]:
-    """A line's whole daily history, oldest first."""
-    rows = _read(path, line, DAILY, 0, date.max.toordinal() + 1)
+UNDER = READ.replace("NOT EXISTS", "EXISTS")  #: the bars held under a withdrawn mark
+
+
+def daily(path: Path, line: Line, what: str = READ) -> tuple[Bar, ...]:
+    """A line's whole daily history, oldest first; with UNDER, its days withdrawn instead."""
+    rows = _read(path, line, DAILY, 0, date.max.toordinal() + 1, what)
     return tuple(
         Bar(date.fromordinal(at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), volume)
         for at, o, h, lo, c, volume in rows
