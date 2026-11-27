@@ -186,6 +186,20 @@ def test_rolloff_deletes_only_a_byte_identical_copy_and_lists_the_rest(tmp_path:
     assert (kept / "a.csv").exists()
 
 
+def test_rolloff_rows_lists_safe_only_a_file_whose_every_row_the_store_holds(
+    tmp_path: Path,
+) -> None:
+    seeded(tmp_path, set())
+    head = "symbol,day,open,high,low,close,volume\n"
+    rows = [f"SPY,{d},{bar(d).open},{bar(d).high},{bar(d).low},{bar(d).close},1000\n" for d in DAYS]
+    held, lacking = tmp_path / "held.csv", tmp_path / "lacking.csv"
+    held.write_text(head + "".join(rows), "utf-8")
+    lacking.write_text(head + rows[0] + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    safe, kept = quality.rolloff_rows([held, lacking], tmp_path, [SPY])
+    assert (safe, kept) == ([held], [lacking])
+    assert held.exists() and lacking.exists()
+
+
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     state = tmp_path / "archive.json"
