@@ -2666,3 +2666,8 @@ alone, reproduce still UNRUN.
 
 **Shard weights.** `check.py` SECONDS gains the two key files (220 s, 205 s, measured on the PC), so
 the sharder does not weigh them by size as near nothing. A weight loosens nothing.
+
+**Merged with the liquidity rung (#2230).** The paid edge's lines trade one share a day, which
+the liquidity rung rightly FAILS (its own kit row), so the paid edge no longer goes forward. Its L17
+test now asks what L17 owns: no rung unrun, plateau NOT APPLICABLE, and liquidity the one hard rung
+holding it back. Still red if plateau or reproduce is left unrun.
