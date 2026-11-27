@@ -23,7 +23,7 @@ from pathlib import Path
 from desk import archive, backfill, bars, coverage, history_write, keeper, venues
 from desk.bars import Source
 from desk.lines import LINES, Line
-from desk.spans import EPOCH, FIVE, Five, Timed
+from desk.spans import EPOCH, FIVE, SPANS, Five, Timed
 from desk.store import AGREE, Bar, Refused
 from desk.store import _clean as cleaned
 
@@ -362,6 +362,36 @@ def _last_session(line: Line, now: datetime) -> date:
     raise LookupError(f"{line.venue}: no session ended in the ten days to {now}")
 
 
+def _held_on(path: Path, line: Line, span: str, day: date) -> set[datetime]:
+    """When the line's bars of one short span start on a day, as held; none if never held."""
+    since = datetime.combine(day, time(), UTC)
+    try:
+        got = bars.five if span == FIVE else partial(bars.timed, span=span)
+        return {b.start for b in got(path, line, since=since, until=since + timedelta(1))}
+    except (LookupError, FileNotFoundError):  # the store never held this span for the line
+        return set()
+
+
+def _outage(path: Path, line: Line, span: str, day: date) -> list[datetime]:
+    """The moments of the venue's session `day` on the span's marks at which the line holds no
+    bar and neither does any other line of its venue: a feed stopped for the whole venue, never
+    one line's quiet spell. One line holding the span alone cannot tell the two apart: none."""
+    length, hours = timedelta(seconds=SPANS[span].seconds), venues.hours(line.venue, day)
+    anchor = EPOCH + timedelta(seconds=SPANS[span].anchor)
+    first = anchor + (hours.open - anchor) // length * length
+    due = {first + length * n for n in range((hours.close - first) // length + 1)}
+    own = _held_on(path, line, span, day)
+    gone, seen = {t for t in due if t < hours.close} - own, False
+    if not own or not gone:
+        return []
+    for other in (o for o in LINES if o.venue == line.venue and o != line):
+        theirs = _held_on(path, other, span, day)
+        seen, gone = seen or bool(theirs), gone - theirs
+        if not gone:
+            return []
+    return sorted(gone) if seen else []
+
+
 def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     """None when the line's newest bar of one span is of its venue's last ended session (a
     week's: of that week or the one before); else why: the span holds no bar, or how far behind."""
@@ -378,6 +408,8 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
         due -= timedelta(due.weekday() + 7)
     if at < due:
         return f"newest {at}, last session {due}"
+    if name not in ("daily", "1wk") and (gone := _outage(path, line, name, due)):
+        return f"{len(gone)} bars missing in its venue's feed, the first on {due}"
     if name == "daily" and (moved := bars.moved_off(path, line)):  # IBKR first (B3)
         return f"{len(moved)} days moved off IBKR, the first {moved[0]}"
     if name == "daily" and line.symbol in GOLDEN:  # a hole inside the history is red too
