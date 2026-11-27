@@ -21,6 +21,8 @@ pivot's base at 3 to 65 weeks and the sell at the 50-day average or a stop of 7 
 buy; this port takes a 15-session pivot (three weeks, the tightest base he calls a pivot) and
 the 50-day sell, since the template's rules carry no entry price for a stop.
 
+Holding period: none; the book's sell is the 50-day average (or a stop), not a count of sessions.
+
 The old desk is a quarry for the reading only; none of its code is copied.
 """
 
