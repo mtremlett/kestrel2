@@ -4,14 +4,15 @@ filter are read. (Each catalogue row against its Python rule: test_lab_spec_blin
 from __future__ import annotations
 
 import copy
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
 import pytest
 
 from desk.store import Bar
-from lab.spec import Spec, SpecRule
+from lab import rulebook
+from lab.spec import Spec, SpecRule, ratio_bars
 
 CASE = {"bars": [[11, 9, 10]] * 3 + [[13, 11, 12], [10, 7, 8]], "wants": [0, 0, 0, 1, 0]}
 ROW: dict[str, Any] = {
@@ -99,3 +100,15 @@ def test_the_filter_forbids_a_buy() -> None:
     row = _row(filter="close_above_average", params={**ROW["params"], "filter": {"n": 400}})
     row["cases"] = [CASE | {"wants": [0, 0, 0, 0, 0]}]
     Spec.parse(row)
+
+
+def test_the_zweig_row_decides_on_ratio_bars_built_from_the_universe_breadth() -> None:
+    days = [date(2020, 1, 1) + timedelta(n) for n in range(24)]
+    counts = {day: (3, 7) if n < 20 else (9, 1) for n, day in enumerate(days)}
+    bars = ratio_bars(counts)
+    assert [b.close for b in bars[:1] + bars[-1:]] == [Decimal("0.3"), Decimal("0.9")]
+    rule, holding, said = SpecRule(rulebook.specs()["zweig_breadth_thrust"]), False, []
+    for bar in bars:
+        holding = rule.step(bar, holding)
+        said.append(holding)
+    assert said.index(True) == 23  # the thrust buys on the fourth day of 0.9, as the row's case
