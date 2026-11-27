@@ -152,5 +152,6 @@ def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades
 
 
 def test_a_close_exactly_on_the_keltner_band_is_not_over_it() -> None:
-    bars = _walk(9, 1200)[:375]  # its last close is the upper band to the penny: 30 * 55.5 = sums
-    assert not fast.Shared(bars).fires("close_over_keltner_band", {"n": 10})[-1]
+    for seed, cut in ((9, 375), (5, 86)):  # each last close is the upper band to the penny
+        bars = _walk(seed, 1200)[:cut]  # 55.5 and 148.75: the desk's block, dividing by 3, buys
+        assert not fast.Shared(bars).fires("close_over_keltner_band", {"n": 10})[-1], seed
