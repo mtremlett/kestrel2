@@ -2678,3 +2678,16 @@ for every rule with no figure, Faber's too, whose author's test binds (`publishe
 let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
 that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
 first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
+
+## 27 Nov - the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
