@@ -334,23 +334,28 @@ def checked(register: Path, path: Path, scratch: Path) -> str:
     """Every old store the register tags IMPORT, set beside the one store at path, per line:
     counts, checksum, the first moments missing; then the restore drill in scratch. Nothing is
     written but the drill's copy, nothing deleted."""
-    bad = 0
+    off = dict[str, int]()
     for where in imports(register):
         how = reader(where)
         found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
         with suppress(ValueError):  # a store of no daily form has no daily rows to compare
             found["1d"] = compare_days(path, where)
         found["1h"] = compare_hours(path, where)
+        off[where.name] = not any(found.values())  # nothing compared proves nothing
         for span, tallies in found.items():
             for line, tally in tallies.items():
-                bad += not tally.same or bool(tally.missing)
+                off[where.name] += not tally.same or bool(tally.missing)
                 named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
                 counts = f"old {tally.old}, held {tally.held}"
                 match = "match" if tally.same else "DIFFER"
                 row = f"{where.name}: {line.symbol} {span}: {counts}; {match}; missing {named}"
                 sys.stdout.write(row + "\n")
     restored = drill(path, scratch)
-    bad += sum(not t.same or bool(t.missing) for t in restored.values())
+    drilled = sum(not t.same or bool(t.missing) for t in restored.values()) + (not restored)
+    bad = sum(off.values()) + drilled
+    for name, count in off.items():
+        fate = "deletable on his yes" if not count and not drilled else "KEEP: not proven"
+        sys.stdout.write(f"{name}: {fate}\n")
     said = (
         f"headstart check: {bad} lines differ or miss bars; drill read back {len(restored)} lines"
     )
