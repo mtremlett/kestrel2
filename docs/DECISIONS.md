@@ -2724,3 +2724,10 @@ the sharder does not weigh them by size as near nothing. A weight loosens nothin
 the liquidity rung rightly FAILS (its own kit row), so the paid edge no longer goes forward. Its L17
 test now asks what L17 owns: no rung unrun, plateau NOT APPLICABLE, and liquidity the one hard rung
 holding it back. Still red if plateau or reproduce is left unrun.
+## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
+Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
+"Work in progress is capped" becomes "A box is the only unit of work" (pre-flight, typed endings,
+two endings without a tick set it aside), its runner drives marked OWED until they land. CANON C's
+"the deny hook is OWED" was stale: the hook is `hooks/guard.py` in the notes, built 22 Nov.
+FAILURE_PATTERNS 3's progress number is plan boxes ticked on main per 24 hours, as CLAUDE.md says,
+no longer scenes passing out of seven.
