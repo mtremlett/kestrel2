@@ -156,7 +156,9 @@ def test_days_pair_the_sale_days_pounds_with_the_markets_closes_and_grade_waits_
     assert (basket.grade(b, against) or (None,))[0] is Answer.THIN
 
 
-def test_a_sale_on_a_day_the_market_is_shut_is_booked_to_its_next_bar() -> None:
+def test_a_sale_on_a_day_the_market_is_shut_is_booked_to_its_next_bar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A London line judged on a US proxy sells on a UK bank holiday, New York open: ISF has
     no bar that day, so the sale's pounds land on ISF's next bar; after its last, refused."""
     bars = _bars([100, 110, 99, 99])
@@ -168,8 +170,13 @@ def test_a_sale_on_a_day_the_market_is_shut_is_booked_to_its_next_bar() -> None:
     assert basket.days(b, Against(YARDSTICK, shut, POUND)) == pytest.approx(
         ([0.0, 0.005], [0.1, -0.1])
     )
+    stale = Against(YARDSTICK, bars[:2], POUND)
     with pytest.raises(ValueError, match="no bar on or after"):
-        basket.days(b, Against(YARDSTICK, bars[:2], POUND))
+        basket.days(b, stale)
+    #: the stale market line is refused by name in the retail rung; the table still publishes
+    monkeypatch.setattr(verdict, "EASED", True)
+    answer, why = basket.grade(b, stale) or (None, "")
+    assert answer is Answer.FAULT and YARDSTICK.symbol in why
 
 
 def test_the_scorecard_rule_over_the_rungs() -> None:
