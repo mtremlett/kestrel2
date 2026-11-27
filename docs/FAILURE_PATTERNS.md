@@ -88,8 +88,8 @@ store fitted a line at a time (14 Nov: three rule changes in twenty minutes on s
 `desk/bars_form.py`, on which source takes a held day (#861, #2361, #2404): the keeper reads a marked
 day as unheld, the writer as held, so each re-clean met the gap live. → *Caught by:* the runner's
 halt on a lane's second `fix` to a file within ten landed changes; `tests/unit/test_store_rules.py`
-(#225) pins every store rule to a row of one fixture table (driven red, R-RUNNER-43, #227); and
-`test_the_withdraw_rule_table` pins the keeper's and the writer's marks; the hover names off-IBKR days.
+(#225) pins every store rule to a fixture row (R-RUNNER-43, #227); the hover names off-IBKR days;
+`test_every_withdraw_rule_of_the_keeper_and_the_writer_is_pinned_by_a_row` each mark rule (27 Nov).
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
