@@ -86,15 +86,35 @@ def _zero(bars: list[Bar]) -> list[Bar]:
 #: drops the held bar in the line's whole held history; nothing is ever deleted.
 ROWS = {
     "an untrue answered day whose held bar is that bar is withdrawn": (
-        _zero(_history()), False, _zero(_history()), False),
+        _zero(_history()),
+        False,
+        _zero(_history()),
+        False,
+    ),
     "an untrue answered day over another held bar leaves the held one served (R-DATA-77)": (
-        _history(), False, _zero(_history()), True),
+        _history(),
+        False,
+        _zero(_history()),
+        True,
+    ),
     "a frozen answer over a held bar the whole history keeps leaves it served": (
-        _frozen(_history(), range(D, D + 1)), False, _frozen(_history(), range(D - 4, D + 1)), True),
+        _frozen(_history(), range(D, D + 1)),
+        False,
+        _frozen(_history(), range(D - 4, D + 1)),
+        True,
+    ),
     "a day withdrawn by an older judge whose held bar the judge keeps is served again": (
-        _history(), True, _history()[:D] + _history()[D + 1:], True),
+        _history(),
+        True,
+        _history()[:D] + _history()[D + 1 :],
+        True,
+    ),
     "a withdrawn day whose held bar the judge still drops stays withdrawn": (
-        _zero(_history()), True, _history()[:D] + _history()[D + 1:], False),
+        _zero(_history()),
+        True,
+        _history()[:D] + _history()[D + 1 :],
+        False,
+    ),
 }
 
 

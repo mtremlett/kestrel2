@@ -130,8 +130,8 @@ class Round:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again or it is `restored`: its mark lifted,
-        its bar and source as held. A day given twice is refused."""
+        stays, marked, unread until a bar is given for it again or it is `restored`: its mark
+        lifted, its bar and source as held. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
         given = [(b.day.toordinal(), b) for b in bars]
