@@ -385,7 +385,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores}
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores, money-epon-room}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [x] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
