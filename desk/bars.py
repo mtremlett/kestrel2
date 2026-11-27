@@ -33,7 +33,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from desk.bars_form import entered, restated
+from desk.bars_form import barred, entered, restated
 from desk.bars_parts import CLOSES as CLOSES
 from desk.bars_parts import NEWEST as NEWEST
 from desk.bars_parts import OTHERS as OTHERS
@@ -129,7 +129,7 @@ class Round:
         """A line's daily bars from this source, joined by day into what the store holds, and
         none held is ever deleted (B3): a fresh source's bar takes the day of another's, the old
         value kept in `correction` if it differs. A day in `withdrawn` was judged untrue: its row
-        stays, marked, unread until a bar is given for it again or it is `restored`: its mark
+        stays, marked, unread until a bar given for it lands or it is `restored`: its mark
         lifted, its bar and source as held. A day given twice is refused."""
         if not self._source.fresh:
             raise ValueError(f"{self._source.value} is no fresh source: it restates nothing")
@@ -138,10 +138,11 @@ class Round:
             what = f"{line.symbol} on {line.venue}: its history gives a day twice; none kept"
             raise ValueError(what)
         key, held = (line.venue, line.symbol, DAILY), self._held[DAILY]
+        refused = barred(held, self._source.value, key, [at for at, _ in given])
         self._write(PUT, line, DAILY, given)
         held.execute("SAVEPOINT marks")
-        try:
-            back = {at for at, _ in given} | {day.toordinal() for day in restored}
+        try:  # a day the writer refused keeps its mark: only a bar that lands lifts it
+            back = {at for at, _ in given} - refused | {day.toordinal() for day in restored}
             held.executemany(RESTORE, ((*key, at) for at in sorted(back)))
             gone = {day.toordinal() for day in withdrawn} - {at for at, _ in given}
             held.executemany(WITHDRAW, ((*key, at) for at in sorted(gone)))
