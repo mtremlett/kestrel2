@@ -721,6 +721,9 @@ His standing rule, IBKR first for every bar, had no check that read the store: 5
 ### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
 Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
 
+### 2026-11-27 — a hole the whole venue's feed shows is red in the hover, so the greenkeeper asks for it (DATA, O12)
+On 27 Nov every LSE line's bars stop at 15:45 (the old keeper's outage): 5m 15:50-16:25, 4h 12:00 and 16:00, 1m outside 11:54-15:46, and every US line's 1m at 17:59 before the early close. The hover called each cell fresh (its newest bar was of the last session), and no door asks again for a span already held, so the holes would never fill. Options: A, `history_write.plan` asks again a span held with holes (its done-set is per line and timeframe, it knows no session, and it is not the hourly door); B, fill the day by hand (A2: refused); C, the hover's intraday cell names the moments of the last ended session at which no line of the venue holds a bar, kind `hole`, so the greenkeeper, which works the hover's red cells, asks IBKR for that page (chosen: one judge, one door, IBKR first). A moment one line alone lacks is its own quiet spell, never a hole (2MU trades from 09:10), and one line holding the span alone cannot tell the two apart. Read on the real store, 27 Nov 20:2x: 166 cells red (51% fresh) until the greenkeeper's next run fills them: the hover was 98% only because it could not see them.
+
 ### 2026-11-27 — Shiller's table lives in lab/, not desk/ (DATA, #2308)
 desk/ is at its 100-file ceiling, a guard, not loosened. The free CSV route (datahub s-and-p-500) was preferred over a library, as requested.
 
