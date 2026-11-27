@@ -10,6 +10,7 @@ import csv
 import random
 import sys
 from collections import Counter
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -60,7 +61,8 @@ def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night
     what each of its days read and wrote of the desk's own files, by file: each open counted as
     a read, each file swapped in (book_parts.keep) as a write, under "+" and the file's name."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
-    run, was, swapped = simcity._Life.live, Path.open, Path.replace
+    run, swapped = simcity._Life.live, Path.replace
+    was: Callable[..., IO[Any]] = Path.open
     reads = list[Counter[str]]()
 
     def watched(life: simcity._Life) -> None:

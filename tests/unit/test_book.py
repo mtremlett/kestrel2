@@ -411,7 +411,8 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406); counted
     #: where they are read, the file opened, the rates written just before so one read is owed
     book.record_rates(tmp_path, TUE, {"GBP": Decimal(1), "USD": Decimal("0.75")})
-    was, rates_read = Path.open, list[Path]()
+    was: Callable[..., IO[Any]] = Path.open
+    rates_read = list[Path]()
 
     def counted_rates(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
         rates_read.extend([path] if path.name == book_parts.RATES else [])
