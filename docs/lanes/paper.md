@@ -632,3 +632,6 @@ Options: always an empty type, or only when the line has an ISIN. Chose the latt
 
 ### 2026-11-27 — conformance sizes at the lower of close and latest price (#2251)
 Options: pass `market` to size(), which would refuse the buy (emergency rule) instead of resting the stop under the market, or size at min(close, latest 5-minute close). Chose the latter; a store with no bar of today leaves the close standing.
+
+### 2026-11-27 — the Gateway-down time is kept in a file at the data root (#2347)
+Options: derive it from notes, or change the step's return. Chose a small mark file (first moment found down, cleared when the Gateway answers): the smallest change, touching only claimed files.
