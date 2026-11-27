@@ -17,6 +17,8 @@ desk's data.
 Where sources differ: the 10-day windows are the book's; later sources use 20 days. Some close
 the position at the centre line and not the lower band; this port takes the book's lower band.
 Long only (the template has no short). The window includes the day of the close judged.
+Holding period: none. The sale is the close under the lower band alone; the book gives no
+day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """

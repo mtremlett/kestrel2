@@ -148,7 +148,8 @@ class Stressed:
 
     def judged(self) -> tuple[Answer, str]:
         """PASS when the worst scenario cost no more than STRESS_LIMIT of the capital, FAIL
-        above it; THIN when no scenario was tested. The reason names scenario, pounds, limit."""
+        above it; THIN when no scenario was tested. The reason names scenario, pounds, limit,
+        and every episode untested, so a pass never hides one."""
         costs = self._costs()
         if not costs:
             return Answer.THIN, "no scenario was tested: the line was not shown through one"
@@ -156,7 +157,8 @@ class Stressed:
         with localcontext(ARITHMETIC):
             limit = STRESS_LIMIT * self.capital
         answer = Answer.PASS if pounds <= limit else Answer.FAIL
-        return answer, f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        why = f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        return answer, why + (f"; untested: {', '.join(self.untested)}" if self.untested else "")
 
 
 def judge(window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Stressed:

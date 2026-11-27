@@ -24,6 +24,10 @@ GOLDEN = [
                 "overfitting of 0.00; chosen in all and lost in none asked",
             ),
             "deflated": ("PASS", "a deflated Sharpe of 1.00; 0.9 passes and under 0.5 fails"),
+            "fit": (
+                "FAIL",
+                "FAIL: moves 0.91 with supertrend_10_3 on paper; WEAK above 0.7, FAIL above 0.9",
+            ),
             "first": (
                 "PASS",
                 "61 trades judged, their mean gain after every cost (Interactive Brokers UK, "
@@ -62,7 +66,7 @@ GOLDEN = [
             "stress": (
                 "PASS",
                 "worst: a black swan's night, waking 2016-07-08 lost 345.99 pounds; the limit is "
-                "2,000.00",
+                "2,000.00; untested: the 2008 crash",
             ),
             "yearly": ("PASS", "a yearly Sharpe of 1.24; over 2.0 is doubted"),
             "plateau": (
@@ -86,6 +90,7 @@ GOLDEN = [
                 "chosen in-sample in 9, lost out-of-sample in 7 of those, a probability of "
                 "overfitting of 0.78; chosen in all and lost in none asked",
             ),
+            "fit": ("FAIL", "the first rung did not pass it, so no running rule is set beside it"),
             "first": (
                 "FAIL",
                 "96 trades judged, their mean gain after every cost (Interactive Brokers UK, "

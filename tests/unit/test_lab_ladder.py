@@ -35,6 +35,7 @@ from lab import (
     rung_ci,
     rung_costs,
     rung_cpcv,
+    rung_fit,
     rung_liquidity,
     rung_regimes,
     shuffle,
@@ -127,6 +128,7 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         ).answer.name,
         "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
         "liquidity": rung_liquidity.RUNG.judge(verdict, EDGE, {})[0].name,
+        "fit": rung_fit.RUNG.judge(verdict, EDGE, {})[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
         "plateau": "PASS",  #: L17: the breakout carries no settings, NOT APPLICABLE
     }
@@ -135,8 +137,10 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert f"{verdict.t:.2f} standard errors above" in won["rungs"]["first"][1]
     assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
-    #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
+    #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence. Its
+    #: one rising line is held on the same days by every trend rule on paper: fit FAILS it (0.91)
     assert want == dict.fromkeys(want, "PASS") | {
+        "fit": "FAIL",
         "folds": "THIN",
         "regime": "THIN",
         "shuffle": "THIN",
