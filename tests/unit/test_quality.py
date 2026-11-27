@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import shutil
+import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -386,3 +388,28 @@ def test_an_intraday_gap_is_asked_of_the_broker_first_then_the_archive_and_no_ga
     asked.clear()
     quality.fill_cells(path, [SPY], pulls, NOW)
     assert ("archive", "15m") not in asked and ("broker", "15m") not in asked
+
+
+def test_a_daily_bar_moved_off_ibkr_is_a_fault_and_the_brokers_value_written_back_clears_it(
+    tmp_path: Path,
+) -> None:
+    path, day = seeded(tmp_path, set()), DAYS[3]
+    history = tmp_path / bars.HISTORY
+    with closing(sqlite3.connect(history)) as raw, raw:  # the old writer's relabel (27 Nov)
+        raw.execute(
+            "INSERT INTO correction SELECT *, 'archive' FROM bar WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+        raw.execute(
+            "UPDATE bar SET source = 'archive', volume = 7 WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+    assert quality.cell(path, SPY, "daily", NOW) == "1 days moved off IBKR, the first 2026-11-12"
+    assert quality.kind("1 days moved off IBKR, the first x") == "source"
+    assert not quality.hover({"live": path}, [SPY], NOW)[1]
+    with bars.writing(path, bars.Source.IBKR) as held:  # the broker's value, through the writer
+        held.days(SPY, [bar(day)])
+    assert quality.cell(path, SPY, "daily", NOW) is None
+    with closing(sqlite3.connect(history)) as raw:
+        kept = raw.execute("SELECT volume, source, replaced_by FROM correction").fetchall()
+    assert kept == [(1000, "IBKR paper", "archive"), (7, "archive", "IBKR paper")]  # none deleted

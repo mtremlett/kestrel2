@@ -410,6 +410,8 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
         return f"newest {at}, last session {due}"
     if name not in ("daily", "1wk") and (gone := _outage(path, line, name, due)):
         return f"{len(gone)} bars missing in its venue's feed, the first on {due}"
+    if name == "daily" and (moved := bars.moved_off(path, line)):  # IBKR first (B3)
+        return f"{len(moved)} days moved off IBKR, the first {moved[0]}"
     if name == "daily" and line.symbol in GOLDEN:  # a hole inside the history is red too
         hole = _missing(line, backfill._held(path, line), due + timedelta(1))
         return f"{len(hole)} sessions missing, the first {hole[0]}" if hole else None
@@ -418,8 +420,11 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
 
 def kind(why: str) -> str:
     """The kind of a red cell, for the escalation (a model fixes a kind already seen): a gap holds
-    no bar, a hole misses sessions inside its history, else the cell is stale."""
-    return "gap" if why == "holds no bar" else "hole" if "missing" in why else "stale"
+    no bar, a hole misses sessions inside its history, a source a day served off IBKR's bar, else
+    the cell is stale."""
+    if why == "holds no bar":
+        return "gap"
+    return "hole" if "missing" in why else "source" if "moved off IBKR" in why else "stale"
 
 
 def escalate(red_kind: str, seen: frozenset[str]) -> str:
