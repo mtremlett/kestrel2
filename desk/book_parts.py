@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
+from typing import TypeVar, cast
 from uuid import uuid4
 
 from desk.broker import Broker, Report
@@ -18,6 +19,15 @@ from desk.halt import Blocker, Stopped
 
 RATES, SWITCH, CANCELS = "rates.csv", "switch.csv", "cancels.csv"
 TURNS = ("at", "turn", "why")
+T = TypeVar("T")
+
+#: each file's reading, kept under the file's (inode, mtime ns, size) when it was read: a SimCity
+#: day asks for the fills some forty times, the rates seventeen, the records five, and reading
+#: them whole each time made a day's work grow with the days behind it (the deep run's 7200 s,
+#: 22 and 27 Nov). One reading of each kind is kept, the newest, so a night of a hundred worlds
+#: never holds a hundred ledgers; the one writer (keep) drops a file's own, so the next read is
+#: of what it wrote.
+_READ: dict[tuple[str, Callable[[Path], object]], tuple[Path, tuple[int, int, int], object]] = {}
 
 
 class Switch(Enum):
@@ -38,6 +48,20 @@ def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
         written.replace(path)
     finally:
         written.unlink(missing_ok=True)
+        for kind in [kind for kind, (read, _, _) in _READ.items() if read == path]:
+            del _READ[kind]
+
+
+def read_once(path: Path, parse: Callable[[Path], T]) -> T:
+    """A file's reading by parse, read again only once the file has changed (_READ). Its
+    writers go through keep: a rewrite in place of the same size, inside the clock's tick,
+    keeps the stamp and would be read stale."""
+    seen = path.stat()
+    stamp, kind = (seen.st_ino, seen.st_mtime_ns, seen.st_size), (path.name, parse)
+    kept = _READ.get(kind)
+    if kept is None or kept[:2] != (path, stamp):
+        _READ[kind] = kept = (path, stamp, parse(path))
+    return cast(T, kept[2])
 
 
 def switch(root: Path) -> tuple[tuple[datetime, Switch, str], ...]:
@@ -85,10 +109,12 @@ def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
 
 
 def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
-    """Every rate kept, by day and currency."""
+    """Every rate kept, by day and currency: a copy of the file's one reading (read_once)."""
     path = root / RATES
-    if not path.exists():
-        return {}
+    return dict(read_once(path, _rates)) if path.exists() else {}
+
+
+def _rates(path: Path) -> dict[tuple[date, str], Decimal]:
     with path.open(newline="", encoding="utf-8") as saved:
         return {
             (date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"])
@@ -96,12 +122,18 @@ def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
         }
 
 
+def _by_currency(path: Path) -> dict[str, dict[date, Decimal]]:
+    by: dict[str, dict[date, Decimal]] = {}
+    for (day, currency), pounds in read_once(path, _rates).items():
+        by.setdefault(currency, {})[day] = pounds
+    return by
+
+
 def pounds_per(root: Path) -> Callable[[str, date], Decimal]:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry),
-    the rates read once for every question asked of it (22 Nov: once a trip hung SimCity)."""
-    by: dict[str, dict[date, Decimal]] = {}
-    for (day, currency), pounds in rates_kept(root).items():
-        by.setdefault(currency, {})[day] = pounds
+    the rates read once until they change (read_once; 22 Nov: once a trip hung SimCity)."""
+    path = root / RATES
+    by = read_once(path, _by_currency) if path.exists() else {}
 
     def rate(currency: str, day: date) -> Decimal:
         kept = carried(by.get(currency, {}), day)

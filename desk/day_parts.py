@@ -13,6 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from desk import book, day_money, halt, venues
+from desk.book_parts import read_once
 from desk.halt import Blocker
 from desk.lines import LINES, Line
 from desk.orders import Charges, Settings, is_zoo, moves, order_id_of
@@ -90,10 +91,13 @@ def _row(r: Record) -> tuple[object, ...]:
 def records(root: Path) -> tuple[Record, ...]:
     """Every day's record the desk has published, oldest first, as it was published. A file
     there whose first line is not the records' own names is an error, never a day short. A
-    row that ends at its money is a record made without its halts: it does not count."""
+    row that ends at its money is a record made without its halts: it does not count. Read
+    once until it changes (book_parts.read_once): a day asks for them five times."""
     path = root / RECORDS
-    if not path.exists():
-        return ()
+    return read_once(path, _records) if path.exists() else ()
+
+
+def _records(path: Path) -> tuple[Record, ...]:
     with path.open(newline="", encoding="utf-8") as kept:
         rows = list(csv.reader(kept))
     if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
