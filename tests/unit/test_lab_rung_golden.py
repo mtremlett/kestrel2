@@ -69,6 +69,11 @@ GOLDEN = [
                 "2,000.00; untested: the 2008 crash",
             ),
             "yearly": ("PASS", "a yearly Sharpe of 1.24; over 2.0 is doubted"),
+            "plateau": (
+                "PASS",
+                "NOT APPLICABLE: breakout_20_10 carries no settings to choose among, so none was "
+                "picked from a peak (decision a)",
+            ),
         },
     ),
     (
