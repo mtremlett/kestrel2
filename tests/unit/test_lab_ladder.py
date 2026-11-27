@@ -152,8 +152,16 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     assert set(won["unrun"]) == {"reproduce"}  #: no rung module is off the path
     #: a ranged row's plateau is its every variant's first rung on the cell's line and window
     row = Cell("donchian_channel_breakout", VUSA, EDGE[0].day, ladder.END)
-    surface = ladder._surface(row, EDGE, {})
+    shared = ladder.Shared([row])
+    surface = ladder._surface(row, EDGE, {}, shared)
     assert isinstance(surface, plateau.Surface) and len(surface.tried) == 12
+    #: a pass judges each variant once: its row's variant cells share those first rungs
+    kept = dict(shared.firsts)
+    again = ladder._surface(
+        Cell(next(iter(kept)).strategy, VUSA, row.start, row.end), EDGE, {}, shared
+    )
+    assert shared.firsts == kept and all(v is kept[k] for k, v in shared.firsts.items())
+    assert isinstance(again, plateau.Surface) and len(again.tried) == 12
     answer, why = plateau.judged(surface)  #: its own (20, 20) and every neighbour pass
     assert answer is rung.Answer.PASS and why.startswith("its setting 2 steps deep among 12")
     #: and the cell's key holds what the plateau reads: the row, ranges and all, or FIXED

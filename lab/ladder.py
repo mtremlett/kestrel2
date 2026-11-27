@@ -369,7 +369,7 @@ def _one(
         if gap := _unrated(c, ((c.line, own), (beside, held)), pounds):
             raise ValueError(gap)  #: the cell's reason, kept under its key; never a FAULT
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
-        both = _surface(c, own, pounds), None if first is None else pool.among(c)  #: L17, L18
+        both = _surface(c, own, pounds, shared), None if first is None else pool.among(c)
         judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, *both)
         done = _declared(judged, pool, c, own, pounds, made, found)
         return head | {"key": key, "from": c.start.isoformat()} | done
@@ -390,16 +390,22 @@ def _coded(rule: str) -> str:
     return f"{tape.rule_code(rule)} plateau {row}"
 
 
-def _surface(c: Cell, own: Sequence[Bar], pounds: Rates) -> plateau.Surface | plateau.Fixed:
+def _surface(
+    c: Cell, own: Sequence[Bar], pounds: Rates, shared: Shared
+) -> plateau.Surface | plateau.Fixed:
     """The cell's plateau (L17): each variant of its row judged at the first rung on the cell's
-    line and window, its own setting among them; a rule with no settings FIXED (`plateau.of`)."""
+    line and window, its own setting among them; a rule with no settings FIXED (`plateau.of`).
+    A pass's bars and rates are fixed, so each variant is judged once a pass and shared by its
+    row's cells; only the row at hand is kept, as its pool is."""
     book = rulebook.specs()
     row = book.get(c.strategy.partition("[")[0])
     made = variants.variants(row) if row is not None and row.ranges else ()
-    tried = (Cell(v.spec.name, c.line, c.start, c.end) for v in made)
-    return plateau.of(
-        c.strategy, book, {t.strategy: verdict.ready(t, own, pounds, ()) for t in tried}
-    )
+    tried = [Cell(v.spec.name, c.line, c.start, c.end) for v in made]
+    if not set(tried) & set(shared.firsts):
+        shared.firsts.clear()
+    for t in (t for t in tried if t not in shared.firsts):
+        shared.firsts[t] = verdict.ready(t, own, pounds, ())
+    return plateau.of(c.strategy, book, {t.strategy: shared.firsts[t] for t in tried})
 
 
 def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:

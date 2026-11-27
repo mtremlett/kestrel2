@@ -19,7 +19,7 @@ from lab import cell, folds, reproduce, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.reproduce import Reproduction
-from lab.rung import Answer, Rates
+from lab.rung import Answer, Rates, Verdict
 
 RUNGS = "lab"  #: the package whose `rung_*` modules declare the rungs the ladder runs
 PROXIES = {"VUAG": "SPY"}  #: a short-history line and the longer series that may stand in for it
@@ -36,6 +36,7 @@ class Shared:
     todo: Sequence[Cell]
     behind: dict[str, tuple[Reproduction, ...]] = field(default_factory=dict)
     pools: dict[str, verdict.Pool] = field(default_factory=dict)
+    firsts: dict[Cell, Verdict] = field(default_factory=dict)  #: a row's variants, at rung 1
 
 
 def _resolve(c: Cell, bars: Bars) -> tuple[Cell, Sequence[Bar], Line | None]:
