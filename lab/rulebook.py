@@ -9,6 +9,7 @@ until it does, and the ladder refuses it loudly, by name, where it lists the epo
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import tomllib
@@ -36,22 +37,35 @@ def eponymous(folder: Path | None = None) -> dict[str, type[Rule]]:
     return found
 
 
-def _table(book: Path | None) -> dict[str, Any]:
-    """The catalogue's rows by name, as written."""
-    return tomllib.loads((book or CATALOGUE).read_text(encoding="utf-8"))
+#: The book read once per text of the file: its rows as written and as proven specs, keyed
+#: by the file and its bytes' sha256, so an edited file is read again and never served stale.
+_SPEC_BOOKS: dict[tuple[Path, str], tuple[dict[str, Any], dict[str, Spec]]] = {}
+
+
+def _read(book: Path | None) -> tuple[dict[str, Any], dict[str, Spec]]:
+    """The catalogue's rows by name as written, and each parsed (`Spec.parse` proves its known
+    answers), read again only when the file's bytes change (S1: every cell asks)."""
+    path = book or CATALOGUE
+    text = path.read_bytes()  # bounded: the spec book, one file of the code
+    at = (path, hashlib.sha256(text).hexdigest())
+    if at not in _SPEC_BOOKS:
+        table = tomllib.loads(text.decode("utf-8"))
+        made = {name: Spec.parse({"name": name, **r}) for name, r in table.items()}
+        _SPEC_BOOKS[at] = (table, made)
+    return _SPEC_BOOKS[at]
 
 
 def specs(book: Path | None = None, folder: Path | None = None) -> dict[str, Spec]:
     """Every rule the catalogue names, as a parsed spec (each proven on its own known answers
     by `Spec.parse`); a row needs no Python file. `folder` is kept for the ladder's callers."""
     del folder
-    return {name: Spec.parse({"name": name, **row}) for name, row in _table(book).items()}
+    return dict(_read(book)[1])
 
 
 def row(name: str, book: Path | None = None) -> bytes:
     """The catalogue row a rule of that name is made from (a variant's, `row[settings]`, its
     row's), as canonical text for a key; a name with no row is refused."""
-    table = _table(book)
+    table = _read(book)[0]
     if (base := name.partition("[")[0]) not in table:
         raise ValueError(f"no catalogue row is called {base!r}")
     return json.dumps(table[base], sort_keys=True, default=str).encode()

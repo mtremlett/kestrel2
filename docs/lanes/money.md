@@ -301,6 +301,7 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-15 — every eponymous module declares EPONYMOUS (#280, R-RUNNER-88)
 - 16 modules gained `EPONYMOUS: Mapping[str, type[Rule]]`; a registry test sits in `tests/unit/test_eponymous_swing.py` (the lane guard lets MONEY own only tests named after a module).
 - Decided: The nameless momentum rule is named `dual_momentum` (alternative `antonacci_dual_momentum`), the name its test uses.
+- Blocked 27 Nov (money-epon-room): deleting the seven twinned rule files turns `tests/unit/test_lab_ladder_epon.py` red (`both == python`: every catalogue row has a Python twin), a RUNGS test outside this card's claim. Nothing deleted.
 - Remains: `lab/cell.py`, `ladder.py`, `trials.py` still accept only STRATEGIES (R-RUNNER-89, R-RUNNER-87).
 
 ### 2026-11-15 — Broker.stops names the desk's own stops (#282, R-PAPER-9)
