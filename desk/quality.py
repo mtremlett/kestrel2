@@ -13,7 +13,7 @@ import json
 import os
 import shutil
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from pathlib import Path
@@ -21,8 +21,8 @@ from pathlib import Path
 from desk import archive, backfill, bars, coverage, history_write, keeper, venues
 from desk.bars import Source
 from desk.lines import LINES, Line
-from desk.spans import EPOCH, FIVE
-from desk.store import AGREE, Bar
+from desk.spans import EPOCH, FIVE, Five, Timed
+from desk.store import AGREE, Bar, Refused
 from desk.store import _clean as cleaned
 
 
@@ -204,11 +204,49 @@ def rolloff(old: Path, kept: Path) -> tuple[list[Path], list[Path]]:
     return deleted, listed
 
 
+Pull = Callable[[Line, str], Sequence[Timed] | Refused]  #: a source's bars of one line's span
+Pulls = Sequence[tuple[Source, Pull]]  #: the sources in the order they are tried
+
+
+def fill_cells(path: Path, lines: Iterable[Line], pulls: Pulls, now: datetime) -> list[str]:
+    """Each intraday cell holding no bar (daily gaps have `gaps`) asked of the pulls in order,
+    the broker first and the free archives behind it, the first answer written through the one
+    writer under its own source; a cell holding a bar asks nothing. What was written, in words."""
+    wrote = []
+    for line in lines:
+        for span in HOVER_SPANS:
+            if span == "daily" or span in OFFERED.get(line.symbol, ()):
+                continue
+            if cell(path, line, span, now) != "holds no bar":
+                continue
+            for source, pull in pulls:
+                got = pull(line, span)
+                if isinstance(got, Refused) or not got:
+                    continue
+                with bars.writing(path, source) as opened:
+                    if span == "5m":
+                        opened.five(
+                            line,
+                            [Five(t.start, t.open, t.high, t.low, t.close, t.volume) for t in got],
+                        )
+                    else:
+                        opened.timed(line, span, got)
+                wrote.append(f"{line.symbol}/{span}: {source.value}")
+                break
+    return wrote
+
+
 def monitor(
-    path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, now: datetime
+    path: Path,
+    lines: Iterable[Line],
+    broker: backfill.Ask,
+    archived: backfill.Ask,
+    now: datetime,
+    pulls: Pulls = (),
 ) -> str:
     """Audit, backfill every gap, audit again: the one line saying green, or what stays red."""
     every, today = list(lines), now.date()
+    fill_cells(path, every, pulls, now)
     asks: backfill.Asks = (
         *backfill.ordered(broker, archived),
         (Source.ROLLUP_5M, partial(bars.rolled_day, path)),
