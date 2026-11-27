@@ -13,7 +13,7 @@ from pathlib import Path
 from desk import archive, bars, live, venues
 from desk.bars import Five
 from desk.lines import YARDSTICK, Line
-from desk.spans import Timed
+from desk.spans import EPOCH, Timed
 from desk.store import Refused
 
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
@@ -147,20 +147,25 @@ def polled_round(
     return words, len(mine), refusals
 
 
-ROLLED, HELD = "SELECT * FROM bar", "SELECT * FROM held"  #: every span the short one holds
+ROLLED = (  #: every span the short database holds, its bars from a moment on, read by key
+    "SELECT b.* FROM held h JOIN bar b ON b.venue = h.venue AND b.symbol = h.symbol"
+    " AND b.span = h.span AND b.at >= ?"
+)
+HELD = "SELECT * FROM held"
 
 
-def roll(hot: Path) -> str:
-    """One run of `--roll`: the short database's bars of every span it holds copied, source kept
-    and nothing changed, into the long one, which keeps every timeframe; in words. No list of
-    spans is kept here (failure pattern 18: one kept by hand left 15m and 30m behind)."""
+def roll(hot: Path, since: datetime = EPOCH) -> str:
+    """The short database's bars of every span it holds, from since (all, by default: the nightly
+    `--roll`; a keeper round gives the week kept hot), copied, source kept and nothing changed,
+    into the long one, which keeps every timeframe; in words. No list of spans is kept here
+    (failure pattern 18: one kept by hand left 15m and 30m behind)."""
     if not hot.is_file():
         raise FileNotFoundError(f"{hot}: no live day to roll")
     with (
         closing(sqlite3.connect(hot)) as src,
         closing(sqlite3.connect(bars.files(hot)[bars.DAILY], timeout=bars.WAIT)) as dst,
     ):
-        rows = src.execute(ROLLED).fetchall()
+        rows = src.execute(ROLLED, (int((since - EPOCH).total_seconds()),)).fetchall()
         held = src.execute(HELD).fetchall()
         with dst:
             for table in bars.SCHEMA:

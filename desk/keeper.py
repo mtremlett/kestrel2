@@ -369,7 +369,7 @@ def keep(
         home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
     )
     if (home / HOT).is_file():
-        keeper_live.roll(home / HOT)  # the long database holds this round's bars, not tonight's
+        keeper_live.roll(home / HOT, now - keeper_live.RECENT)  # this week's bars, not tonight's
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         ask = _within(daily, clock, ends)

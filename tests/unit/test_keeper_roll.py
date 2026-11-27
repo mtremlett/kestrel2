@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, keeper
+from desk import bars, keeper, keeper_live
 from desk.bars import Five, Source
 from desk.lines import Line
 from desk.spans import Timed
@@ -84,3 +84,21 @@ def test_every_keeper_round_leaves_its_newest_five_minute_bar_in_the_long_databa
     with closing(sqlite3.connect(bars.files(tmp_path / keeper.HOT)[bars.DAILY])) as long:
         seen = long.execute("SELECT COUNT(*) FROM bar WHERE span = ?", (bars.FIVE,)).fetchone()
     assert seen == (1,)
+
+
+def test_a_round_rolls_only_the_week_kept_hot_and_the_nightly_roll_everything(
+    tmp_path: Path,
+) -> None:
+    """Every round copied the whole live store (2.5 million rows on 27 Nov) and the keeper ran out
+    of its 240 seconds 10 times in 27: a round copies the week, the nightly `--roll` the rest."""
+    hot, now, price = tmp_path / keeper.HOT, datetime(2026, 11, 16, 10, tzinfo=UTC), Decimal(5)
+    line, old = Line("BBB", "LSE", "GBP", 1), now - keeper_live.RECENT - timedelta(minutes=15)
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.timed(
+            line, "15m", (Timed("15m", at, price, price, price, price, 1) for at in (old, now))
+        )
+    long = bars.files(hot)[bars.DAILY]
+    keeper_live.roll(hot, now - keeper_live.RECENT)
+    assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [now]
+    keeper_live.roll(hot)
+    assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [old, now]
