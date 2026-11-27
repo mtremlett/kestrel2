@@ -715,6 +715,9 @@ Options: A, park until a later bar removes the fault (chosen, per the request); 
 ### 2026-11-27 — monthly bars start on the month's first day 00:00 UTC (DATA, #2304)
 Options: start on the last session of the month, or on the first day as weekly starts on Monday (chosen). The store names a bar by its start, so a start on the last session was rejected. A month is written only when every session was held.
 
+### 2026-11-27 — a daily bar served off IBKR's is a fault in every hover (DATA, O12)
+His standing rule, IBKR first for every bar, had no check that read the store: 538 days sat relabelled `archive` for hours, seen only by a hand query. Options: A, a check inside the keeper's re-clean only (misses any other writer, as the old job copy was); B, the hover's daily cell reads the store itself: a day whose served bar is not IBKR's while `correction` holds IBKR's value replaced is a FAULT, kind `source` (chosen: every hour, whoever wrote it, 0.1 s on the real store). Driven red on the real store read-only, 27 Nov: 21 of 22 lines, 538 days (SPY 177, QQQ 157, AAPL 141).
+
 ### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
 Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
 
