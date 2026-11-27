@@ -545,7 +545,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
       has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the
       replay's verdict, never a crash. Check: the next fills-replay says done
-      (#2212: a fill whose rule today() does not decide is a named "rule" mismatch, never a crash. Remains: replaying zoo fills through a zoo rule, a separate box)
+      (#2212: a fill whose rule today() does not decide is a named "rule" mismatch, never a crash. Replaying zoo fills through a zoo rule is a separate box)
       {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
