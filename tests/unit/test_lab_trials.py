@@ -12,7 +12,7 @@ from test_lab_luck import DAY, _verdict
 
 from desk import strategy
 from desk.lines import LINES
-from lab import deflated, luck, trials
+from lab import deflated, luck, rulebook, trials
 from lab.cell import Cell, Key
 from lab.rung import Verdict
 
@@ -110,6 +110,26 @@ def test_a_changed_rule_is_new_trials_and_a_reformatted_one_is_not(register: Pat
     #: the hash is in the name, so a rule run again as changed adds a trial to the count
     one, now = trials.name(FIVE[0]), trials.rule_hash(FIVE[0].strategy)
     assert now in one and trials.enter(register, ASKED, [one, one.replace(now, same)]) == 2
+
+
+def test_two_settings_of_one_catalogue_row_are_two_trials(
+    register: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    row = "donchian_channel_breakout[entry.n=10,exit.n=10]"
+    cell = Cell(row, AAPL, DAY, END)
+    before = trials.name(cell)
+    book = tmp_path / "catalogue.toml"
+    book.write_text(
+        rulebook.CATALOGUE.read_text(encoding="utf-8").replace(
+            "exit = { n = [10, 20, 40, 80] }", "exit = { n = [10, 20, 40, 81] }", 1
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rulebook, "CATALOGUE", book)
+    trials.rule_hash.cache_clear()
+    assert trials.name(cell) != before
+    assert trials.enter(register, ASKED, [before, trials.name(cell)]) == 2
+    trials.rule_hash.cache_clear()
 
 
 def test_a_question_worded_anew_cannot_begin_the_count_again(register: Path) -> None:

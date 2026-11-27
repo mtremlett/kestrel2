@@ -77,6 +77,10 @@ def test_the_first_stop_is_under_the_live_price_and_a_gap_past_the_signals_is_re
 
     assert sized("140").stop == Decimal("126.0")
     assert sized("150").stop == sized(None).stop
+    gapped_up = orders.size(_buy(PLAIN), PLAIN, Decimal(100), Decimal(1), TEN_K, {}, Decimal(130))
+    live_cost = orders.cost(replace(gapped_up, price=Decimal(130)))
+    assert live_cost <= Decimal(2000), "a live price 30% over sizes within the room"
+    assert gapped_up.quantity == 15 and gapped_up.price == Decimal(100)
     with pytest.raises(orders.Refused, match="emergency rule"):
         sized("130")
 

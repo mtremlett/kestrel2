@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_keltner_channel_trend
 from desk.eponymous_keltner_channel_trend import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -34,3 +35,9 @@ def test_buys_over_the_upper_band_holds_inside_it_and_sells_under_the_lower_band
 def test_waits_for_ten_days_and_for_a_close_clear_of_the_band() -> None:
     assert _trades([*[100] * 5, *[120] * 3]) == {}  # under ten days of history
     assert _trades([*[100] * 10, 102]) == {}  # 102 is inside 101 + 2 = 103
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; stated, no time stop
+    assert "Holding period: none" in eponymous_keltner_channel_trend.__doc__
+    assert all(r.declared.hold is None for r in eponymous_keltner_channel_trend.EPONYMOUS.values())

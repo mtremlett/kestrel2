@@ -369,3 +369,14 @@ def test_the_old_store_is_checked_against_the_one_store_and_a_restore_is_drilled
     assert headstart.compare(store, {UK: [_at(0, "10 11 9 9.5")]})[UK].same is False
     assert US not in got
     assert headstart.drill(store, tmp_path / "scratch", [UK, US]) == {UK: Tally(2, 2, True, ())}
+
+
+def test_the_old_daily_rows_are_checked_against_the_one_stores_days(tmp_path: Path) -> None:
+    old, one = tmp_path / "old.db", tmp_path / "bars.db"
+    held, gone = replace(DAY, day=date(2026, 3, 2)), replace(DAY, day=date(2026, 3, 3))
+    _database(old, [("BA.L", "1d", f"{b.day}", 10, 11, 9, 10, 500) for b in (held, gone)])
+    with bars.writing(one) as round_:
+        round_.days(UK, [held])
+    got = headstart.compare_days(one, old, [UK])[UK]
+    assert (got.old, got.held, got.same) == (2, 1, True)
+    assert [at.date() for at in got.missing] == [gone.day]
