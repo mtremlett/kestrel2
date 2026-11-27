@@ -1,5 +1,5 @@
-"""The keeper's roll: the live day's one-minute and five-minute bars copied unchanged into the
-long database, each with its source."""
+"""The keeper's roll: the live day's 1m, 5m, 15m and 30m bars copied unchanged into the long
+database, each with its source."""
 
 from __future__ import annotations
 
@@ -23,13 +23,15 @@ def test_a_roll_leaves_the_long_database_holding_the_live_bars_with_their_source
     with bars.writing(hot, Source.IBKR) as kept:
         kept.timed(line, "1m", (Timed("1m", now, price, price, price, price, 1),))
         kept.five(line, (Five(now, price, price, price, price, 1),))
+        for span in ("15m", "30m"):  # the long database's quarter and half hours come only so
+            kept.timed(line, span, (Timed(span, now, price, price, price, price, 1),))
     assert keeper.main(tmp_path, now, ["--roll"]) == 0
     assert keeper.main(tmp_path, now, ["--roll"]) == 0  # again: the same bars, not more
     found = []
     for file in (hot, bars.files(hot)[bars.DAILY]):
         with closing(sqlite3.connect(file)) as held:
             found.append(held.execute("SELECT * FROM bar ORDER BY span").fetchall())
-    assert found[0] == found[1] and len(found[0]) == 2 and found[0][0][-1] == Source.IBKR.value
+    assert found[0] == found[1] and len(found[0]) == 4 and found[0][0][-1] == Source.IBKR.value
 
 
 def test_a_round_writes_the_hour_the_five_minute_bars_complete_and_no_partial_span(
