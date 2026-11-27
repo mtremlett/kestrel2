@@ -326,3 +326,7 @@ Options: pass a Plan, or look it up by the set's tag in EPON and LEV. **Decided*
 ### 2026-11-26 — chain.report uses plateau.choose for the centre (#2227)
 
 Options: add `variants.centre` (outside the claim; rejected), or call `plateau.choose` on a ranged copy of the row. **Decided** `plateau.choose`: the centre has one home, plateau. The request named `variants.centre`, which does not exist.
+
+### 2026-11-27 — lab.chain chains only the known sets (#2247)
+
+Options: chain every json in ladder/sets, or only the sets `chain.sweep` knows (EPON, LEV). **Decided** the known sets: grid-transfer.json and *.cells.json are not set tables. A failed chain does not fail the sweep pass (its line says so), since a failed pass would lose its count line.
