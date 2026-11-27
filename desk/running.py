@@ -86,6 +86,7 @@ UNDRILLED = (
     "order was involved. Each promise named next was NOT kept: {}"
 )
 ZOO_ON = "zoo-on-paper"  #: the one paper switch: this file in the desk's root turns the zoo on
+DOWN_MARK = "gateway_down"  #: the file at root holding when the Gateway was first found down
 ZOO_NOTE = "zoo"  #: the name the zoo's notes are kept under: told in the hourly message alone
 MACHINERY = "MACHINERY TEST, NOT EVIDENCE OF AN EDGE"  #: said of every zoo order, never a verdict
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
@@ -361,9 +362,24 @@ def _bar_notes(root: Path, now: datetime, venue: str, said: Mapping[bool, list[s
             _note(root, now, name, f"{VENUES[venue]}, this bar's orders: {'; '.join(words)}.")
 
 
-def zoo_hour(root: Path, now: datetime) -> str:
+def down_since(root: Path, known: Known, now: datetime) -> datetime | None:
+    """When the paper Gateway went down, if it is down (not ready, not its daily restart): the
+    first moment it was found so, kept in a mark at root until it answers again."""
+    mark = root / DOWN_MARK
+    if known.state not in (State.HIS, State.UNWELL):
+        mark.unlink(missing_ok=True)
+        return None
+    if not mark.exists():
+        mark.write_text(now.isoformat())
+    return datetime.fromisoformat(mark.read_text())  # bounded: one timestamp, never grows
+
+
+def zoo_hour(root: Path, now: datetime, down: bool = False) -> str:
     """The zoo's last hour for his hourly message, in one line (none: no words): its orders
-    filled and those not, never a message of its own at each bar."""
+    filled and those not, never a message of its own at each bar. With the Gateway down its
+    orders are not sent, never 'not filled'."""
+    if down:
+        return f"\nZoo ({MACHINERY}): its orders are not sent while the Gateway is down."
     words = [n.words for n in notes(root) if n.what.split()[0] == ZOO_NOTE and now - n.at < HOUR]
     if not words:
         return ""

@@ -93,9 +93,11 @@ class _Counted(Pretend):
         super().__init__(archive, {})
         self._rng, self.met = rng, Counter[Fault | None]()
         self.buys = 0  #: the orders to buy that reached the door
+        self.bought = Counter[str]()  #: and of which line each was
 
     def place(self, order: Order | Sale) -> Report:
         self.buys += isinstance(order, Order)
+        self.bought[order.line.symbol] += isinstance(order, Order)
         if self._rng.randrange(FAULTY) == 0:
             self._faults[order.line.symbol] = self._rng.choice(tuple(Fault))
         waiting = self._faults.get(order.line.symbol)
@@ -153,14 +155,14 @@ class _Life:
             for x, bars in self.market.items()
             if bars[0].day < on
         }
-        scenario, buys = self.census.scenario, self.pretend.buys
+        scenario, buys = self.census.scenario, self.pretend.bought.copy()
         record = self._run(saved, on)
         self.census.now(scenario)
         odd = {m for m in record.mismatches if not day_money.is_owed(m)} - book.adopted(
             self.desk, on
         )
-        quiet = not (odd and self.pretend.buys > buys)
-        self.promise("nothing is bought on a day the book is not the broker's", quiet)
+        quiet = not any(self.pretend.bought[name] > buys[name] for name in odd)
+        self.promise("nothing is bought on a line the book is not the broker's on", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
         net = Counter[str]()  #: shares of a stranger's not sold: none of the desk's lines
         for f in book.fills(self.desk):
