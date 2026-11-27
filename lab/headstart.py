@@ -42,6 +42,7 @@ from desk.bars import EPOCH, Five, Source
 from desk.bars_parts import B
 from desk.compare import doubt
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import STRETCH, Bar, Refused
 from lab.headstart_parts import (  # noqa: F401  # the readers, still reached as lab.headstart.<name>
     MARKET as MARKET,
@@ -165,7 +166,7 @@ class Tally:
     missing: tuple[datetime, ...]  #: the moments of old bars the one store holds none for
 
 
-def _sum(given: Iterable[Five]) -> str:
+def _sum(given: Iterable[Five | Timed]) -> str:
     rows = (
         f"{b.start:%Y%m%d%H%M} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given
     )
@@ -179,13 +180,36 @@ def compare(path: Path, answers: Mapping[Line, Iterable[Five] | Refused]) -> dic
     for line, given in answers.items():
         if isinstance(given, Refused):
             continue
-        old = sorted(given, key=lambda bar: bar.start)
         have = {bar.start: bar for bar in bars.five(path, line, EPOCH, AFTER_ALL)}
-        both = [bar for bar in old if bar.start in have]
-        same = _sum(both) == _sum(have[bar.start] for bar in both)
-        tallies[line] = Tally(
-            len(old), len(both), same, tuple(bar.start for bar in old if bar.start not in have)
-        )
+        tallies[line] = _tally(sorted(given, key=lambda bar: bar.start), have)
+    return tallies
+
+
+def _tally(old: Sequence[Five], have: Mapping[datetime, Five | Timed]) -> Tally:
+    both = [bar for bar in old if bar.start in have]
+    same = _sum(both) == _sum(have[bar.start] for bar in both)
+    return Tally(len(old), len(both), same, tuple(b.start for b in old if b.start not in have))
+
+
+def compare_hours(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds hourly bars of, them beside the one store's hourly bars at
+    path: counts, a checksum of the prices at the moments both hold, the moments only the old one
+    holds. A line the one store holds no hourly bar of: all missing."""
+    from lab import headstart_hours  # imports this module
+
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = headstart_hours.hours(line, where)
+        except (OSError, ValueError):  # this line's hours are not in that old store
+            continue
+        try:
+            have = {
+                b.start: b for b in bars.timed(path, line, headstart_hours.SPAN, EPOCH, AFTER_ALL)
+            }
+        except LookupError:
+            have = {}
+        tallies[line] = _tally(sorted(old, key=lambda bar: bar.start), have)
     return tallies
 
 
@@ -316,6 +340,7 @@ def checked(register: Path, path: Path, scratch: Path) -> str:
         found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
         with suppress(ValueError):  # a store of no daily form has no daily rows to compare
             found["1d"] = compare_days(path, where)
+        found["1h"] = compare_hours(path, where)
         for span, tallies in found.items():
             for line, tally in tallies.items():
                 bad += not tally.same or bool(tally.missing)
