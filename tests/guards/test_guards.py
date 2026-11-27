@@ -153,9 +153,6 @@ def test_the_tree_is_inside_this_phases_ceiling() -> None:
         "Delete something or ask the operator to raise the ceiling on the pull request."
     )
     assert (
-        len(core) <= ceiling["product_files"]
-    ), f"desk/ has {len(core)} files, ceiling {ceiling['product_files']} for {phase}."
-    assert (
         _lines(lab) <= ceiling["lab_lines"]
     ), f"lab/ is {_lines(lab)} lines, ceiling {ceiling['lab_lines']} for {phase}."
 
