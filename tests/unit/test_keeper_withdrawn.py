@@ -115,6 +115,18 @@ ROWS = {
         _history()[:D] + _history()[D + 1 :],
         False,
     ),
+    "a withdrawn day the archive answers in prices alike, its own volume, is served as held": (
+        _history(),
+        True,
+        [replace(b, volume=b.volume * 3) if n == D else b for n, b in enumerate(_history())],
+        True,
+    ),
+    "a withdrawn day the judge drops is not lifted by an archive answer the writer refuses": (
+        _zero(_history()),
+        True,
+        _history(),
+        False,
+    ),
 }
 
 

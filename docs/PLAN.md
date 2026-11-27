@@ -1144,9 +1144,9 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
   - [x] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
-  - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
+  - [x] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
-        Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
+        Done (27 Nov, Builder R2): the planted edge is a crowd (`Crowd`, in while the day's volume is crowded), the only edge its rule hears, on deep lines, over 17 years; it goes forward on all four lines, every rung run and passed; the same crowds on lines that do not move with them FAIL at the first rung. The breakout's rise stays heard, not forward (DECISIONS 27 Nov). The hold itself is the coordinator's (E21)
         {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py, tests/unit/test_lab_rung.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
