@@ -357,7 +357,7 @@ def _one(
         market = cell.key(Cell(c.strategy, beside, c.start, c.end), held).data
         parts = [mine.code, mine.data, market, pool.data, str(count), f"capital {CAPITAL}"]
         parts += [f"{d} {pounds[d]}" for d in days]
-        parts += [tape.rule_code(c.strategy)] + [one.key.code + one.key.data for one in made]
+        parts += [_coded(c.strategy)] + [one.key.code + one.key.data for one in made]
         found = rung.found(RUNGS)
         parts += [one.name + one.code for one in found[0]] + list(found[1])  #: both are in its key
         head |= {"reproduction": [reproduce.said(one) for one in made]} if made else {}
@@ -381,6 +381,13 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
+
+
+def _coded(rule: str) -> str:
+    """The rule's code for a cell's key, and what its plateau reads beyond the cell's bars: its
+    catalogue row, ranges and all (a variant's, its row's), or that it has none and is FIXED."""
+    row = rulebook.row(rule).decode() if rule.partition("[")[0] in rulebook.specs() else "FIXED"
+    return f"{tape.rule_code(rule)} plateau {row}"
 
 
 def _surface(c: Cell, own: Sequence[Bar], pounds: Rates) -> plateau.Surface | plateau.Fixed:

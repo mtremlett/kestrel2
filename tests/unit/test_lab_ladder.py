@@ -32,6 +32,7 @@ from lab import (
     plateau,
     published,
     reproduce,
+    rulebook,
     rung,
     rung_ci,
     rung_costs,
@@ -153,7 +154,11 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     row = Cell("donchian_channel_breakout", VUSA, EDGE[0].day, ladder.END)
     surface = ladder._surface(row, EDGE, {})
     assert isinstance(surface, plateau.Surface) and len(surface.tried) == 12
-    assert surface.own in surface.tried and plateau.judged(surface)[0].name in {"PASS", "FAIL"}
+    answer, why = plateau.judged(surface)  #: its own (20, 20) and every neighbour pass
+    assert answer is rung.Answer.PASS and why.startswith("its setting 2 steps deep among 12")
+    #: and the cell's key holds what the plateau reads: the row, ranges and all, or FIXED
+    keys = ladder._coded(row.strategy), ladder._coded("breakout_20_10")
+    assert keys[0].endswith(rulebook.row(row.strategy).decode()) and keys[1].endswith("FIXED")
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
