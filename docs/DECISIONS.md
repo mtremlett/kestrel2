@@ -2801,18 +2801,20 @@ Driven again on main after #2388: `rungs-sets` given an existing passing test of
 (`test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected`), RED,
 "boxes opened already met on main"; given a test not yet written, green. Both reverted.
 
-## 26 Nov - the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
-
-The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
-well. Once a sixth does, no shuffle left can change the answer, so the rung stops there instead
-of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
-Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
-of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
-is about 20 rules of mostly failing cells). The text changes: a FAIL's reason now says
-"its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
-is unchanged; a trial of under two trades, never shuffled, says "1 (under two trades: no shuffle
-run)". A FAIL's exact share is no longer recorded anywhere; nothing reads it. No threshold or
-answer changes. Proven by
-`tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
-(the early answer equals a full run's on a passing and a failing walk) and
-`test_five_as_good_passes_the_sixth_fails_and_stops_there` (the edge, ties and None scripted).
+## 27 Nov - the known-answer kit's planted edge is a crowd (L15b, Builder R2)
+The breakout's planted rise cannot go forward (#2402): any trend rule hears it (fit 0.91), so it is
+no edge of its own. Options weighed: (a) deepen and lengthen the breakout walks: fit still FAILS by
+design; (b) the rung kit's paid churner: a next-open jump that a one-bar-late rung (E13) must FAIL,
+so it cannot be the edge that goes forward on every rung; (c) an edge only its rule hears that
+lasts. Chose (c), test data only, no rung touched: `Crowd` is in while the day's volume is crowded
+(2,000,000 shares against 1,000,000); crowded spells of about 8 days rise 0.4% a day, quiet spells
+of about 16 give half of it back, so the line goes nowhere, under 1.5% of noise, on the four US
+lines beside SPY. Why 17 years: an honest edge sits under the yearly Sharpe flag of 2 (canon B6),
+and on 2,400 days a Sharpe that size was too thin for both regime windows to pass apart (t 1.1 to
+2.9, regimes FAIL on every line, probed). Over 6,200 days at a rise of 0.4%: t 4.9 to 6.3, yearly
+Sharpe 1.19 to 1.54, fit 0.43 to 0.55, costs 5.7 to 7.3 times, both windows PASS, every rung run and
+passed on all four lines (`goes`). A rise of 0.3% left every line short; 0.5% also passes, nearer the
+flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the first rung after
+costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
+`test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
+green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
