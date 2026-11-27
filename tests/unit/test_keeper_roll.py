@@ -100,5 +100,5 @@ def test_a_round_rolls_only_the_week_kept_hot_and_the_nightly_roll_everything(
     long = bars.files(hot)[bars.DAILY]
     keeper_live.roll(hot, now - keeper_live.RECENT)
     assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [now]
-    keeper_live.roll(hot)
+    assert keeper.main(tmp_path, now, ["--roll"]) == 0  # the nightly job: nothing older is lost
     assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [old, now]
