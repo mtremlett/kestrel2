@@ -355,7 +355,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] The history database keeps the live day's five-minute and one-minute bars from every keeper round, not once at
       21:30, so research and the monitor read them as fresh as the live store
       wire: every keeper round; gate: a round over a planted live store leaves its newest five-minute bar in the history database
-      Built (#2208): every keeper round copies the live day's one- and five-minute bars (sources kept) into the history database after the fast five-minute round, silent in `keep`; the `--live` one-minute round does not copy by itself, the next five-minute round does.
+      Built (#2208): every keeper round copies the live day's one- and five-minute bars (sources kept) into the history database after the fast five-minute round, silent in `keep`; the `--live` one-minute round does not copy by itself, the next five-minute round does. Also (O12, 27 Nov): the copy carries the 15m and 30m bars too, so the history database's quarter and half hours are as fresh as the live store's (42 hover cells, IITU/15m among them).
       {id: data-history-fine; files: desk/keeper.py, desk/keeper_live.py, tests/unit/test_keeper*.py; after: data-ibkr-daily-newest}
 - [x] The history pull paces by bar size (coordinator 165, 23 Nov 21:4x): IBKR's sixty-requests-in-ten-minutes limit binds
       only bars of thirty seconds and under; one-minute and longer bars are held back only by open requests, so the

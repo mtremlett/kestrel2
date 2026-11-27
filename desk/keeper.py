@@ -128,6 +128,23 @@ def _held(hot: Path, line: Line) -> tuple[Bar, ...]:
         return ()
 
 
+def _upheld(
+    hot: Path, line: Line, held: Sequence[Bar], day: date, rates: store.Rates, dropped: set[date]
+) -> set[date]:
+    """Of the days dropped and those withdrawn, the ones whose held bar the one judge keeps,
+    unchanged, in the line's whole held history (its withdrawn days among it): a day stays
+    withdrawn only while that judgement drops it (the withdraw rule's table, pattern 13)."""
+    try:
+        under = set(bars.daily(hot, line, bars.UNDER))
+    except (LookupError, FileNotFoundError):  # never kept: no day of it is withdrawn
+        under = set()
+    if not under and not dropped:
+        return set()
+    whole = sorted([*held, *under], key=lambda bar: bar.day)
+    kept = set(scoped_judge(line, whole, day, rates)[0])
+    return {b.day for b in whole if b in kept and (b in under or b.day in dropped)}
+
+
 def _standing(hot: Path, line: Line, day: date, broker: store.Answer | None) -> store.Answer | None:
     """The bars standing first: the broker's if given, else those the store holds (R-RUNNER-341)."""
     held = tuple(b for b in _held(hot, line) if b.day >= day - history.RECENT)
@@ -160,13 +177,15 @@ def _kept_in(
         ibkr.append((line, [b for b in kept if (b.day, entered(b)) in theirs]))
         standing_bars = frozenset(held)
         fresh = [b for b in kept if b not in standing_bars]  # a held bar keeps its label
-        judged.append((line, fresh, _dropped(held, answer, broker) - {b.day for b in kept}))
+        dropped = _dropped(held, answer, broker) - {b.day for b in kept}
+        upheld = _upheld(hot, line, held, day, rates, dropped)
+        judged.append((line, fresh, dropped - upheld, upheld))
         parked += [park] if park else []
         named.setdefault(_source(kept, answer, broker), []).append(line.symbol)
         said += [f"{line.symbol}: {f.what}, held" for f in faults if "(broker)" in f.what]
     with bars.writing(hot) as round_:  # the round holds the lock only while it writes
-        for line, fresh, withdrawn in judged:
-            round_.daily(line, fresh, withdrawn=withdrawn)
+        for line, fresh, withdrawn, restored in judged:
+            round_.daily(line, fresh, withdrawn=withdrawn, restored=restored)
     with bars.writing(hot, bars.Source.IBKR) as round_:  # the broker's own bars, so labelled
         for line, own in ibkr:
             round_.days(line, own)
@@ -369,7 +388,7 @@ def keep(
         home / HOT, lines, now, _within(five, clock, clock() + SPENT / 2), back, SETTLED
     )
     if (home / HOT).is_file():
-        keeper_live.roll(home / HOT)  # the long database holds this round's bars, not tonight's
+        keeper_live.roll(home / HOT, now - keeper_live.RECENT)  # this week's bars, not tonight's
     for venue in sorted({line.venue for line in lines}):
         mine = [line for line in lines if line.venue == venue]
         ask = _within(daily, clock, ends)
