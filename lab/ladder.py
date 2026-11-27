@@ -407,7 +407,9 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     every = rulebook.eponymous(folder)
     python = tuple(n for n, make in every.items() if not _needs_data(make))
     return python + tuple(
-        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+        n
+        for n, spec in rulebook.specs(book, folder).items()
+        if n not in python and not _needs_data(every.get(n) or rulebook._made(spec))
     )
 
 
