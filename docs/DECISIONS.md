@@ -2856,6 +2856,17 @@ costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
 `test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
 green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
 
+## 27 Nov - every limit has one home (design item 7, Builder 3b)
+A limit copied out of `BUDGET.json` stays behind when the file changes, and the copy is what a
+session reads (pattern 8; the runner's own pin of its budget did this today). Options weighed: (a)
+search every file for every number in `BUDGET.json`: 50 and 20,000 also mean seconds and bytes in
+`check.py`, so it cries wolf; (b) search where a limit is restated, the guards that enforce limits
+and the three rulebooks, for any number past a day of the month or any fraction: chosen. A guard
+reads the figure from `BUDGET.json`; a rulebook names the file. `test_each_limit_has_one_home` was
+RED on main with four copies (CANON.md:4 200, CANON.md:74 50 and 800, test_guards.py:192 1.5), and
+RED again on a planted `PLANTED_CAP = 8914 + 30000` in a guard (30000 named, 8914 rightly not: it is
+the runner's figure, and its drive is the runner's). The two CANON lines now name `BUDGET.json` in
+place of the figures, same rule, same line count; the comment lost its copy. Green after.
 ## 27 Nov - file replaces may fall, never rise (design L16, Builder 3b)
 Windows refuses to swap a file another process holds open (pattern 19), so every `path.replace`
 in `desk/` and `lab/` is a place a live job can fail. Options weighed: (a) build the one locked
