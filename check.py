@@ -57,7 +57,7 @@ SECONDS = {
     "test_lab_ladder.py": 409,
     "test_lab_ladder_epon.py": 264,
     "test_lab_rung_known_answer.py": 134,
-    "test_lab_rung_known_answer_noise.py": 205,  #: new; measured on the PC, 26 Nov
+    "test_lab_rung_known_answer_noise.py": 340,  #: the PC, 26 Nov; planted at 80 seeds, 27 Nov
     "test_simcity_incidents.py": 131,
     "test_lab_tape.py": 125,
     "test_simcity.py": 98,

@@ -2699,8 +2699,14 @@ Seat 215's order, the rest of the key, every rung real (no rung's own result stu
   (a normal above 2 - t), found 0.20, 0.65, 0.95, 1.00 on 20 lines each, within 0.25 and rising; the
   first rung is the rung a true t governs, so the rates are stated for it. The blind review judged the
   calibration FAIL: every group's mean t runs about 0.3 high (found rates fit t + 0.3: 0.24, 0.62,
-  0.90, 0.99), so the plant is t + 0.3 and the tolerances (0.5 on t, 0.25 on a rate) hide it. Owed:
-  B and SD on 100+ seeds at the tilt, 80 lines a t, tolerances 0.25 and 0.15.
+  0.90, 0.99), so the plant is t + 0.3 and the tolerances (0.5 on t, 0.25 on a rate) hide it.
+  **Fixed (R-RUNNER-553, 27 Nov):** the first rung's t measured at the tilt on 200 seeds the test
+  never uses at each planted t of 0 to 4 (found 0.24, 1.25, 2.23, 3.35, 4.27), fitted as a line in
+  the tilt (residuals under 0.07) and read back: B -0.00158 -> -0.00132, SD 0.0541 -> 0.0532. On
+  the test's own 80 lines a t: mean t 1.02, 1.99, 3.08, 4.03 (within 0.25), pass rates 0.11, 0.50,
+  0.94, 0.99 against 0.16, 0.50, 0.84, 0.98 (within 0.15), rising. Seen red first with the old B
+  and SD under the new tolerances (means 1.27, 2.26, 3.37, 4.33). A seed's found t spreads about
+  0.71, not 1, so the found rates sit beyond the stated ones away from t 2, inside 0.15.
 - **A delisted line** (AMD cut at 2023-06-30 among 16): judged, FAIL, never an error; the 2025 fold
   pooled over the 15 lines still trading. Found: its regimes rung FAULTs (STATUS, found not fixed).
 - **L17's gate met:** the kit's paid edge goes forward on every line.

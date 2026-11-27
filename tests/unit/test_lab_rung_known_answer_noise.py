@@ -37,19 +37,20 @@ from lab.verdict_parts import goes
 SETS = 10
 FALSE_PASS = 0.02
 #: The planted edge's line (the kit's `_paid`): 2,399 churner trades under 5.5% of noise a
-#: trade, whose mean after costs at no tilt is B and whose spread is SD, measured on 16 seeds
-#: of no tilt (26 Nov); the tilt for a true t is the one whose mean after costs is t standard
-#: errors above nothing. The test checks the measure: each group's mean t lies near its own.
-#: KNOWN BIAS (blind review, 26 Nov): the found mean t runs about 0.3 high in every group (1.43,
-#: 2.33, 3.32, 4.02), so the plant is t + 0.3, not t; B and SD want re-measuring on 100+ seeds at
-#: the tilt and the tolerances tightening (RUNGS, owed). The first rung passes at its own t's rate.
-TRADES, B, SD = 2399, -0.00158, 0.0541
-SEEDS = 20  #: lines a true t
+#: trade, whose mean after costs at no tilt is B and whose spread is SD; the tilt for a true t is
+#: the one whose mean after costs is t standard errors above nothing. B and SD were measured AT
+#: THE TILT (R-RUNNER-553, 27 Nov): the first rung's t on 200 seeds the test never uses at each
+#: planted t of 0 to 4 (as first planted, from 16 seeds of no tilt: found 0.24, 1.25, 2.23, 3.35,
+#: 4.27, about 0.3 high), fitted as a line in the tilt (residuals under 0.07) and read back.
+#: The test checks the measure: each group's mean t lies within OFF of its own.
+TRADES, B, SD = 2399, -0.00132, 0.0532
+SEEDS = 80  #: lines a true t
+OFF = 0.25  #: the most a group's mean t may lie from its own (R-RUNNER-553)
 #: The first rung passes at t 2 or over on its 30 trades: a true t of T passes as often as a
 #: standard normal lies above 2 - T, stated before any run, to within NEAR. The 2 is written
 #: here, never read from `rung.T_PASS`, so a loosened bar moves the found rates, not the stated.
 STATED = {t: 1 - NormalDist().cdf(2 - t) for t in (1, 2, 3, 4)}  #: the bar, written here
-NEAR = 0.25
+NEAR = 0.15
 CUT = date(2023, 6, 30)  #: the delisted line's last bar
 
 
@@ -115,7 +116,7 @@ def test_planted_edges_pass_the_first_rung_at_their_stated_rates_rising_with_t()
             judged.append(rung.judge(cell.run(c, bars), bars, Settings(CAPITAL), pounds))
         passed[t] = sum(v.passed for v in judged) / SEEDS
         means[t] = fmean(float(v.t or 0) for v in judged)
-    assert all(abs(means[t] - t) < 0.5 for t in STATED), f"not the t planted: {means}"
+    assert all(abs(means[t] - t) < OFF for t in STATED), f"not the t planted: {means}"
     assert all(abs(passed[t] - STATED[t]) <= NEAR for t in STATED), (passed, STATED)
     assert [passed[t] for t in sorted(passed)] == sorted(passed.values()), passed
 
