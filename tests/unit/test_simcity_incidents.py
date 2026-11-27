@@ -91,7 +91,7 @@ def test_without_the_refusal_the_scenario_is_red(
     assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path).broken)
 
 
-def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_counts_it(
+def test_shares_beside_the_book_under_a_stop_are_left_under_it_and_the_census_counts_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
@@ -101,10 +101,15 @@ def test_shares_beside_the_book_under_a_stop_are_sold_with_it_and_the_census_cou
     assert LEFT in result.census["day.run"]
 
 
-def test_without_taking_the_shares_in_the_scenario_is_red(
+def test_selling_the_stopped_shares_on_top_of_the_stop_is_red(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(book, "adopt", lambda *_a: None)  #: no sale of shares the book lacks
+    old = lambda root, broker: tuple(  # noqa: E731 - the stranger list before a stop covered
+        (d.name, int(d.broker) - d.book)
+        for d in book.differences(book.positions(root), broker.holdings())
+        if d.broker > d.book
+    )
+    monkeypatch.setattr(book, "strangers", old)
     monkeypatch.setattr(simcity, "EVENTS", ((LEFT, beside),))
     monkeypatch.setattr(simcity, "EVENTFUL", 1)
     result = simcity.run(tmp_path, SHORT, ROOM, RATES, NOW, (1, 2, 3))
