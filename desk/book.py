@@ -11,6 +11,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from itertools import pairwise
 from pathlib import Path
 
 from desk import halt
@@ -470,17 +471,22 @@ def interest(
 ) -> Decimal:
     """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
     ledger has spent by its end (costs too), if positive, earns annual / 365 of itself. The ledger
-    is read once and its fills added up as the days pass them (#1628: SimCity asks every day)."""
+    is read once and its fills added up as the days pass them (#1628: SimCity asks every day);
+    the days from one fill's day to the next hold the same cash, so their day's earning is found
+    once and added for each, the very sum a day at a time gives (27 Nov: the cash found again
+    for every day since the first fill made a world's day grow with its age)."""
     pounds, dated = _priced(root, lines), dict[date, list[Fill]]()
     for fill in fills(root):
         dated.setdefault(fill.day, []).append(fill)
     before = (fill for d in sorted(dated) if d < first for fill in dated[d])
     cash, costs = _moved(pounds, before, Decimal(0), Charges(*(Decimal(0),) * 5))
-    total, day = Decimal(0), first
-    while day <= last:
+    total, end = Decimal(0), last + timedelta(days=1)
+    turns = [first, *sorted(d for d in dated if first < d <= last), end] if first < end else []
+    for day, until in pairwise(turns):
         cash, costs = _moved(pounds, dated.get(day, ()), cash, costs)
-        total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
-        day += timedelta(days=1)
+        earned = max(capital + cash - costs.total, Decimal(0)) * annual / 365
+        for _ in range((until - day).days):
+            total += earned
     return total
 
 

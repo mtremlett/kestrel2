@@ -82,14 +82,14 @@ last run asked another lane for something, or named a file outside its claim, un
 claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
-rule into `desk/store.py`, or real prices into `desk/lines.py`: the store fitted to the data
-one line at a time (14 Nov: three rule changes in twenty minutes on six London lines). Twin:
+rule into `desk/store.py` and `desk/store_parts.py`, or real prices into `desk/lines.py`: the
+store fitted a line at a time (14 Nov: three rule changes in twenty minutes on six lines). Twin:
 `desk/keeper.py`'s withdrawal of the days its judge drops, fixed on one live line twice (#855;
 #2088, VUAG 2019). → *Caught by:* the runner halts a lane whose second `fix` touches a file
 another `fix` touched within ten landed changes; `tests/unit/test_store_rules.py` (#225) pins
 every store rule to a row of one synthetic fixture table (driven red with an unpinned rule,
-`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). *Debt:* the keeper's withdraw rule has no such
-table; #2088's test pins the VUAG case alone.
+`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). The keeper's withdraw rule has its table too
+(`test_the_withdraw_rule_table`): a day stays withdrawn only while the judge drops its held bar.
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
@@ -206,11 +206,11 @@ old Cancelled state: London's 09:00 round sent nothing (20 November).
 **26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
 re-judged cell adding a line and none removed, and read and parsed the whole file on every
 start: at 1.2 GB it held 12.8 GB, EPON idle nine hours (21 Nov); 37 reads like it on main.
-Twin: `desk/book_parts.py` re-read the pounds file once a trip; deep SimCity hung 2 h (22 Nov).
-→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`: whole-file reads in `desk/`
-and `lab/` may fall and never rise; a file that cannot grow says why on the same line
-(`# bounded: <why>`). *Debt:* the growing stores among the 37 are streamed (ladder first,
-R-RUNNER-432) and a results file keeps one line per cell, compacted as it is written.
+Twin: `desk/book_parts.py`'s rates, records, fills re-read each ask: deep SimCity 2 h (22, 27 Nov).
+→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`; `book_parts.read_once` (each read
+once until written) and SimCity's reads-per-day test. *Debt:* a day still re-prices the whole
+ledger and rewrites every record (per-day work 200k calls at day 50, 546k at 700); the 37
+growing stores streamed (ladder first, R-RUNNER-432), one line per cell, compacted as written.
 
 **27. The folder guessed from another.** `rates` read the store above the records folder
 `desk/command.py` gave it: true live, false in the rehearsal (records two deeper), so Monday read
