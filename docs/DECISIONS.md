@@ -2680,6 +2680,40 @@ let him onto paper unreproduced. Now determinism judges only a rule no author's 
 that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
 first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
 
+## 27 Nov - every open lane box names its `check:` (the box is the card, item 3; his "Yes, all of it")
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", he answered
+"Yes, all of it" (Fri 27 Nov). Its first repository piece: a PLAN box is the only unit of work, and
+the runner runs its `check:` on main before it spends a session (green ticks it, never a hand-out).
+Format: one more key in the box's note, `check: tests/<file>.py::test_<name>[, ...]`, a pytest node
+id whose file one of the box's own `files:` matches, so its session can write it. Required on every
+open non-umbrella box under `### The <lane> lane's book`, read as the runner's `slots.boxes` reads it.
+All 47 open boxes carry one (48 before rungs-plateau-wired was ticked on main). 46 name the new test the box will write (none exists on main, so
+each fails until built); `rungs-each-rung`, whose text says "Remains: none", names the registry test
+already on main, so the runner's pre-flight ticks it. Boxes whose remains are time or a run (grid-week,
+paper-supervised, the windows task) name the fixture test their evidence will need; options weighed:
+an existing passing test (rejected: the runner would tick unfinished work), a command instead of a
+test id (rejected: one kind of check, one runner path), no check for such boxes (rejected: the hole
+patterns 12 and 22 come through).
+Check: `tests/guards/test_lanes.py::test_every_open_box_names_its_check`, and `_notes` refuses a
+malformed check. Driven RED on main before the checks were added: all 48 boxes named
+("data: data-isa-twins", ... "rungs: rungs-leveraged"); planted `::A_line_moves...` (not a test id):
+"a check is a test id"; planted `data-tiers` checking `tests/unit/test_day.py` (outside its files):
+named with the file. Each plant reverted; the guard green with the 48 checks.
+## 27 Nov - the desk/ 100-file count retired for ownership and naming guards (his words)
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", the operator
+answered **"Yes, all of it"** (Fri 27 Nov, recorded in the after-first-light queue). This loosens a
+guard, so it is his alone; his words are quoted here before the commit that changes `BUDGET.json`.
+Why: the count contradicts the 800-line file cap and the hub splits (a split needs a file; at 100
+of 100 none fits), it blocked DATA six times today (stooq-into-desk), and 25 desk/ files under 70
+lines are `_parts` fragments made to dodge it. Kept hard: desk/ 30,000 and lab/ 20,000 lines, 800
+per file, 50 per function. In its place, two guards (`tests/guards/test_guards.py`): every desk/
+module is a row of its lane's manifest file with one owner and the one thing it owns; and no
+`_parts`, `_parts2` (or like fragment) name may be added in desk/ or lab/, the existing ones only
+falling (failure pattern 6 extended).
+Driven RED before the file count was removed: a planted `desk/book_parts3.py`, registered,
+"fragment names added: ['desk/book_parts3.py']"; a planted `desk/plantowner.py` whose row says
+`" "`, "desk/ modules with no lane or no stated job: ['desk/plantowner.py']". Both reverted; both
+green on main's 100 desk/ files (14 desk/ and 6 lab/ fragments stand and may only fall).
 ## 2026-11-27 — MONEY: the desk's files read once until written (deep SimCity 7200 s)
 
 **What.** The deep run timed out every run on 27 Nov. It was never stuck: since #2187/#2287 a

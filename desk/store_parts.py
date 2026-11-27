@@ -54,8 +54,10 @@ def pound_on(rates: Rates, day: date) -> Decimal | None:
 
 
 def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> bool:
-    """The ratio of two closes is the pound's rate, or one over it, within the given fraction."""
-    return pound is not None and any(abs(ratio / r - 1) <= within for r in (pound, 1 / pound))
+    """The ratio of two closes is the pound's rate, or one over it, within the given fraction and
+    nearer it than no move: with the pound near a dollar (late 2022) a day's move is no currency."""
+    near = (abs(ratio / r - 1) for r in (pound, 1 / pound)) if pound is not None else ()
+    return any(off <= within and off < abs(ratio - 1) for off in near)
 
 
 def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool:

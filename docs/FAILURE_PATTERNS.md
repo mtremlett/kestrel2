@@ -82,14 +82,14 @@ last run asked another lane for something, or named a file outside its claim, un
 claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
-rule into `desk/store.py`, or real prices into `desk/lines.py`: the store fitted to the data
-one line at a time (14 Nov: three rule changes in twenty minutes on six London lines). Twin:
+rule into `desk/store.py` and `desk/store_parts.py`, or real prices into `desk/lines.py`: the
+store fitted a line at a time (14 Nov: three rule changes in twenty minutes on six lines). Twin:
 `desk/keeper.py`'s withdrawal of the days its judge drops, fixed on one live line twice (#855;
 #2088, VUAG 2019). → *Caught by:* the runner halts a lane whose second `fix` touches a file
 another `fix` touched within ten landed changes; `tests/unit/test_store_rules.py` (#225) pins
 every store rule to a row of one synthetic fixture table (driven red with an unpinned rule,
-`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). *Debt:* the keeper's withdraw rule has no such
-table; #2088's test pins the VUAG case alone.
+`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). The keeper's withdraw rule has its table too
+(`test_the_withdraw_rule_table`): a day stays withdrawn only while the judge drops its held bar.
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
