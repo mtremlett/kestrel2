@@ -28,10 +28,15 @@ Edge = Callable[[Setting], str]
 
 
 class _AnyRule:
-    """The desk's five rules have no settings yet: here every setting is a rule by name."""
+    """The desk's five rules have no settings yet: here every setting is a rule by name. A rule
+    is still made as the desk makes it: one of the five from its class, any other from the rule
+    book (`cell._held` where the grid refuses, S9)."""
 
     def __contains__(self, name: str) -> bool:
         return True
+
+    def get(self, name: str) -> type[strategy.Rule] | None:
+        return strategy.STRATEGIES.get(name)
 
 
 @pytest.fixture(autouse=True)

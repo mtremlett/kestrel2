@@ -1212,7 +1212,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
         {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules; check: tests/unit/test_lab_catalogue.py::test_quarry_rows_carry_hand_derived_cases}
-  - [ ] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
+  - [x] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
         {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py; after: rungs-blocks; check: tests/unit/test_lab_fast.py::test_the_fast_engine_matches_the_desk_on_the_golden_fixture}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
