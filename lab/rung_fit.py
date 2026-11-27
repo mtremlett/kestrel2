@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from decimal import localcontext
 
 import numpy as np
+from numpy.typing import NDArray
 
 from desk.command import CAPITAL
 from desk.orders import Settings
@@ -63,11 +64,11 @@ def held(name: str, rule: type[Rule], bars: Sequence[Bar]) -> tuple[bool, ...]:
     return tuple(out)
 
 
-def days(holding: Sequence[bool], bars: Sequence[Bar], first: int) -> np.ndarray:
+def days(holding: Sequence[bool], bars: Sequence[Bar], first: int) -> NDArray[np.float64]:
     """Each day's return from bar `first` on: the close's move when held after the one before."""
     closes = np.array([float(bar.close) for bar in bars])
     moves = closes[first:] / closes[first - 1 : -1] - 1
-    made: np.ndarray = moves * np.array(holding[first - 1 : -1], dtype=float)
+    made: NDArray[np.float64] = moves * np.array(holding[first - 1 : -1], dtype=float)
     return made
 
 
@@ -94,7 +95,7 @@ def judge(first: rung.Verdict, bars: Sequence[Bar]) -> Fit:
 
 
 def _beside(
-    first: rung.Verdict, ours: np.ndarray, read: Sequence[Bar], start: int
+    first: rung.Verdict, ours: NDArray[np.float64], read: Sequence[Bar], start: int
 ) -> list[tuple[float, str]]:
     """Each book rule's correlation with the cell's days, by name; its own rule's family (the
     rule, or the one a variant moves a setting of) and a rule that never held there passed over."""
