@@ -540,11 +540,12 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the next deep run's verdict has no 'stops on' line
       (#2187: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before. Remains: read the next deep run's verdict)
       {id: money-simcity-withdrawn-day; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
-- [ ] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
+- [x] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
       desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
       has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the
       replay's verdict, never a crash. Check: the next fills-replay says done
+      (#2212: a fill whose rule today() does not decide is a named "rule" mismatch, never a crash. Remains: replaying zoo fills through a zoo rule, a separate box)
       {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py; after: money-simcity-withdrawn-day}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
