@@ -5,7 +5,7 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import astuple, dataclass, field, replace
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
@@ -202,6 +202,16 @@ def stop_under(line: Line, price: Decimal) -> Decimal:
     return price * (1 - STOP_FALL * line.leverage)
 
 
+def _most(room: Decimal, one: Decimal, paid: Callable[[int], Decimal]) -> int:
+    """The most whole shares whose cost (paid) fits the room, 0 if one does not; one is the
+    pounds of a share, which bounds the search."""
+    fits, over = 0, int(room / one) + 2
+    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
+        middle = (fits + over) // 2
+        fits, over = (middle, over) if paid(middle) <= room else (fits, middle)
+    return fits
+
+
 def size(
     decision: Decision,
     line: Line,
@@ -221,7 +231,7 @@ def size(
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
-    stop = stop_under(line, price if market is None else min(price, market))
+    stop = stop_under(line, min(price, market or price))
 
     def order(quantity: int) -> Order:
         return Order(order_id, line, quantity, price, fx, stop, session=decision.day, market=market)
@@ -229,16 +239,17 @@ def size(
     if market is not None:
         _above_stop(replace(order(1), stop=stop_under(line, price)))
 
-    room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
-    if cost(one) > room:
+    #: R-RUNNER-535: shares are counted at the dearer of the signal's price and the live one, so a
+    #: gap up never makes a holding cost more than its room.
+    counted = max(price, market or price)
+
+    room = _room(line, settings)
+    fits = _most(room, counted * fx, lambda quantity: cost(replace(order(quantity), price=counted)))
+    if fits == 0:
         raise Refused(f"{order_id}: one share costs more than the room of {room} pounds")
-    fits, over = 1, int(room / (price * fx)) + 1
-    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
-        middle = (fits + over) // 2
-        fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
     already = held.get(line.symbol, 0)
     if traded is not None:
-        fits = min(fits, int(LIQUIDITY * traded / (price * fx)))
+        fits = min(fits, int(LIQUIDITY * traded / (counted * fx)))
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
