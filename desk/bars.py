@@ -255,6 +255,15 @@ def _read(
 
 
 UNDER = READ.replace("NOT EXISTS", "EXISTS")  #: the bars held under a withdrawn mark
+#: The days a bar the broker gave was replaced by another source's, the broker's kept in correction.
+OFF_IBKR = (
+    "SELECT DISTINCT k.at FROM correction k"  # noqa: S608 - an enum value formatted in, no input
+    " CROSS JOIN bar b ON b.venue = k.venue AND b.symbol = k.symbol"
+    " AND b.span = k.span AND b.at = k.at"
+    " WHERE k.venue = ? AND k.symbol = ? AND k.span = ? AND k.at >= ? AND k.at < ?"
+    f" AND k.source = '{Source.IBKR.value}' AND k.replaced_by != k.source"
+    " AND b.source != k.source ORDER BY k.at"
+)
 
 
 def daily(path: Path, line: Line, what: str = READ) -> tuple[Bar, ...]:
@@ -264,6 +273,12 @@ def daily(path: Path, line: Line, what: str = READ) -> tuple[Bar, ...]:
         Bar(date.fromordinal(at), Decimal(o), Decimal(h), Decimal(lo), Decimal(c), volume)
         for at, o, h, lo, c, volume in rows
     )
+
+
+def moved_off(path: Path, line: Line) -> list[date]:
+    """The days a line's daily bar is served from another source over the one the broker gave,
+    the broker's kept in `correction`: each breaks IBKR first (B3), so a store holds none."""
+    return [date.fromordinal(at) for (at,) in _read(path, line, DAILY, 0, 2**62, OFF_IBKR)]
 
 
 def total_return(path: Path, line: Line) -> tuple[Bar, ...]:
