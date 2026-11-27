@@ -14,7 +14,7 @@ from desk.orders import Leg, Settings
 from desk.rollup import Candle
 from desk.spans import Timed
 from desk.strategy import Action
-from lab import rung
+from lab import ladder, rung
 from lab.scalping import MomentumBurst, VwapReversion, edge_needed, round_trip_cost, trades_of
 
 #: closes by bar number; bars hold 101 but for the bursts at 5, 20 and 505 (held to the end)
@@ -125,6 +125,7 @@ def test_the_set_runs_two_rules_on_two_lines_with_their_answers_and_costs(tmp_pa
     said = scalping.judge_set(tmp_path, {})
     assert said.startswith("SET SCALP: 2 rules, 0 passed")
     table = (tmp_path / "ladder" / "sets" / "SCALP.md").read_text(encoding="utf-8")
+    assert f"\nrungs built: {ladder.rungs_built()[0]} of {ladder.rungs_built()[1]}\n" in table
     assert "PRE-REVIEW" in table and "Each is judged against 4 trials." in table
     rows = [r for r in table.splitlines() if r.startswith("| ") and "(LSE)" in r]
     assert len(rows) == 4 and all(len(r.split("|")) == 8 for r in rows)
