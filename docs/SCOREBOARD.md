@@ -772,6 +772,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2104 R-RUNNER-474 catalogue-only rows served by the rule book. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2190 R-RUNNER-364 part 2 of 5: lab/chain.py makes a published set's variants; fast check and mypy green. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2202 R-RUNNER-365 chain.sweep built and tested on the fixture book; the real ladder still refuses variant names (R-GRID-9). |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2227 R-RUNNER-366 built: chain.report writes the plateau centre per rule and line, PRE-REVIEW. |
 
 ### RUNGS
 
@@ -1170,4 +1172,5 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2218 RUNGS L15 blind review of the whole ladder done; its one blocking fault fixed (a stopped pass published old verdicts). |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |

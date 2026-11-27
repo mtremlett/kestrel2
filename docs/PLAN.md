@@ -545,7 +545,6 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
       has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the
       replay's verdict, never a crash. Check: the next fills-replay says done
-      (#2212: a fill whose rule today() does not decide is a named "rule" mismatch, never a crash. Replaying zoo fills through a zoo rule is a separate box)
       {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
@@ -1140,12 +1139,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, lab/rung.py, tests/unit/test_lab_calibration.py, lab/basket.py, tests/unit/test_lab_basket.py, lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder_parts.py, tests/unit/test_lab_ladder_parts*.py, lab/calibration.py; after: rungs-rung-map}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
-  - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+  - [x] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
         Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
-        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; after: rungs-blind-review; waits: 2026-11-27}
+        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; waits: 2026-11-27}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
