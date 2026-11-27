@@ -1172,3 +1172,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2195 PAPER R-RUNNER-507 done: the intraday round sends at most 7 new orders a step, the rest carried; blind review finding fixed. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2200 PAPER R-RUNNER-473 done: carried orders are sent again at the next step, once; test red then green. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2209 PAPER R-RUNNER-546 done: London conformance no longer stopped by a US holiday; 6 of 6 steps on VUAG. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2257 RUNGS set 1 publishes its table with "rungs built: n of 12", as EPON and LEV do (rungs-gate step). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2254 RUNGS R-RUNNER-550 done: the stress reason names every untested episode; golden row 1 gains "untested: the 2008 crash". |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2262 RUNGS R-RUNNER-551 done: the trials register's key sees the catalogue row. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2266 RUNGS rungs-secondary-figures done: RSI-2's secondary figure (Empirica Lab, SPY 1993-2026) and its range on file; RSI-2 is now a reproduction candidate. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2273 RUNGS #2270 closed as a duplicate of #2254; the golden change's B5 record restored to DECISIONS. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2278 RUNGS R-RUNNER-552 done: the regimes rung cuts at the line's own last bar, a tradeless half is THIN not FAULT. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2256 RUNGS R-RUNNER-548 done: fake shuffle proof removed, the real shuffle runs in the ladder tests. |
