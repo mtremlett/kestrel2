@@ -1,5 +1,5 @@
-"""The keeper's roll: the live day's 1m, 5m, 15m and 30m bars copied unchanged into the long
-database, each with its source."""
+"""The keeper's roll: the live day's bars of every span copied unchanged into the long database,
+each with its source."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def test_a_roll_leaves_the_long_database_holding_the_live_bars_with_their_source
     with bars.writing(hot, Source.IBKR) as kept:
         kept.timed(line, "1m", (Timed("1m", now, price, price, price, price, 1),))
         kept.five(line, (Five(now, price, price, price, price, 1),))
-        for span in ("15m", "30m"):  # the long database's quarter and half hours come only so
+        for span in ("15m", "30m"):  # every span the live store holds, none listed
             kept.timed(line, span, (Timed(span, now, price, price, price, price, 1),))
     assert keeper.main(tmp_path, now, ["--roll"]) == 0
     assert keeper.main(tmp_path, now, ["--roll"]) == 0  # again: the same bars, not more

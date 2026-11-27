@@ -147,26 +147,24 @@ def polled_round(
     return words, len(mine), refusals
 
 
-COPIED = (MINUTES, bars.FIVE, "15m", "30m")  #: the short database's spans the long one copies
-ROLLED = "SELECT * FROM bar WHERE span IN (?, ?, ?, ?)"
-HELD = "SELECT * FROM held WHERE span IN (?, ?, ?, ?)"
+ROLLED, HELD = "SELECT * FROM bar", "SELECT * FROM held"  #: every span the short one holds
 
 
 def roll(hot: Path) -> str:
-    """One run of `--roll`: the short database's one-, five-, fifteen- and thirty-minute bars
-    copied, source kept and nothing changed, into the long one, which keeps every timeframe; in
-    words."""
+    """One run of `--roll`: the short database's bars of every span it holds copied, source kept
+    and nothing changed, into the long one, which keeps every timeframe; in words. No list of
+    spans is kept here (failure pattern 18: one kept by hand left 15m and 30m behind)."""
     if not hot.is_file():
         raise FileNotFoundError(f"{hot}: no live day to roll")
     with (
         closing(sqlite3.connect(hot)) as src,
         closing(sqlite3.connect(bars.files(hot)[bars.DAILY], timeout=bars.WAIT)) as dst,
     ):
-        rows = src.execute(ROLLED, COPIED).fetchall()
-        held = src.execute(HELD, COPIED).fetchall()
+        rows = src.execute(ROLLED).fetchall()
+        held = src.execute(HELD).fetchall()
         with dst:
             for table in bars.SCHEMA:
                 dst.execute(table)
             dst.executemany(bars.PUT, rows)
             dst.executemany(bars.HOLD, held)
-    return f"roll: {len(rows)} 1m, 5m, 15m and 30m bars copied to the long database"
+    return f"roll: {len(rows)} bars of the live store copied to the long database"
