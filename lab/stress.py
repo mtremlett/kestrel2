@@ -156,7 +156,10 @@ class Stressed:
         with localcontext(ARITHMETIC):
             limit = STRESS_LIMIT * self.capital
         answer = Answer.PASS if pounds <= limit else Answer.FAIL
-        return answer, f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        said = f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        if self.untested:
+            said += f"; untested: {', '.join(self.untested)}"
+        return answer, said
 
 
 def judge(window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Stressed:

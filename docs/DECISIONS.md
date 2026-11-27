@@ -2572,3 +2572,16 @@ correlation gate and `lab/bets.py` own the book's lines together). `lab/verdict.
 its two lines now trade a million shares a day, so the planted edge still passes every rung, and
 `tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
 of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
+
+## 2026-11-27 — the stress rung's reason names every untested episode (R-RUNNER-550)
+
+The stress rung's judged reason named only the worst scenario, so a line untested for 2008 or
+2020 showed PASS with no word that the episode went untested (failure pattern 10, silent). The
+reason now ends `; untested: <episode names>` whenever any episode was not shown. Options: change
+the answer to THIN for any untested episode (rejected: untested is not survived but the tested
+scenarios still count, and `Stressed.judged` already gives THIN when nothing was tested), or say
+it in the reason only (taken). Proven by `tests/unit/test_lab_stress.py`, seen red on main first
+(a line missing the Lehman session of 2008: reason lacked "untested: the 2008 crash").
+
+*Golden (B5, the desk approves goldens, his 22 Nov):* the fixture book's `stress` row, a PASS,
+gains `; untested: the 2008 crash` (the fixture history begins after 2008); no answer moves.
