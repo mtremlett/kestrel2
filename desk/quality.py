@@ -312,6 +312,12 @@ def kind(why: str) -> str:
     return "gap" if why == "holds no bar" else "hole" if "missing" in why else "stale"
 
 
+def escalate(red_kind: str, seen: frozenset[str]) -> str:
+    """Which model a red kind wakes, cheapest first: Opus for a kind never seen, Sonnet to fix a
+    kind already seen. (Haiku reads the fault and names its kind, by `kind`, before this.)"""
+    return "sonnet" if red_kind in seen else "opus"
+
+
 def _cells(
     path: Path, lines: Iterable[Line], now: datetime, spans: Iterable[str] = HOVER_SPANS
 ) -> list[tuple[str, Line, str | None]]:
