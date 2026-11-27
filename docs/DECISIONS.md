@@ -2855,3 +2855,13 @@ flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the 
 costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
 `test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
 green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
+
+## 27 Nov - file replaces may fall, never rise (design L16, Builder 3b)
+Windows refuses to swap a file another process holds open (pattern 19), so every `path.replace`
+in `desk/` and `lab/` is a place a live job can fail. Options weighed: (a) build the one locked
+writer first: right, but it touches every lane's writers at once; (b) a ratchet now, so the count
+can only fall while the writer is built: chosen, as for whole-file reads. A replace is a call of
+`replace` or `rename` with one argument and no names (a text's replace takes two, a time's takes
+names) or `os.replace`/`os.rename`: 19 on main, each checked by hand against a grep.
+`test_file_replaces_never_rise` was RED on a planted `tmp.replace(path)` in desk/quality.py
+("rise from 19 on main to 20"), green with it removed.
