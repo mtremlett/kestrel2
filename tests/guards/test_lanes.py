@@ -17,7 +17,8 @@ these refuse it in the check, on GitHub, before anything merges:
   parses, its id is unique, each `after` names a box that exists, and each `waits` is a
   request number, a date or `operator`, so the runner can hand boxes out and hold back the
   rest; every open box of a lane's book names its `check:`, the test that proves it, and
-  only files its own lane may change.
+  only files its own lane may change, never a hub (the manifest, STATUS, PLAN), and no file
+  is named by more of a lane's open boxes than the lane has slots (`BUDGET.json`).
 
 Ruled 13 November 2026 (docs/DECISIONS.md).
 """
@@ -30,6 +31,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -53,6 +55,9 @@ BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, 
 ITEM = re.compile(r"^([ \t]*)- \[([ x])\] (.*(?:\n[ \t]+(?!- \[)\S.*)*)", re.MULTILINE)
 #: a check is a pytest node id: a test file under tests/ and its test function
 CHECK = re.compile(r"tests/[a-z0-9_/]+\.py::test_[a-z0-9_]+")
+#: never in a box's files: a lane never changes manifest.toml, its own manifest file is its own
+#: outside any claim, and the train folds the documents, so naming one only queues boxes (G30)
+HUBS = ("manifest.toml", "manifest/*.toml", "docs/STATUS.md", "docs/PLAN.md")
 
 
 def _git(*args: str) -> str:
@@ -382,4 +387,30 @@ def test_an_open_box_names_only_files_its_lane_may_change() -> None:
     assert not foreign, (
         f"open boxes name files another lane owns, so their sessions can never land: {foreign}. "
         "Give that part its own box in the owning lane's book, and this box `after:` it."
+    )
+
+
+def test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots() -> None:
+    """HUB FILES QUEUE EVERY BOX BEHIND ONE CLAIM (G30, his 26 Nov 'can we mechanically never
+    forget?'; design item 4). Two sessions never hold one file, so a file in more of a lane's
+    open boxes than the lane has slots leaves slots idle behind it (manifest.toml was in 56 cards
+    on 26 Nov). Such a file is split, or its boxes are; a hub is never named at all."""
+    slots: dict[str, int] = json.loads((ROOT / "BUDGET.json").read_text(encoding="utf-8"))[
+        "slots_per_lane"
+    ]
+    tracked = _git("ls-files").splitlines()
+    hubs, crowded = [], []
+    for lane, boxes in _open_work((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")).items():
+        assert lane in slots, f"BUDGET.json's slots_per_lane has no {lane!r}: {sorted(slots)}"
+        named: Counter[str] = Counter()
+        for text in boxes:
+            fields = _box_fields(text)
+            files = fields.get("files", [])
+            hubs += [f"{fields['id'][0]}: {p}" for p in files if any(fnmatch(p, h) for h in HUBS)]
+            named.update({t for p in files for t in [t for t in tracked if fnmatch(t, p)] or [p]})
+        crowded += [f"{lane}: {f} in {n} boxes" for f, n in named.items() if n > slots[lane]]
+    assert not hubs, f"open boxes name hub files, which no box claims ({HUBS}): {hubs}"
+    assert not crowded, (
+        f"files named by more open boxes than their lane has slots {slots}: {sorted(crowded)}. "
+        "Split the file, or merge or re-scope its boxes."
     )
