@@ -6,7 +6,7 @@ on the history that makes, priced by the first rung (`lab/rung.py`). Every shuff
 line's whole rise and no order in it: a rule that earns as much there has timed nothing. The
 share of a trial is the shuffles whose standard errors are its own or more, and itself, over
 SHUFFLES + 1. The order is drawn from the trial's name, so a trial run again is shuffled the
-same.
+same. A trial that can no longer pass is stopped there: its answer is the full run's.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from lab.rung import Rates, judge
 
 SHUFFLES = 100
 SHARE = Decimal("0.05")  #: at most this share of shuffles, itself among them, does as well
+MOST_AS_GOOD = int(SHARE * (SHUFFLES + 1))  #: the most as good, itself among them, that passes
 
 
 def share(
@@ -42,7 +43,20 @@ def share(
         rng.shuffle(moves)
         got = _t(c, _history(shown, moves), settings, rates, made)
         as_good += got is not None and got >= own
+        if as_good > MOST_AS_GOOD:  #: it cannot pass now: the shuffles left would only add (S3)
+            break
     return Decimal(as_good) / (SHUFFLES + 1)
+
+
+def said(share: Decimal) -> str:
+    """The share as the rung reports it: a passing one exactly; a failing one as the count at
+    which the shuffles stopped, since the rest were not run (`docs/DECISIONS.md`, S3); and 1,
+    which no stopped run reaches, as the trial of under two trades it is."""
+    if share <= SHARE:
+        return f"{share:.3f}"
+    if share == 1:
+        return "1 (under two trades: no shuffle run)"
+    return f"at least {share * (SHUFFLES + 1):.0f} of {SHUFFLES + 1}"
 
 
 def _t(
