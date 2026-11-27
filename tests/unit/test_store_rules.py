@@ -182,3 +182,17 @@ def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shar
     fall = replace(was, close=was.close / 3, low=was.close / 3)
     faults = store.judge(US, [*clean[:5], fall, *clean[6:]], DAY)[1]
     assert not any("low repaired" in f.what for f in faults)
+
+
+def test_a_quiet_day_while_the_pound_sits_near_a_dollar_is_no_change_of_currency() -> None:
+    """SPY, QQQ, IITU, VUAG and ten more, 28 September 2022 to mid-2023: with the pound at $1.03
+    to $1.12, a close up 2% on the day before sat within FX_FAR of the pound's rate, so every
+    ordinary move was a 'wrong unit' and about 2,750 true IBKR bars were withdrawn. A ratio is
+    the pound's only when it is nearer the pound's rate than no move at all."""
+    clean = [replace(x, close=x.close + n % 2) for n, x in enumerate(_bars(US, LONG))]  # +-2%
+    for pound in (Decimal("1.07"), Decimal("1.03")):
+        kept, faults, _ = store.judge(US, clean, DAY, {x.day: pound for x in clean})
+        assert kept == clean and not any("unit" in f.what for f in faults), pound
+    step = [*clean[:30], *(_scaled(x, 1 / POUND) for x in clean[30:])]  # IITU x0.662 still is
+    assert any("unit" in f.what or "moved" in f.what
+               for f in store.judge(US, step, DAY, {x.day: POUND for x in clean})[1])  # fmt: skip
