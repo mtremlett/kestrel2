@@ -1169,3 +1169,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2218 RUNGS L15 blind review of the whole ladder done; its one blocking fault fixed (a stopped pass published old verdicts). |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2257 RUNGS set 1 publishes its table with "rungs built: n of 12", as EPON and LEV do. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2254 RUNGS R-RUNNER-550 the stress reason names every untested episode; golden row 1 gains "untested: the 2008 crash". |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2262 RUNGS R-RUNNER-551 the trial key sees the catalogue row. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2266 RUNGS rungs-secondary-figures ticked: RSI-2's secondary figure (Empirica Lab, SPY 1993-2026) and its range on file. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2273 RUNGS #2270 closed as a duplicate of #2254; the golden change's B5 record restored to DECISIONS. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2278 RUNGS R-RUNNER-552 the regimes rung no longer FAULTs a line that ended early. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2256 RUNGS R-RUNNER-548 fake proof removed: the real shuffle runs in the ladder tests. |
