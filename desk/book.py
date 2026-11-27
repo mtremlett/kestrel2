@@ -159,13 +159,14 @@ def send(
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
     twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
-    at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
-    its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
-    blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
-    (Alarm); one that disagrees halts buying and is told (tell). Given the book's standing the gate
-    also refuses a buy past a loss limit or the day's new lines, and, given the pounds controlled
-    per underlying (exposure), one past its market's cap, and given the daily returns of the line
-    and the lines held (moves), one correlated with a held line past the cap (orders.gate)."""
+    at the broker. A line the book is not the broker's on is not bought, and sells only if
+    its shares agree; every other line trades. Kill switch on: nothing is sent; a halt: no buy.
+    Every refusal names its blocker (Stopped), as does a short answer. A place that fails
+    unknown pulls the kill switch (Alarm); one that disagrees halts buying and is told (tell).
+    Given the book's standing the gate also refuses a buy past a loss limit or the day's new
+    lines, and, given the pounds controlled per underlying (exposure), one past its market's cap,
+    and given the daily returns of the line and the lines held (moves), one correlated with a
+    held line past the cap (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if again := retry_id(root, order.order_id, report, datetime.now(UTC).date()):
@@ -173,7 +174,8 @@ def send(
     if report is None:
         _unless_stopped(root, order)
         held, differ, unsure, _ = _compare(root, broker)
-        if differ and (isinstance(order, Order) or order.line.symbol in unsure):
+        sale = isinstance(order, Sale)
+        if order.line.symbol in (unsure if sale else differ):  #: one line never stops the others
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
@@ -254,9 +256,14 @@ _write = keep  # old name, for other lanes' callers until they move
 
 def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
-    the book, and those shares (whole ones; a part share is for a hand to look at)."""
+    the book, and those shares (whole ones; a part share is for a hand to look at). Shares the
+    desk's own stop rests under at the broker are not listed: selling them too sells twice."""
+    covered = Counter[str]()
+    for name, shares in broker.stops():
+        covered[name] += int(shares)
     more = differences(positions(root), broker.holdings())
-    return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
+    left = ((d.name, int(d.broker) - max(d.book, covered[d.name])) for d in more)
+    return tuple((name, shares) for name, shares in left if shares > 0)
 
 
 def collect(root: Path, broker: Broker) -> None:

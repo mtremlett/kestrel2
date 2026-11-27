@@ -15,6 +15,9 @@ platforms, undated here) read %R over 14 days with the bands -80 and -20, so the
 setting is 10 to 14 days and -90/-80 to -10/-20; this port takes the book's 10 days and its
 -90 and -10.
 
+Holding period: none. The book sells at the top tenth of the range alone, never a count of
+sessions.
+
 The old desk is a quarry for the reading only; none of its code is copied.
 """
 

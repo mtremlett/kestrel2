@@ -380,3 +380,22 @@ def test_the_old_daily_rows_are_checked_against_the_one_stores_days(tmp_path: Pa
     got = headstart.compare_days(one, old, [UK])[UK]
     assert (got.old, got.held, got.same) == (2, 1, True)
     assert [at.date() for at in got.missing] == [gone.day]
+
+
+def test_the_old_hourly_bars_are_checked_against_the_one_stores_hours(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from desk.spans import Timed
+    from lab import headstart_hours
+
+    held, gone = _at(0), _at(60)
+    monkeypatch.setattr(headstart_hours, "hours", lambda *_: (gone, held))
+    one = tmp_path / "bars.db"
+    with bars.writing(one, Source.STOOQ_HOURLY) as round_:
+        round_.timed(
+            UK,
+            "1h",
+            [Timed("1h", *(held.start, held.open, held.high, held.low, held.close, held.volume))],
+        )
+    got = headstart.compare_hours(one, tmp_path, [UK])[UK]
+    assert (got.old, got.held, got.same, got.missing) == (2, 1, True, (gone.start,))

@@ -1,5 +1,5 @@
-"""The known-answer kit: a planted edge goes forward through the whole ladder and planted noise
-is refused, on fixture data (L15b)."""
+"""The known-answer kit: planted noise is refused and a planted edge heard through the whole ladder
+on fixture data (L15b); it goes forward only once `reproduce` is judged on a rule with no figure."""
 
 from __future__ import annotations
 
@@ -36,9 +36,10 @@ def test_a_planted_edge_goes_forward_and_planted_noise_is_refused(
     assert {row["answer"] for row in noise} == {"FAIL"} and not any(r["every"] for r in noise)
     assert "error" not in {k for row in edge + noise for k in row}
     #: the edge is heard, the noise is not: most edge lines are THIN alone (too few trades to be
-    #: judged, the rule's lines pooled PASS the folds); it cannot yet go forward while `plateau`
-    #: is unrun (L17), and when it is wired this pins "goes forward" in its place.
+    #: judged, the rule's lines pooled PASS the folds); plateau (L17) is judged, NOT APPLICABLE
+    #: to the breakout, which carries no settings; only the author's figure stays unrun.
     said = [row["answer"] for row in edge]
     assert said.count("THIN") > len(said) // 2 and not any(r["every"] for r in edge)
     assert {row["rungs"]["folds"][0] for row in edge} == {"PASS"}
-    assert set(edge[0]["unrun"]) == {"plateau", "reproduce"}
+    assert set(edge[0]["unrun"]) == {"reproduce"}
+    assert {row["rungs"]["plateau"][0] for row in edge} == {"PASS"}
