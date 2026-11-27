@@ -42,7 +42,9 @@ from desk.bars import EPOCH, Five, Source
 from desk.bars_parts import B
 from desk.compare import doubt
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import STRETCH, Bar, Refused
+from lab import headstart_parts
 from lab.headstart_parts import (  # noqa: F401  # the readers, still reached as lab.headstart.<name>
     MARKET as MARKET,
 )
@@ -165,7 +167,7 @@ class Tally:
     missing: tuple[datetime, ...]  #: the moments of old bars the one store holds none for
 
 
-def _sum(given: Iterable[Five]) -> str:
+def _sum(given: Iterable[Five | Timed]) -> str:
     rows = (
         f"{b.start:%Y%m%d%H%M} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given
     )
@@ -215,6 +217,42 @@ def compare_days(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict
         same = _daily_sum(both) == _daily_sum(have[bar.day] for bar in both)
         gone = tuple(datetime.combine(b.day, time(), UTC) for b in old if b.day not in have)
         tallies[line] = Tally(len(old), len(both), same, gone)
+    return tallies
+
+
+def compare_hours(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds hourly bars of (a database's 1h rows, stooq_store's hourly
+    parquet or the matrices' 1h arrays), them beside the one store's hourly bars at path, as the
+    five-minute ones are: counts, a checksum at the moments both hold, the moments only the old
+    one holds. A line the one store holds nothing of: all missing."""
+    from lab import headstart_hours, headstart_matrix  # import this module
+
+    if where.suffix == ".db":
+
+        def read(line: Line) -> Sequence[Five | Timed]:
+            return headstart_parts.timeframe(line, where, headstart_hours.SPAN)[0]
+
+    elif (where / "freq=h").is_dir():
+        read = partial(headstart_hours.hours, folder=where)
+    else:
+        read = partial(headstart_matrix.spans, folder=where, span=headstart_hours.SPAN)
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = sorted(read(line), key=lambda bar: bar.start)
+        except (OSError, ValueError, sqlite3.Error):  # this line is not in that old store
+            continue
+        try:
+            have = {
+                b.start: b for b in bars.timed(path, line, headstart_hours.SPAN, EPOCH, AFTER_ALL)
+            }
+        except LookupError:
+            have = {}
+        both = [bar for bar in old if bar.start in have]
+        same = _sum(both) == _sum(have[bar.start] for bar in both)
+        tallies[line] = Tally(
+            len(old), len(both), same, tuple(bar.start for bar in old if bar.start not in have)
+        )
     return tallies
 
 
@@ -316,6 +354,7 @@ def checked(register: Path, path: Path, scratch: Path) -> str:
         found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
         with suppress(ValueError):  # a store of no daily form has no daily rows to compare
             found["1d"] = compare_days(path, where)
+        found["1h"] = compare_hours(path, where)
         for span, tallies in found.items():
             for line, tally in tallies.items():
                 bad += not tally.same or bool(tally.missing)

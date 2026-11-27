@@ -21,6 +21,7 @@ import pytest
 from desk import archive, bars
 from desk.bars import Five, Source
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import Bar, Refused
 from lab import headstart
 from lab.headstart import Adopted, Tally
@@ -380,3 +381,16 @@ def test_the_old_daily_rows_are_checked_against_the_one_stores_days(tmp_path: Pa
     got = headstart.compare_days(one, old, [UK])[UK]
     assert (got.old, got.held, got.same) == (2, 1, True)
     assert [at.date() for at in got.missing] == [gone.day]
+
+
+def test_the_old_hourly_rows_are_checked_against_the_one_stores_hours(tmp_path: Path) -> None:
+    old, one = tmp_path / "old.db", tmp_path / "bars.db"
+    held, gone = NOON.replace(hour=14, minute=0), NOON.replace(hour=15, minute=0)
+    rows = [("BA.L", "1h", at.isoformat(), 10, 11, 9, 10, 5) for at in (held, gone)]
+    _database(old, rows)
+    with bars.writing(one) as round_:
+        round_.timed(
+            UK, "1h", [Timed("1h", held, Decimal(10), Decimal(11), Decimal(9), Decimal(10), 5)]
+        )
+    got = headstart.compare_hours(one, old, [UK, US])
+    assert got == {UK: Tally(2, 1, True, (gone,))}
