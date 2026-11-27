@@ -1195,3 +1195,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2273 RUNGS #2270 closed as a duplicate of #2254; the golden change's B5 record restored to DECISIONS. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2278 RUNGS R-RUNNER-552 done: the regimes rung cuts at the line's own last bar, a tradeless half is THIN not FAULT. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2256 RUNGS R-RUNNER-548 done: fake shuffle proof removed, the real shuffle runs in the ladder tests. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2293 RUNGS the pool's tape test is green on the Windows PC as well as GitHub (rungs-gate claim; box's remainder outside the claim). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2295 RUNGS R-RUNNER-485 done: a catalogue row with no Python rule is listed through its spec. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2302 RUNGS R-GRID-9 (RUNGS half) done: the ladder proves a variant name by its base rule. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2312 RUNGS R-RUNNER-558 done: INTRADAY and SCALP tables carry rungs built. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2309 RUNGS R-RUNNER-557 done: ratio bars from the universe breadth, the Zweig row runs on real breadth bars. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2315 RUNGS fast engine checked on all 7 golden series; second Keltner tie pinned; the desk's Keltner rounding fault located (lab/blocks.py), box not ticked. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2320 RUNGS a finished ladder set is told to his phone once (rungs-sets step). |
