@@ -116,6 +116,9 @@ def test_an_episode_the_rule_was_not_shown_able_to_trade_through_is_untested() -
     early = _early(0)  #: and a history from 2006 lacking the day Lehman fell is not through 2008
     lehman = [bar for bar in early if bar.day != date(2008, 9, 15)]
     assert _stress(early).untested == () and _stress(lehman).untested == (GFC,)
+    #: and its reason says so, whatever the worst tested scenario was: never a silent pass
+    assert "untested" not in _stress(early).judged()[1]
+    assert _stress(lehman).judged()[1].endswith(f"; untested: {GFC}")
     none = _stress(_bars(SHAPE[:23] + [11, 11]))
     assert (none.verdict.answer, none.gap, none.worst) == (Answer.FAULT, None, None)
     #: a window that starts after the line's first bar could leave out a trade held into it
@@ -138,7 +141,7 @@ def test_the_worst_scenario_is_judged_against_a_fifth_of_the_capital() -> None:
     assert lose(1900).judged()[0] is Answer.PASS
     answer, why = lose(2100).judged()
     assert answer is Answer.FAIL and why == (
-        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00"
+        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00; untested: {GFC}, {AUGUST}"
     )
     assert lose(2000).judged()[0] is Answer.PASS
     assert replace(found, episodes=(), gap=None).judged()[0] is Answer.THIN

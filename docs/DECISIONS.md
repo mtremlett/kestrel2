@@ -2555,8 +2555,10 @@ institution's participation, not a family's market order); the median leg (a thi
 times 1% over the worst leg's share, since shares grow with the pot.
 
 **Fit (`lab/rung_fit.py`).** The cell's daily returns on its own line against those of each rule
-already trading on paper on that line: the desk's five (`strategy.STRATEGIES`) and the zoo's daily
-rules (`intraday.ZOO_DAILY`), less any of the cell's own class. A day's return is the line's
+already trading on paper on that line: the desk's five (`strategy.STRATEGIES`), less the cell's
+own rule's family (the rule, or the one a variant moves a setting of), and later any rule the ladder promotes (none yet). NOT the zoo (decided by chat
+seat 215, 26 Nov, by canon B6): the zoo trades only as a paper MACHINERY TEST, one share, never
+evidence, and a rule must never be graded down for resembling a machinery test. A day's return is the line's
 close-to-close move when the rule held after the close before, else nothing, the same formula for
 both, so costs (a level, not a co-movement) do not enter. Pearson over the cell's window; a rule
 that never held there says nothing and is passed over. WEAK (`Answer.DOUBT`) above 0.70; FAIL above
@@ -2572,3 +2574,34 @@ correlation gate and `lab/bets.py` own the book's lines together). `lab/verdict.
 its two lines now trade a million shares a day, so the planted edge still passes every rung, and
 `tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
 of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
+
+## 2026-11-27 — the stress rung's reason names every untested episode (R-RUNNER-550, #2254)
+
+The stress rung's judged reason named only the worst scenario, so a line untested for 2008 or
+2020 showed PASS with no word that the episode went untested (failure pattern 10, silent). The
+reason now ends `; untested: <episode names>` whenever any episode was not shown (landed in
+#2254; this entry is its record, which #2254 left out and the duplicate #2270 carried). Options:
+change the answer to THIN for any untested episode (rejected: untested is not survived, but the
+tested scenarios still count, and `Stressed.judged` already gives THIN when nothing was tested),
+or say it in the reason only (taken). Proven by `tests/unit/test_lab_stress.py`.
+
+*Golden (B5, the desk approves goldens, his 22 Nov):* the fixture book's `stress` row in
+`tests/unit/test_lab_rung_golden.py`, a PASS, gains `; untested: the 2008 crash` (the fixture
+history begins after 2008); no answer moves.
+*Fit's golden (B5):* no answer moves; each cell of the fixture book gains a `fit` row. The planted
+edge FAILS it: a breakout on one line rising for years is held on the same days by the desk's
+own trend rules, and moves 0.91 with `supertrend_10_3`, one of the five (so dropping the zoo does
+not move it). On EPON, expect trend rules on a trending line to meet the same bar beside the
+desk's trend rules; that is the rung working, not a fault.
+
+## 27 Nov - a ticked box that says what remains may not rise (coordinator 221, 01:18 (4))
+
+`money-simcity-withdrawn-day` was ticked on 26 Nov while its note said "Remains: read the next
+deep run's verdict"; both deep runs since timed out at 7200 s with no verdict, so the tick
+counted progress its check had not earned (failure pattern 3). It is unticked, and
+`test_ticked_boxes_that_say_remains_never_rise` (tests/guards/test_ratchets.py) holds the count
+of ticked boxes whose note says `Remains:` to main's: it may fall, never rise. A refusal of all
+of them would have turned main red on 26 standing boxes, so it is a ratchet, like the two-homes one.
+*Driven (A7):* planted on this branch, `money-simcity-withdrawn-day` ticked again and `data-tiers`
+ticked with "Remains: planted": FAILED, "rise from 26 on main to 27; new: ['data-tiers']";
+restored, it passes.
