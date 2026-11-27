@@ -3,6 +3,7 @@ as the author counted, and set beside the figure the author printed."""
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import MutableMapping, Sequence
 from dataclasses import replace
 from datetime import date
@@ -16,7 +17,7 @@ from desk import venues
 from desk.lines import LINES
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, published, reproduce, rung, verdict
+from lab import cell, ladder_parts, published, reproduce, rung, verdict
 from lab.cell import Cell
 from lab.published import Case, Published
 from lab.published_epon import EPONYMOUS_PUBLISHED
@@ -241,3 +242,14 @@ def test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determin
     own = _walk(3, 0.004, 0.004, days=3100)[-2400:]
     c = Cell("faber_tactical", isf, own[0].day, own[-1].day)
     assert verdict._reproduced(c, own, {}, verdict.ready(c, own, {}, ()), ()) is None
+
+
+def test_a_cell_counts_behind_an_authors_result_only_when_it_reproduced_one() -> None:
+    """The run's line counts a cell 'behind an author's result' by its reproduction, never by a
+    reproduce rung judged on determinism, which no author's figure stands behind."""
+    determined = {"every": True, "rungs": {"reproduce": ["PASS", verdict.DETERMINED]}}
+    made = determined | {"reproduction": ["reproduced: the author's result"]}
+    tally: Counter[str] = Counter()
+    for row in (determined, made):
+        ladder_parts._count(tally, cast(verdict.Row, row), None)
+    assert (tally["every"], tally["behind"]) == (2, 1)

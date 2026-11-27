@@ -76,7 +76,7 @@ def _count(tally: Counter[str], row: verdict.Row, was: verdict.Row | None) -> No
     tally["missed"] += fate in ("kept", "judged") and "unrun" not in row
     tally["short"] += "unrun" in row and "answer" not in row
     tally["every"] += row.get("every", False)
-    tally["behind"] += row.get("every", False) and "reproduce" in row["rungs"]
+    tally["behind"] += row.get("every", False) and "reproduction" in row
 
 
 def _made(rule: str, shared: Shared, bars: Bars) -> tuple[Reproduction, ...]:
