@@ -2573,6 +2573,20 @@ its two lines now trade a million shares a day, so the planted edge still passes
 `tests/unit/test_lab_rung_golden.py` gains one `liquidity` row a cell: PASS, its worst leg 0.0213%
 of its day, a capacity of 469,484 pounds; and the noise kept at the first rung's FAIL.
 
+## 2026-11-27 — the stress rung's reason names every untested episode (R-RUNNER-550, #2254)
+
+The stress rung's judged reason named only the worst scenario, so a line untested for 2008 or
+2020 showed PASS with no word that the episode went untested (failure pattern 10, silent). The
+reason now ends `; untested: <episode names>` whenever any episode was not shown (landed in
+#2254; this entry is its record, which #2254 left out and the duplicate #2270 carried). Options:
+change the answer to THIN for any untested episode (rejected: untested is not survived, but the
+tested scenarios still count, and `Stressed.judged` already gives THIN when nothing was tested),
+or say it in the reason only (taken). Proven by `tests/unit/test_lab_stress.py`.
+
+*Golden (B5, the desk approves goldens, his 22 Nov):* the fixture book's `stress` row in
+`tests/unit/test_lab_rung_golden.py`, a PASS, gains `; untested: the 2008 crash` (the fixture
+history begins after 2008); no answer moves.
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was

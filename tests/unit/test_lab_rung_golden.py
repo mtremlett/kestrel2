@@ -62,7 +62,7 @@ GOLDEN = [
             "stress": (
                 "PASS",
                 "worst: a black swan's night, waking 2016-07-08 lost 345.99 pounds; the limit is "
-                "2,000.00",
+                "2,000.00; untested: the 2008 crash",
             ),
             "yearly": ("PASS", "a yearly Sharpe of 1.24; over 2.0 is doubted"),
             "plateau": (

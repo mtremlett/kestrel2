@@ -263,6 +263,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
     assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
     assert quality.kind("1 sessions missing, the first x") == "hole"
+    assert quality.escalate("gap", frozenset({"gap"})) == "sonnet"
+    assert quality.escalate("hole", frozenset({"gap"})) == "opus"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
     assert first == (NOW, NOW, "data quality RED: SPY/1h")
     soon = NOW + timedelta(minutes=10)
