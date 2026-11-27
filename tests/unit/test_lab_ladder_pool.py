@@ -169,7 +169,7 @@ def test_a_change_re_runs_only_its_own_specs_and_the_set_table_says_rungs_built(
     first = ladder_sets.epon(tmp_path, _book(), {}, lines, CLOCK, rules, pooled, records={})
     built, of = ladder.rungs_built()
     table = next((tmp_path / ladder.FOLDER / "sets").glob("*.md")).read_text("utf-8")
-    assert f"rungs built: {built} of {of}\n" in table and of == 12
+    assert f"rungs built: {built} of {of}\n" in table and of == 13
     assert "4 judged now, 0 kept from before" in first
     changed = tape.rule_code
     monkeypatch.setattr(tape, "rule_code", lambda s: "edited" if s == rules[1] else changed(s))
