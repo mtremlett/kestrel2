@@ -13,9 +13,10 @@ these refuse it in the check, on GitHub, before anything merges:
   may change, given it by the runner and written in its pull request as `Claim: ...`.
   The check reads the claim from the pull request on GitHub, or from KESTREL_CLAIM on
   the PC, and refuses a change outside it. A lane's pull request without one fails;
-- every `{id: ...; files: ...; after: ...; waits: ...}` note on a book's box parses, its
-  id is unique, each `after` names a box that exists, and each `waits` is a request
-  number, a date or `operator`, so the runner can hand boxes out and hold back the rest.
+- every `{id: ...; files: ...; after: ...; waits: ...; check: ...}` note on a book's box
+  parses, its id is unique, each `after` names a box that exists, and each `waits` is a
+  request number, a date or `operator`, so the runner can hand boxes out and hold back the
+  rest; every open box of a lane's book names its `check:`, the test that proves it.
 
 Ruled 13 November 2026 (docs/DECISIONS.md).
 """
@@ -39,11 +40,16 @@ SHARED = ("docs/STATUS.md", "docs/PLAN.md", "docs/SCOREBOARD.md", "docs/DECISION
 MAX_NET_PRODUCT_LINES = 300
 CLAIM_LINE = re.compile(r"^Claim:[ \t]*(.+?)[ \t]*\r?$", re.MULTILINE)
 WHOLE_LANE = "*"  #: a claim of every file the lane owns: its serial work
-NOTE = re.compile(r"\{((?:id|files|after|waits):[^{}]*)\}")
+NOTE = re.compile(r"\{((?:id|files|after|waits|check):[^{}]*)\}")
+KEYS = ("id", "files", "after", "waits", "check")
 ID = re.compile(r"[a-z]+-[a-z0-9-]+")
 #: what a box may wait on outside its lane: a request, a date, or the operator
 WAIT = re.compile(r"R-[A-Z]+-\d+|\d{4}-\d\d-\d\d|operator")
 BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, wrapped lines too
+#: a lane book's item at any depth, its wrapped lines (never a nested box's) read with it
+ITEM = re.compile(r"^([ \t]*)- \[([ x])\] (.*(?:\n[ \t]+(?!- \[)\S.*)*)", re.MULTILINE)
+#: a check is a pytest node id: a test file under tests/ and its test function
+CHECK = re.compile(r"tests/[a-z0-9_/]+\.py::test_[a-z0-9_]+")
 
 
 def _git(*args: str) -> str:
@@ -202,7 +208,7 @@ def _notes(plan: str) -> list[dict[str, list[str]]]:
         fields: dict[str, list[str]] = {}
         for part in note.split(";"):
             key, sep, value = part.partition(":")
-            assert sep and key.strip() in ("id", "files", "after", "waits"), f"bad note {{{note}}}"
+            assert sep and key.strip() in KEYS, f"bad note {{{note}}}"
             fields[key.strip()] = [v.strip() for v in value.split(",") if v.strip()]
         assert len(fields.get("id", [])) == 1 and ID.fullmatch(
             fields["id"][0]
@@ -210,6 +216,8 @@ def _notes(plan: str) -> list[dict[str, list[str]]]:
         assert fields.get("files"), f"a note names the files its box changes: {{{note}}}"
         bad = [w for w in fields.get("waits", []) if not WAIT.fullmatch(w)]
         assert not bad, f"a box waits on a request, a date or operator, not {bad}: {{{note}}}"
+        odd = [c for c in fields.get("check", []) if not CHECK.fullmatch(c)]
+        assert not odd, f"a check is a test id, tests/<file>.py::test_<name>, not {odd}: {{{note}}}"
         notes.append(fields)
     return notes
 
@@ -248,3 +256,48 @@ def test_every_open_request_has_its_own_box() -> None:
         if not re.match(r"- \[[ x]\] $", ln[: m.start()])
     ]
     assert not loose, f"requests inside another's line; give each its own `- [ ]` line: {loose}"
+
+
+def _open_work(plan: str) -> dict[str, list[str]]:
+    """Each lane's open boxes, as the runner reads its books (`slots.boxes`): every item under
+    `### The <lane> lane's book` up to the next heading, at any depth, its wrapped lines
+    joined; a box with boxes under it is an umbrella, not work."""
+    work: dict[str, list[str]] = {}
+    for book in re.finditer(r"^### The ([a-z]+) lane's book.*$", plan, re.MULTILINE):
+        rest = plan[book.end() :]
+        end = re.search(r"^##", rest, re.MULTILINE)
+        items = list(ITEM.finditer(rest[: end.start()] if end else rest))
+        work[book[1]] = [
+            " ".join(item[3].split())
+            for item, after in zip(items, [*items[1:], None], strict=True)
+            if item[2] == " " and not (after and len(after[1]) > len(item[1]))
+        ]
+    return work
+
+
+def test_every_open_box_names_its_check() -> None:
+    """THE BOX IS THE CARD (the operator's 'Yes, all of it', 27 Nov). The runner runs an open
+    box's `check:` on main before it spends a session: green is a tick, never a hand-out. A
+    box with no check is work nobody can prove done, handed out again and again (failure
+    patterns 12 and 22). The check is a test id the box's own files may hold, so the session
+    can write it."""
+    plan = (ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")
+    unproven = []
+    for lane, boxes in _open_work(plan).items():
+        for text in boxes:
+            note = NOTE.search(text)
+            fields = (
+                {k.strip(): v for k, _, v in (p.partition(":") for p in note[1].split(";"))}
+                if note
+                else {}
+            )
+            checks = [c.strip() for c in fields.get("check", "").split(",") if c.strip()]
+            files = [f.strip() for f in fields.get("files", "").split(",") if f.strip()]
+            outside = [c for c in checks if not any(fnmatch(c.split("::")[0], f) for f in files)]
+            if not checks or outside:
+                unproven.append(f"{lane}: {fields.get('id', text[:60]).strip()} {outside or ''}")
+    assert not unproven, (
+        "every open box of a lane's book names `check: tests/<file>.py::test_<name>` in its "
+        "note, the test that proves it, in a file the box may change (a test it will write is "
+        f"named before it exists): {unproven}"
+    )
