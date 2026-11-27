@@ -14,42 +14,8 @@ settled entries into one short summary entry; git keeps every word.
 ### 2026-11-13 — summary: the book is the broker's; any broker behind the send path (folded 23 November; git keeps every word)
 - One rule decides whether the book is the broker's, for every broker, and the send path, ledger and day run know a broker by five questions, each asked once (R-PAPER-2). Decided by the lane as the desk's mentor.
 
-### 2026-11-13 — the money book's next boxes noted: the kill switch first (#76)
-
-**Decided**, by the lane as the desk's mentor.
-- *The kill switch's files.* Options: refuse at the gate in `desk/orders.py`, or on the send
-  path in `desk/book.py`. Chosen: the send path, with a new `desk/kill.py` and `desk/broker.py`
-  (cancelling). The gate stays a pure rule over the order and the book; whether the switch is
-  thrown is a fact on disk, read at the edge where the reconciliation refusal already lives.
-- *The costs wait for the kill switch (`after: money-kill`).* Options: side by side, or in turn.
-  Chosen: in turn; both change `desk/book.py`, and his ruling puts the kill switch first.
-- *The crash watch left un-noted.* Options: note it with no `after` (a session would meet it
-  before the five-minute data exists), or wait. Chosen: wait for the data lane's box ids.
-- *File lists err wide.* A session may change nothing outside its note, so a missing file strands
-  it; a wider note only makes it wait its turn.
-
-### 2026-11-13 — each strategy declares what it is (#92, money-declared)
-
-**Decided**, by the lane as the desk's mentor.
-- *Holding period: each of the five declares none.* Options: (a) 5 sessions for RSI-2 and 20 for
-  Bollinger, the span of the average each sells on; (b) none for all five; (c) a number measured
-  from history. First built (a), but neither published rule has a time exit: RSI-2 outstays 5
-  sessions in 13 of 39 golden trades, Bollinger outstays 20 in 29 of 52 (longest 133). Chosen (b):
-  a declaration says only what its rule does; (c) is tuning. The time stop (STP-11) must choose
-  each limit and build the exit in the same change; the golden days will move, so it needs his
-  approval (canon B5).
-- *Test universe: every line of the instrument master, by reference.* Options: (a) the master's
-  lines; (b) a narrower list per rule; (c) a rule about a line's facts. Chosen (a): a rule judged on
-  fewer lines than it trades would trade unjudged; (b) changes what is traded with no evidence;
-  (c) makes the research list part of a verdict. By reference, so a new line is declared at once.
-- *Data: the numbers of the daily bar a rule reads*, proved (not a named source: the desk has one).
-- *The bar is one value, daily;* a second comes with the bars that would feed it.
-- *The declaration sits on the rule itself.* Options: (a) on the rule; (b) a second table by name;
-  (c) a wrapper. Chosen (a): one home; a rule without one fails the type check.
-- *A short sale.* No word for it in declaration, action or decision; the template sells only what
-  is held. A hand-made decision to sell is left to the gate (refusing it at its making breaks
-  orders tests this box may not edit); the true fix is the order type (recommended box).
-- *Ticked though a remainder is named:* a session given the same files could do no more.
+### 2026-11-13 — summary: the kill switch first, files err wide, each strategy declares itself (folded 27 November; git keeps every word)
+- The kill switch refuses on the send path (`desk/kill.py`, `desk/broker.py`), the gate staying a pure rule; costs wait for it; file lists err wide so a session is never stranded; each strategy declares what it is (#76, #92). Decided by the lane as the desk's mentor.
 
 ### 2026-11-13 — the kill switch and its drill (#95, money-kill)
 
@@ -788,3 +754,14 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-27 - A buy in the replay day is sized with the live price (#2300, R-RUNNER-514)
 - Options: refuse a buy through its stop, or rest the stop under the market. The sizer already does both, so it is used as is. `live` stays optional until the live round (`desk/running.py`, PAPER's, R-MONEY-74) passes it, then becomes required.
+
+
+### 2026-11-27 - Shares under the desk's own broker stop are no stranger (#2298, money-stranger-stopped)
+- Options: (a) leave stop-covered shares out of the stranger list (taken: the minimal safe step inside the claim); (b) adopt them and keep the stop (needs desk/day.py, outside the claim).
+- The stop covers the book's own shares first; only the broker's shares beyond max(book, stop) are strangers, several stop entries on one name summed. A blind review found a first version subtracting the stop twice; fixed. SimCity's scenario `beside` now promises stopped strangers are left under their stop and unsold. Open: booking them with the stop.
+
+### 2026-11-27 - Three rules declare their holding period (#2324, R-RUNNER-541)
+- Options: invent a time limit for weinstein_stage and williams_r, or none. Took none: their published sells are price-only (his 21 Nov ruling: from its own sell logic). zweig_breadth_thrust keeps 230 sessions, the port's reading of the book's eleven-month horizon, now declared so the template's time stop sells it in place of its private counter.
+
+### 2026-11-27 - money-small's claim widened to desk/strategy.py (#2330)
+- Options: widen the claim to MONEY files (taken, his 13 Nov "always go with recommended") or ask RUNGS. R-RUNNER-504 and R-RUNNER-509 declined: #2168 is closed; #2325 and #2324 carry the follow-ups.
