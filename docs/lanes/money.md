@@ -775,3 +775,18 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-27 - The zoo drops only lines the master marks isa=no (#2248, R-RUNNER-481)
 - Options: drop unrecorded isa (None) too (removes nothing today, hides unrecorded lines) or keep them. Took keep: the card says "marks isa=no". IB1T, SPY, QQQ leave; the count test moved 10/9 to 9/7.
+
+### 2026-11-27 - Size at the dearer of signal and live price (#2275, R-RUNNER-535)
+- Options: overwrite order.price with the live price (rejected: the order's id and stop contract stays on the signal price) or size at max(signal close, live price) (taken: a gap up never makes a holding cost more than its room; the stop still rests 10% under min(price, market)).
+
+### 2026-11-27 - Four more rules declare no holding period (#2276, R-RUNNER-539)
+- Options: invent a limit per rule or declare none. Took none for faber_tactical, kell_breakout, keltner_channel_trend and mansfield_rs_momentum: no published sell logic gives a day limit (his 21 Nov ruling), as in R-RUNNER-538.
+
+### 2026-11-27 - A held line owed its close is named, the day's profit withheld (#2168, R-RUNNER-488)
+- Options: a new Record field (rejected: changes the comma file's columns, outside the claim); a raise (rejected: one line would stop the day); the refusal rides the record's mismatches with one wording constant (taken). A held yardstick owed its close still gives no record (its close is every record's yardstick): publish without a market figure or refuse; refused, unchanged. Open: messenger.py/simcitycmd.py still say "book differs from broker" for an owed day; loss limits read a withheld day as 0 (pattern 20 debt).
+
+### 2026-11-27 - Three more rules declare no holding period; swing keeps five sessions (#2288, R-RUNNER-540)
+- Options: invent session counts for minervini_breakout, momentum and raschke_swing (rejected: sources give none) or declare none with the reason (taken, his 21 Nov ruling). swing already declares five sessions (Jegadeesh/Lehmann week).
+
+### 2026-11-27 - The replay day sizes a buy with the live price (#2300, R-RUNNER-514)
+- Options: refuse a buy through the stop or rest the stop under the market; the sizer already does both, so used as is. `live` stays optional until desk/running.py passes it (R-MONEY-74), then becomes required.
