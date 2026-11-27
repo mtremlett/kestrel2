@@ -4,11 +4,11 @@ each read from the saved bars and the ledger at a day's end."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, venues
+from desk import book, store_parts, venues
 from desk.lines import Line
 from desk.orders import pennies
 from desk.store import Bar
@@ -54,7 +54,10 @@ def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decim
         buy, line = buys[symbol], lines[symbol]
         if (stop := kept.get(f"{buy.order_id}-stop")) is None:
             return None
-        bars = [bar for bar in archive[line] if buy.day <= bar.day <= upto]
+        saved = archive[line]
+        bars = saved[
+            store_parts.upto(saved, buy.day - timedelta(days=1)) : store_parts.upto(saved, upto)
+        ]
         gaps = (before.close - after.open for before, after in zip(bars, bars[1:], strict=False))
         fall = max(buy.price - stop, *gaps, Decimal(0))
         heat += shares * fall * book.rate(root, line.currency, upto)
@@ -64,7 +67,8 @@ def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decim
 def close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Decimal:
     """The line's close at a day's end: its newest bar's by then. A session of its venue
     since that bar, the line not suspended, is a bar owed: an error, never an older price."""
-    bars = [bar for bar in archive.get(line, ()) if bar.day <= upto]
+    saved = archive.get(line, ())
+    bars = saved[: store_parts.upto(saved, upto)]
     since = venues.sessions(line.venue, bars[-1].day, upto) if bars else (upto,)
     owed = [on for on in since if not bars or (on > bars[-1].day and on not in line.suspended)]
     if owed:

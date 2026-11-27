@@ -5,12 +5,16 @@ and gives them to its callers under the same names."""
 from __future__ import annotations
 
 import csv
+import io
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from enum import Enum
+from os import SEEK_END
 from pathlib import Path
-from typing import TypeVar, cast
+from shutil import copyfile
+from typing import Generic, TypeVar, cast
 from uuid import uuid4
 
 from desk.broker import Broker, Report
@@ -52,12 +56,68 @@ def keep(path: Path, rows: Iterable[Sequence[object]]) -> None:
             del _READ[kind]
 
 
+@dataclass(frozen=True)
+class Rows(Generic[T]):
+    """A FILE THE DESK ADDS ROWS TO, read: made, its reading from all its rows (the header first);
+    grown, a reading with rows added after it (add) taken in, which must equal made of them all.
+    It is a parse (read_once), so a day's reading grows by the day's rows (27 Nov: the records,
+    rates and ledger parsed whole after each day's write made SimCity's day grow with its age)."""
+
+    made: Callable[[list[list[str]]], T]
+    grown: Callable[[T, list[list[str]]], T]
+
+    def __call__(self, path: Path) -> T:
+        with path.open(newline="", encoding="utf-8") as kept:
+            rows = list(csv.reader(kept))
+        try:
+            return self.made(rows)
+        except ValueError as wrong:  #: said again with the file it was read from
+            raise ValueError(f"{path}: {wrong}") from wrong
+
+
+def add(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> bool:
+    """THE DESK'S ONE WAY TO ADD ROWS to a record it keeps: the file as it was and the rows after
+    it, written whole and swapped in as keep does. A reading of it kept by a Rows (read_once) is
+    grown by the rows alone; any other is dropped. A file that does not begin with header is not
+    added to (False), for the caller to write whole (keep); none yet is written with header."""
+    text = io.StringIO(newline="")
+    csv.writer(text).writerows(rows)
+    if not path.exists():
+        keep(path, [header, *csv.reader(io.StringIO(text.getvalue(), newline=""))])
+        return True
+    line = io.StringIO(newline="")
+    csv.writer(line).writerow(header)
+    head, stamp = line.getvalue().encode(), _stamp(path)
+    written = path.with_name(f"{path.name}.{uuid4().hex}.tmp")  #: one per writer, never shared
+    try:
+        copyfile(path, written)
+        with written.open("r+b") as out:
+            if out.read(len(head)) != head:
+                return False
+            out.seek(0, SEEK_END)
+            out.write(text.getvalue().encode())
+        written.replace(path)
+    finally:
+        written.unlink(missing_ok=True)
+    more = list(csv.reader(io.StringIO(text.getvalue(), newline="")))
+    for kind, (read, seen, reading) in list(_READ.items()):
+        if read == path:
+            del _READ[kind]
+            if seen == stamp and isinstance(kind[1], Rows):
+                _READ[kind] = (path, _stamp(path), kind[1].grown(reading, more))
+    return True
+
+
+def _stamp(path: Path) -> tuple[int, int, int]:
+    seen = path.stat()
+    return seen.st_ino, seen.st_mtime_ns, seen.st_size
+
+
 def read_once(path: Path, parse: Callable[[Path], T]) -> T:
     """A file's reading by parse, read again only once the file has changed (_READ). Its
     writers go through keep: a rewrite in place of the same size, inside the clock's tick,
     keeps the stamp and would be read stale."""
-    seen = path.stat()
-    stamp, kind = (seen.st_ino, seen.st_mtime_ns, seen.st_size), (path.name, parse)
+    stamp, kind = _stamp(path), (path.name, parse)
     kept = _READ.get(kind)
     if kept is None or kept[:2] != (path, stamp):
         _READ[kind] = kept = (path, stamp, parse(path))
@@ -99,41 +159,57 @@ def killed(root: Path) -> str | None:
 
 def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
     """Keep the day's pounds per unit of each currency: fills are priced from this record."""
-    kept = rates_kept(root)
+    known, kept, new = _rates_read(root), rates_kept(root), list[tuple[date, str, Decimal]]()
     for currency, rate in rates.items():
         if not (rate.is_finite() and rate > 0) or (currency == "GBP" and rate != 1):
             raise ValueError(f"{day}: a rate of {rate} pounds per {currency}")
         if kept.setdefault((day, currency), rate) != rate:
             raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
-    keep(root / RATES, [("day", "currency", "rate"), *((*key, r) for key, r in kept.items())])
+        new += [] if (day, currency) in known else [(day, currency, rate)]
+    if new and not add(root / RATES, RATED, new):
+        raise ValueError(f"{root / RATES}: not the desk's rates, so none is kept")
 
 
 def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
     """Every rate kept, by day and currency: a copy of the file's one reading (read_once)."""
+    return dict(_rates_read(root))
+
+
+def _rates_read(root: Path) -> Mapping[tuple[date, str], Decimal]:
     path = root / RATES
-    return dict(read_once(path, _rates)) if path.exists() else {}
+    return read_once(path, _RATES) if path.exists() else {}
 
 
-def _rates(path: Path) -> dict[tuple[date, str], Decimal]:
-    with path.open(newline="", encoding="utf-8") as saved:
-        return {
-            (date.fromisoformat(r["day"]), r["currency"]): Decimal(r["rate"])
-            for r in csv.DictReader(saved)
-        }
+def _rate_rows(rows: list[list[str]]) -> dict[tuple[date, str], Decimal]:
+    return {(date.fromisoformat(day), currency): Decimal(rate) for day, currency, rate in rows}
 
 
-def _by_currency(path: Path) -> dict[str, dict[date, Decimal]]:
-    by: dict[str, dict[date, Decimal]] = {}
-    for (day, currency), pounds in read_once(path, _rates).items():
+def _body(rows: list[list[str]]) -> list[list[str]]:
+    """The rates' rows after their header; a file that does not begin with it is not the desk's."""
+    if rows[:1] != [list(RATED)]:
+        raise ValueError("not the desk's rates")
+    return rows[1:]
+
+
+def _by_grown(
+    kept: dict[str, dict[date, Decimal]], rows: list[list[str]]
+) -> dict[str, dict[date, Decimal]]:
+    by = {currency: dict(days) for currency, days in kept.items()}
+    for (day, currency), pounds in _rate_rows(rows).items():
         by.setdefault(currency, {})[day] = pounds
     return by
+
+
+RATED = ("day", "currency", "rate")
+_RATES = Rows(lambda rows: _rate_rows(_body(rows)), lambda kept, rows: {**kept, **_rate_rows(rows)})
+_BY_CURRENCY = Rows(lambda rows: _by_grown({}, _body(rows)), _by_grown)
 
 
 def pounds_per(root: Path) -> Callable[[str, date], Decimal]:
     """Pounds per unit of a currency kept for a day, carried over a UK-only holiday (desk.carry),
     the rates read once until they change (read_once; 22 Nov: once a trip hung SimCity)."""
     path = root / RATES
-    by = read_once(path, _by_currency) if path.exists() else {}
+    by = read_once(path, _BY_CURRENCY) if path.exists() else {}
 
     def rate(currency: str, day: date) -> Decimal:
         kept = carried(by.get(currency, {}), day)
