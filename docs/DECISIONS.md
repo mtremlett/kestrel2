@@ -2899,5 +2899,8 @@ refuses them whatever the runner grants; (b) refuse such a box in the book: chos
 lane must do is that lane's box, and this one goes `after:` it; work that cannot be split is a
 builder's, not a lane box. `test_an_open_box_names_only_files_its_lane_may_change` was RED on main
 with 13 files in 6 boxes (money-epon-room, zoo-own-side, money-connors7, money-door-pound,
-money-round-cap: RUNGS's or PAPER's files; rungs-rows-as-rules: MONEY's), green after the PLAN
-steward's re-scoping of those boxes.
+money-round-cap: RUNGS's or PAPER's files; rungs-rows-as-rules: MONEY's). Lead 271 ruled the strip
+mine, `files:` fields only: each foreign file leaves its box (a session ends BLOCKED on it, never
+outside its claim), and so do manifest.toml and manifest/money.toml (item 4). money-round-cap moves
+whole to PAPER's book: MONEY's half landed (#2084), and what remains, running's CARRIED resend, and
+its check are desk/running.py's (as paper-step-time was split from it, 23 Nov). Green after.

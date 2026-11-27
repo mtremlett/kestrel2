@@ -364,7 +364,7 @@ def test_an_open_box_names_only_files_its_lane_may_change() -> None:
     """A BOX THAT CANNOT LAND (the box is the card, design item 3). A lane session changes only
     its own lane's files, so a box naming another lane's file is handed out, built, and refused
     by `test_a_lane_changes_only_its_own_files`, or drifts outside its claim (failure patterns 12
-    and 21). Work another lane must do is a box in that lane's book, and this box goes `after:` it."""
+    and 21). Work another lane must do is a box in that lane's book; this box goes `after:` it."""
     lanes = sorted(manifest()["lanes"])
     owned = {lane: _owned(lane) for lane in lanes}
     foreign = []
@@ -374,7 +374,9 @@ def test_an_open_box_names_only_files_its_lane_may_change() -> None:
             for path in fields.get("files", []):
                 if any(_overlap(path, p) for p in owned[lane]):
                     continue
-                others = [o for o in lanes if o != lane and any(_overlap(path, p) for p in owned[o])]
+                others = [
+                    o for o in lanes if o != lane and any(_overlap(path, p) for p in owned[o])
+                ]
                 if others:
                     foreign.append(f"{lane}: {fields['id'][0]} names {path} ({others[0]}'s)")
     assert not foreign, (
