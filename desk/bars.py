@@ -40,7 +40,6 @@ from desk.bars_parts import OTHERS as OTHERS
 from desk.bars_parts import READ as READ
 from desk.bars_parts import RESTORE as RESTORE
 from desk.bars_parts import SOURCES as SOURCES
-from desk.bars_parts import UNDER as UNDER
 from desk.bars_parts import WITHDRAW as WITHDRAW
 from desk.bars_parts import StoreWait as StoreWait
 from desk.bars_parts import checked as checked
@@ -253,6 +252,9 @@ def _read(
                 f"{path}: the store never held {span} bars for {line.symbol} on {line.venue}"
             )
     return rows
+
+
+UNDER = READ.replace("NOT EXISTS", "EXISTS")  #: the bars held under a withdrawn mark
 
 
 def daily(path: Path, line: Line, what: str = READ) -> tuple[Bar, ...]:
