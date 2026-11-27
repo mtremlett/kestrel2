@@ -2889,3 +2889,15 @@ apart from the broker. `tests/unit/test_book_matrix.py`: green on main; RED on a
 forgot it"), and on a send that never asks the broker first (6 rows). Tests only, no desk change.
 Left of pattern 23's debt: which of these four answers each real gateway message becomes
 (desk/paper.py's table), and the same rows in SimCity (R-RUNNER-392).
+## 27 Nov - an open box names only files its own lane may change (design item 3, Builder 3b)
+The box is the card: the runner reads each open box's id, files, after:, waits: and check: (every
+one already guarded at any depth). A lane branch may never change another lane's file
+(`test_a_lane_changes_only_its_own_files`; no claim overrides it), so a box naming one is handed
+out, built and refused, or drifts outside its claim (patterns 12, 21; #2350, #2375, #2383 each
+ended 'outside this claim'). Options weighed: (a) let the runner grant two-lane claims: the repo
+refuses them whatever the runner grants; (b) refuse such a box in the book: chosen. Work another
+lane must do is that lane's box, and this one goes `after:` it; work that cannot be split is a
+builder's, not a lane box. `test_an_open_box_names_only_files_its_lane_may_change` was RED on main
+with 13 files in 6 boxes (money-epon-room, zoo-own-side, money-connors7, money-door-pound,
+money-round-cap: RUNGS's or PAPER's files; rungs-rows-as-rules: MONEY's), green after the PLAN
+steward's re-scoping of those boxes.
