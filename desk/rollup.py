@@ -90,6 +90,24 @@ def weekly(venue: str, candles: list[Candle]) -> list[Candle]:
     ]
 
 
+def monthly(venue: str, candles: list[Candle]) -> list[Candle]:
+    """The venue's daily candles as monthly bars, each starting on the month's first day and
+    closing on the venue's last session of it as the calendar gives it (a holiday month-end
+    falls back to the day before): only a month whose every session is held is written."""
+    months: dict[date, dict[date, Candle]] = {}
+    for candle in sorted(candles, key=lambda c: c.start):
+        if candle.start.tzinfo is None:
+            raise ValueError(f"{candle.start} has no time zone: the calendar cannot place it")
+        day = candle.start.astimezone(UTC).date()
+        months.setdefault(day.replace(day=1), {})[day] = candle
+    return [
+        _built(list(held.values()), datetime.combine(first, time(), UTC), "rollup:1d")
+        for first, held in sorted(months.items())
+        if tuple(held)
+        == venues.sessions(venue, first, (first + timedelta(32)).replace(day=1) - timedelta(1))
+    ]
+
+
 def merged(
     pulled: list[Candle], built: list[Candle]
 ) -> tuple[list[Candle], list[tuple[Candle, Candle]]]:
