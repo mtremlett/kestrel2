@@ -26,7 +26,7 @@ from test_lab_rung import _bars, _walk
 from desk.lines import LINES, Line
 from desk.store import Bar
 from desk.strategy import CLOSES, STRATEGIES, Declared, Rule, Timeframe
-from lab import ladder, ladder_sets, rulebook, tape, verdict
+from lab import ladder, ladder_sets, rulebook, rung_map, tape, verdict
 from lab.cell import Cell
 from lab.published import PUBLISHED
 from lab.published_case import Published, known
@@ -238,7 +238,7 @@ def _failed(row: Known, rows: Rows) -> str:
 def _map() -> dict[int, str]:
     """The ladder's map of rungs, number to name, read from its docstring as `rungs_built` reads
     it (pattern 18: the registry, never a list kept here)."""
-    paragraph = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    paragraph = (rung_map.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
     rows = [line.strip() for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
     return {int(r.split()[0]): r.split(":")[0] for r in rows}
 

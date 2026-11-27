@@ -10,10 +10,11 @@ from pathlib import Path
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows, _set
 
-from lab import ladder, rung
+from lab import ladder, rung, rung_map
 
-#: The gate (rungs-each-rung): no rung module is off the ladder's path; waiting is empty.
-OFF_PATH: tuple[str, ...] = ()
+#: The gate (rungs-each-rung): no rung module is off the ladder's path; waiting is only the map,
+#: which `rung.found` reads as a `rung_*` module by its name (lab/rung.py is outside this card).
+OFF_PATH: tuple[str, ...] = ("lab.rung_map",)
 PLANTED = """
 from lab.rung import Answer, Rung
 
@@ -49,8 +50,8 @@ def test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired
         "regimes",
     ]
     assert waiting == OFF_PATH, "a rung module off verdict.judge's path: wire it, or merge it away"
-    rung_map = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
-    assert "unwired" not in rung_map, "the map names a judge off the path: wire it, or merge it"
+    the_map = (rung_map.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
+    assert "unwired" not in the_map, "the map names a judge off the path: wire it, or merge it"
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA, ISF))
     assert all(not ({"planted"} & set(row["rungs"])) for row in _rows(tmp_path))
     rows = _rows(tmp_path)  #: EASED: a hard fail on the first rung stops that line there
