@@ -13,18 +13,33 @@ from desk.lines import Line
 from desk.orders import pennies
 from desk.store import Bar
 
+NO_CLOSE_OWED = ": no close owed"  #: no comma: the record is a comma file; one home for the wording
 
-def worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
-    """What the book held at a day's end was worth, in pounds: each line at its close then,
-    at the rate kept for that very day."""
-    lines = {line.symbol: line for line in archive}
-    return sum(
-        (
-            shares * close(archive, lines[s], upto) * book.rate(root, lines[s].currency, upto)
-            for s, shares in book.positions(root, upto).items()
-        ),
-        Decimal(0),
-    )
+
+class CloseOwed(ValueError):
+    """A held line's close is owed: a session of its venue since its newest bar, not suspended."""
+
+
+def is_owed(mismatch: str) -> bool:
+    """Whether a record's mismatch names a line owed its close (not a book that differs)."""
+    return mismatch.endswith(NO_CLOSE_OWED)
+
+
+def worth(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date
+) -> tuple[Decimal, tuple[str, ...]]:
+    """What the lines held at a day's end that have their close were worth, in pounds: each at
+    its close then, at the rate kept for that very day. A held line owed its close is named
+    (NO_CLOSE_OWED) and left out, never priced by an older bar: the day's profit is withheld, and
+    the next record opens from the last that carried one. A missing rate still stops the day."""
+    lines, priced, refused = {line.symbol: line for line in archive}, [], []
+    for s, shares in book.positions(root, upto).items():
+        rate = book.rate(root, lines[s].currency, upto)
+        try:
+            priced.append(shares * close(archive, lines[s], upto) * rate)
+        except CloseOwed:
+            refused.append(s + NO_CLOSE_OWED)
+    return sum(priced, Decimal(0)), tuple(refused)
 
 
 def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal | None:
@@ -53,7 +68,7 @@ def close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Deci
     since = venues.sessions(line.venue, bars[-1].day, upto) if bars else (upto,)
     owed = [on for on in since if not bars or (on > bars[-1].day and on not in line.suspended)]
     if owed:
-        raise ValueError(f"{upto}: no close of {line.symbol} for {owed}, so the day has no record")
+        raise CloseOwed(f"{upto}: no close of {line.symbol} for {owed}, so the day has no record")
     return bars[-1].close
 
 

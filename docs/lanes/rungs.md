@@ -564,3 +564,8 @@ then the break was removed:
 ### 2026-11-26 — pooled-set pin; known-answer kit half built; rungs-pound-gap left (#2189, #2175)
 - Runner ops' claim-gap ruling for rungs-pound-gap (needs lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), taken by his standing ruling "please always go with recommended to avoid waiting for me to attend". Options: (a) build it in #2189, (b) leave it for a card whose claim names those files. Chose (b): the claim lacks the files and the session's objective was restoring #2189.
 - The known-answer kit's edge assertion (#2175). Options: a red test (refused), xfail (forbidden, pattern 4), pin today's state (taken: edge heard, not yet forward). Restored by a pure git mv, since only the name broke the lane guard. Tighten once L17 wires `plateau.of`.
+
+### 2026-11-26 — the whole-ladder blind review; rungs-pound-gap already met (#2218)
+- The claim gap rungs-pound-gap (runner ops, asked again 26 Nov: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py). Options: rebuild it, or record it met. Chose met: #1992 made `_pooled.go` call `ladder.preflight` (lab/ladder_sets.py:296), pinned by test_lab_ladder_sets.py:194. His words: "please always go with recommended to avoid waiting for me to attend".
+- How to detect a stopped pass. Options: compare the answer text inline; one constant both modules read; a typed return from `go`. Chose the constant `ladder_pool.STOPPED`: one home, smallest change; a typed result touches every `go` and its fakes (the debt in failure pattern 14).
+- The reviewer's three non-blocking findings. Options: fix here or record. Chose record: they change published counts and cache keys, not a verdict, and the first needs lab/verdict_parts.py, outside the claim.
