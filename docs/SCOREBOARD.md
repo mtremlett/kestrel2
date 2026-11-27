@@ -596,6 +596,12 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2263 DATA: store flags an unconfirmed newest-bar pound step. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2268 R-RUNNER-547 keeper fault: rollup calendar asks per day, not per candle. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2274 data-consolidated: daily comparison built; real run and hourly open. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2285 R-RUNNER-471 gap-driven backfill logic and test landed; adapters open. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2301 R-RUNNER-492 met: the unconfirmed pound-sized newest bar parks its line. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2304 R-RUNNER-531 step 1 of 3 (builder): rollup.monthly. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2297 R-RUNNER-523 built: row-checked roll-off listing, 1 test, +57 lines. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2308 R-RUNNER-532 step 1: the 1901 line is built from text, not yet stored. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2317 DATA: the restore check now covers five-minute, daily and hourly bars. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

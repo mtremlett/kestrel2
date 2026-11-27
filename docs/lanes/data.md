@@ -705,3 +705,21 @@ The rule pin test names rules by function, so the row follows the function that 
 
 ### 2026-11-27 — four boxes' waits on requests are written as a date (DATA, scribe)
 The runner asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80` on data-isa-twins, data-survivorship, data-second-source and data-dividends. `tests/guards/test_requirements.py::test_every_id_the_plan_names_is_known` refuses two-digit R-DATA ids in a box (red on the first try). Options: write the ids (guard red; loosening it is his alone); drop the waits; write a date. Took the date 2026-12-04, the requests stay named in STATUS; the next scribe moves each wait to its request when the guard allows.
+
+### 2026-11-27 — the waits stay a date, again (DATA, scribe)
+The runner again asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80`; `test_every_id_the_plan_names_is_known` is red on them (two-digit ids), driven this run. Same options and choice as the entry above: the date 2026-12-04 stays, the requests stay named in STATUS.
+
+### 2026-11-27 — a pound-sized newest bar parks its line until a later bar (DATA, #2301)
+Options: A, park until a later bar removes the fault (chosen, per the request); B, park until the broker's bar for that day confirms it (left for a later step). The bar is still kept.
+
+### 2026-11-27 — monthly bars start on the month's first day 00:00 UTC (DATA, #2304)
+Options: start on the last session of the month, or on the first day as weekly starts on Monday (chosen). The store names a bar by its start, so a start on the last session was rejected. A month is written only when every session was held.
+
+### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
+Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
+
+### 2026-11-27 — Shiller's table lives in lab/, not desk/ (DATA, #2308)
+desk/ is at its 100-file ceiling, a guard, not loosened. The free CSV route (datahub s-and-p-500) was preferred over a library, as requested.
+
+### 2026-11-27 — the hourly old-store check reuses headstart_hours' reader (DATA, #2317)
+One owner for reading old hours rather than a second reader. Deleting the originals still waits on his yes, asked once the real run is clean (hard line).
