@@ -301,6 +301,26 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     assert quality.announce("l", None) == "l\n"
 
 
+def test_a_venue_wide_hole_inside_a_held_session_is_named_and_one_quiet_line_is_not(
+    tmp_path: Path,
+) -> None:
+    isf, sgln = (next(ln for ln in LINES if ln.symbol == s) for s in ("ISF", "SGLN"))
+    price, path = Decimal(10), tmp_path / bars.LIVE
+    now, opened = datetime(2026, 11, 27, 21, tzinfo=UTC), datetime(2026, 11, 27, 8, tzinfo=UTC)
+    day = [opened + timedelta(minutes=5 * n) for n in range(102)]  # 08:00 to 16:25: the session
+    held = {isf: day[:94], sgln: day[13:94]}  # both stop at 15:45 (the outage); SGLN starts late
+    with bars.writing(path, bars.Source.IBKR) as round_:
+        for line, starts in held.items():
+            round_.five(line, [Five(t, price, price, price, price, 5) for t in starts])
+    said = "8 bars missing in its venue's feed, the first on 2026-11-27"
+    assert quality.cell(path, isf, "5m", now) == quality.cell(path, sgln, "5m", now) == said
+    assert quality.kind(said) == "hole"
+    with bars.writing(path, bars.Source.IBKR) as round_:  # the broker's bars into the hole
+        round_.five(isf, [Five(t, price, price, price, price, 5) for t in day[94:]])
+    assert quality.cell(path, isf, "5m", now) is None
+    assert quality.cell(path, sgln, "5m", now) is None  # its quiet morning and tail are its own
+
+
 def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     assert quality.register(path, [SPY]) == ("IBKR paper 1", [])
