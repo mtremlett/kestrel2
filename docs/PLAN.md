@@ -1152,14 +1152,14 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         own specs, each set's table published with "rungs built: n of 12"
         Remains (#2293): in-repository parts are on main (#2257, #2189, #2312); the runner's 24x7 catalogue job obeys job-ladder.hold until the known-answer kit passes on main (waits on R-RUNGS-46); stale-market crash at publish (lab/basket.py)
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; waits: R-RUNGS-46; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
-  - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
+  - [x] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
-        Wired (26 Nov, seat 215's order; DECISIONS): verdict.judge builds the plateau itself when handed none (`plateau.at`), a variant held to its row's publication; plateau is never UNRUN. Remains: the gate's 'a planted edge goes forward', which waits on reproduce (no author's figure, judged on determinism), and dropping judge's dead `surface` once lab/ladder.py is free
-        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers; check: tests/unit/test_lab_verdict.py::test_a_planted_edge_goes_forward}
+        Wired (26 Nov, seat 215's order; DECISIONS): verdict.judge builds the plateau itself when handed none (`plateau.at`), a variant held to its row's publication; plateau is never UNRUN. Done: with reproduce judged on determinism the kit's paid edge goes forward on every line, the churner NOT APPLICABLE for plateau (`test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it`). Follow-up: drop judge's dead `surface` once lab/ladder.py is free
+        {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers}
   - [x] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is
         the set's own lines, clustered (L14) and passed into `deflated.read`; a known-answer case pins both bars

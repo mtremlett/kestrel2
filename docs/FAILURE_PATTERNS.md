@@ -18,8 +18,8 @@ predecessor's 2,000-line core stayed inside its cap while its runner grew to rea
 **3. Progress counted in activity.** Cards landed, commits made, tests added — all rising
 while the thing that matters does not move. The predecessor landed about 1,100 work cards
 in six weeks and proved 10 of 64 requirements.
-→ *Caught by:* the only progress number is scenes passing out of seven, and the plan
-requires a batch adding net lines to name the scene it advances.
+→ *Caught by:* the only progress number is plan boxes ticked on main per 24 hours, from one
+function, and the plan requires a batch adding net lines to name the scene it advances.
 
 **4. The set-aside test.** A test fails, is added to a known-failures list "for now", and
 is never fixed. The predecessor carried 2,221.
