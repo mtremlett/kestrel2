@@ -31,12 +31,14 @@ class Mood(Enum):
     KILLED = "🛑 killed"
 
 
-DOWN = "🔌 NOT trading: the paper Gateway is down since {:%H:%M} UK"
+GATEWAY_DOWN_LINE = "🔌 NOT trading: the paper Gateway is down since {:%H:%M} UK"
 
 
 def down(now: datetime, since: datetime) -> str:
     """The message while the paper Gateway is down: the state first, no profit told as calm."""
-    return f"📊 Desk {venues.uk_time(now):%H:%M} UK\n{DOWN.format(venues.uk_time(since))}"
+    return (
+        f"📊 Desk {venues.uk_time(now):%H:%M} UK\n{GATEWAY_DOWN_LINE.format(venues.uk_time(since))}"
+    )
 
 
 def _sign(amount: Decimal) -> str:
