@@ -2917,5 +2917,5 @@ its own manifest file is its own outside any claim (that is the registry modules
 the train folds STATUS and PLAN. `test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots`
 was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was green, and RED again
 on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
-desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 16 and 17 boxes against
+desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 15 and 16 boxes against
 10 slots). A file named by a glob counts once per box for every tracked file it matches.
