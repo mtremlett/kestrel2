@@ -2876,3 +2876,16 @@ can only fall while the writer is built: chosen, as for whole-file reads. A repl
 names) or `os.replace`/`os.rename`: 19 on main, each checked by hand against a grep.
 `test_file_replaces_never_rise` was RED on a planted `tmp.replace(path)` in desk/quality.py
 ("rise from 19 on main to 20"), green with it removed.
+
+## 27 Nov - book.send's fault matrix (design L8, pattern 23, Builder 3b)
+The send path learnt each broker behaviour from a live fault (#373, #860, #1008, #1014, #1031). One
+table now crosses the six moments a send asks the broker's door something (report, holdings,
+stops, before and after place, fills) with four answers in place of the one asked (Disconnected,
+Crash, a timeout, an unknown word): 24 rows, each judged by two rules, through the pretend broker
+with a door that breaks once. An order the broker received is never forgotten (its fills booked,
+its note kept, or the kill switch on), and the next send never buys it twice nor leaves the book
+apart from the broker. `tests/unit/test_book_matrix.py`: green on main; RED on a planted
+`going.unlink()` on a disconnect after the send (the 20 Nov fault, "the broker holds o-1, the book
+forgot it"), and on a send that never asks the broker first (6 rows). Tests only, no desk change.
+Left of pattern 23's debt: which of these four answers each real gateway message becomes
+(desk/paper.py's table), and the same rows in SimCity (R-RUNNER-392).
