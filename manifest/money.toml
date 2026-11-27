@@ -38,6 +38,7 @@
 "desk/day_parts.py" = "the day's published record: its fields and verdict, and the records file that keeps it, read and written; desk.day gives them to its callers"
 "desk/restop.py" = "the stop set from the fill: a held line's resting stop moved under its fill's own price, once, and the level kept"
 "desk/handpark.py" = "a line parked by hand: a symbol named in a small file of the desk's data folder is never bought while listed, sold and stopped as ever (R-RUNNER-397); and the rehearsal's order-id prefix, so the book shows its fills as found, never traded"
+"desk/incubation.py" = "the incubation line: a rule the ladder calls INCUBATE buys on paper only, 250 pounds a position, at most two open, on its own line of the book apart from the desk's rules, through the same sizer and gate (R-RUNNER-232)"
 "desk/kill.py" = "the kill switch: one command stops every new order and cancels the working ones, the desk says so, and its drill"
 "desk/emergency.py" = "the three emergencies in numbers: an emergency, a crash and a black swan, each a measured fall set in advance, each with its action"
 "desk/halt.py" = "what stops the desk buying: the halt, a typed record in force until it is lifted and said every day, and the blockers, every one named, with each morning's list of the signals each blocked"
