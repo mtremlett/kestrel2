@@ -25,7 +25,7 @@ BOOK_ROOM = Settings(
 
 
 def is_incubating(order_id: str) -> bool:
-    """Whether the order, or the stop it left, is an incubating rule's: its strategy has the prefix."""
+    """Whether the order, or the stop it left, is an incubating rule's (its strategy prefix)."""
     return orders.strategy_of(order_id).startswith(INC_PREFIX)
 
 
