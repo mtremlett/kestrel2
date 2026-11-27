@@ -15,7 +15,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from desk import book, book_parts, halt
+from desk import book, book_parts, book_parts2, halt
 from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
@@ -135,6 +135,14 @@ def test_a_record_added_to_is_read_as_if_read_whole_and_one_of_another_header_is
     before = path.read_bytes()
     assert not book_parts.add(path, ("other", "header"), [("e", "x")]), "added under another"
     assert path.read_bytes() == before and len(book_parts.read_once(path, rows)) == 5
+    #: a ledger another hand wrote with its last row unended (blind review, 27 Nov): added to, the
+    #: new fill would run on into it; it is written whole instead, and reads whole
+    ledger = tmp_path / book.LEDGER
+    CRLF = bytes([13, 10])
+    ledger.write_bytes(",".join(book.COLUMNS).encode() + CRLF + b"C1.01,o1,A,25,171.5,2025-11-10")
+    book._record(tmp_path, [Fill("C2.01", "o2", "A", 5, Decimal(1), TUE)])
+    assert book_parts.read_once(ledger, book_parts2._APART)[0] == book_parts2._APART(ledger)[0]
+    assert [f.execution_id for f in book.fills(tmp_path)] == ["C1.01", "C2.01"], "run on"
 
 
 def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(

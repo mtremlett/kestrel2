@@ -31,6 +31,7 @@ T = TypeVar("T")
 #: 22 and 27 Nov). One reading of each kind is kept, the newest, so a night of a hundred worlds
 #: never holds a hundred ledgers; the one writer (keep) drops a file's own, so the next read is
 #: of what it wrote.
+NEWLINE = bytes([10])  #: the byte every row the desk keeps ends with
 _READ: dict[tuple[str, Callable[[Path], object]], tuple[Path, tuple[int, int, int], object]] = {}
 
 
@@ -79,7 +80,8 @@ def add(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> 
     """THE DESK'S ONE WAY TO ADD ROWS to a record it keeps: the file as it was and the rows after
     it, written whole and swapped in as keep does. A reading of it kept by a Rows (read_once) is
     grown by the rows alone; any other is dropped. A file that does not begin with header is not
-    added to (False), for the caller to write whole (keep); none yet is written with header."""
+    added to (False), nor one whose last row is unended, for the caller to write whole (keep);
+    none yet is written with header."""
     text = io.StringIO(newline="")
     csv.writer(text).writerows(rows)
     if not path.exists():
@@ -92,8 +94,8 @@ def add(path: Path, header: Sequence[str], rows: Iterable[Sequence[object]]) -> 
     try:
         copyfile(path, written)
         with written.open("r+b") as out:
-            if out.read(len(head)) != head:
-                return False
+            if out.read(len(head)) != head or out.seek(-1, SEEK_END) < 0 or out.read() != NEWLINE:
+                return False  #: another header, or a last row unended: added to, it would break
             out.seek(0, SEEK_END)
             out.write(text.getvalue().encode())
         written.replace(path)
@@ -166,8 +168,8 @@ def record_rates(root: Path, day: date, rates: Mapping[str, Decimal]) -> None:
         if kept.setdefault((day, currency), rate) != rate:
             raise ValueError(f"{day}: {currency} was kept at {kept[day, currency]}, not {rate}")
         new += [] if (day, currency) in known else [(day, currency, rate)]
-    if new and not add(root / RATES, RATED, new):
-        raise ValueError(f"{root / RATES}: not the desk's rates, so none is kept")
+    if new and not add(root / RATES, RATED, new):  #: a file of another hand's: written whole
+        keep(root / RATES, [RATED, *((*key, r) for key, r in kept.items())])
 
 
 def rates_kept(root: Path) -> dict[tuple[date, str], Decimal]:
@@ -181,7 +183,7 @@ def _rates_read(root: Path) -> Mapping[tuple[date, str], Decimal]:
 
 
 def _rate_rows(rows: list[list[str]]) -> dict[tuple[date, str], Decimal]:
-    return {(date.fromisoformat(day), currency): Decimal(rate) for day, currency, rate in rows}
+    return {(date.fromisoformat(r[0]), r[1]): Decimal(r[2]) for r in rows if r}  #: none blank
 
 
 def _body(rows: list[list[str]]) -> list[list[str]]:
