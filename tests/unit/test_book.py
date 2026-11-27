@@ -3,16 +3,19 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 
 from __future__ import annotations
 
+import csv
 from collections.abc import Callable, Iterable
 from dataclasses import astuple, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
+from typing import IO, Any
 from unittest.mock import Mock
 
 import pytest
 
-from desk import book, book_parts, halt
+from desk import book, book_parts, book_parts2, halt
 from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
@@ -101,9 +104,45 @@ def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
     assert all(book.fills(tmp_path) == tuple(planted) for _ in range(40))
     assert log.count(book.LEDGER) == 1, f"{log.count(book.LEDGER)} opens for 40 asks"
     book._record(tmp_path, [replace(planted[0], execution_id="y-0")])
-    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 2, "its write unseen"
+    #: the desk's own fill is added, its reading grown by it (book_parts.add): never opened again
+    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 1, "its write unseen"
     book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, astuple(planted[1])])
-    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
+    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 2, "another's"
+
+
+def test_a_record_added_to_is_read_as_if_read_whole_and_one_of_another_header_is_not_added_to(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A FILE THE DESK ADDS ROWS TO (book_parts.add) keeps its reading grown by the rows alone
+    (a Rows), the very reading the file read whole gives; any other reading of it is read again."""
+    path, header = tmp_path / "kept.csv", ("name", "words")
+    rows = book_parts.Rows(lambda r: tuple(map(tuple, r)), lambda k, r: (*k, *map(tuple, r)))
+
+    def size(kept: Path) -> int:
+        return len(kept.read_bytes())
+
+    assert book_parts.add(path, header, [("a", "plain")]), "none yet is written with its header"
+    log, was = list[str](), Path.open
+    monkeypatch.setattr(Path, "open", lambda *a, **k: log.__iadd__([a[0].name]) and was(*a, **k))
+    assert book_parts.read_once(path, rows) == (header, ("a", "plain")) and log == ["kept.csv"]
+    assert book_parts.read_once(path, size) == len(path.read_bytes())
+    for more in ([("b", 'a "quoted", comma')], [("c", "two\nlines"), ("d", "")], []):
+        assert book_parts.add(path, header, more)
+        opened = len(log)
+        assert book_parts.read_once(path, rows) == rows(path), f"grown is not read whole: {more}"
+        assert len(log) == opened + 1, "the grown reading was read again: only the whole was"
+        assert book_parts.read_once(path, size) == len(path.read_bytes()), "another's kept"
+    before = path.read_bytes()
+    assert not book_parts.add(path, ("other", "header"), [("e", "x")]), "added under another"
+    assert path.read_bytes() == before and len(book_parts.read_once(path, rows)) == 5
+    #: a ledger another hand wrote with its last row unended (blind review, 27 Nov): added to, the
+    #: new fill would run on into it; it is written whole instead, and reads whole
+    ledger = tmp_path / book.LEDGER
+    CRLF = bytes([13, 10])
+    ledger.write_bytes(",".join(book.COLUMNS).encode() + CRLF + b"C1.01,o1,A,25,171.5,2025-11-10")
+    book._record(tmp_path, [Fill("C2.01", "o2", "A", 5, Decimal(1), TUE)])
+    assert book_parts.read_once(ledger, book_parts2._APART)[0] == book_parts2._APART(ledger)[0]
+    assert [f.execution_id for f in book.fills(tmp_path)] == ["C1.01", "C2.01"], "run on"
 
 
 def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
@@ -376,6 +415,34 @@ def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
     assert book.differences(held, iter(entries)) == tuple(book.Difference(*n) for n in named)
 
 
+def test_the_round_trips_and_interest_carried_on_each_day_are_those_summed_afresh(
+    tmp_path: Path,
+) -> None:
+    """THE SUMS CARRIED ON (book._summed): asked each day, as SimCity asks, the round trips and
+    the interest taken on from the day before are those summed from nothing, to the last digit,
+    through a fill learned late, dated days back, and a fill corrected in place."""
+    days = [MON + timedelta(days=n) for n in range(40) if (MON + timedelta(days=n)).weekday() < 5]
+    fill = partial(Fill, symbol="A", price=Decimal(50))
+    Sums = list[tuple[Decimal, tuple[book.RoundTrip, ...]]]
+    first, carried, afresh = days[0], Sums(), Sums()
+    for n, on in enumerate(days):
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1)})
+        made = [fill(f"x-{n}.01", f"b-{n}", quantity=10, day=on)]
+        made += [fill(f"y-{n}.01", f"b-{n - 1}", quantity=-10, day=on)] if n % 2 else []
+        made += [fill(f"z-{n}.01", f"b-{n}", quantity=1, day=days[n - 3])] if n % 7 == 6 else []
+        made += (
+            [fill(f"x-{n - 1}.02", f"b-{n - 1}", quantity=10, day=days[n - 1])] if n == 9 else []
+        )
+        book._record(tmp_path, made)
+        for sums in (carried, afresh):
+            if sums is afresh:
+                book._SUMS.clear()
+            asked = book.interest(tmp_path, SIX, Decimal(90_000), Decimal("0.04"), first, on)
+            sums.append((asked, book.round_trips(tmp_path, SIX)))
+    assert carried == afresh and carried[-1][1], "a sum carried on is not the sum afresh"
+    assert len({str(asked) for asked, _ in carried}) == len(days), "the interest stood still"
+
+
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_every_cost(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -407,14 +474,20 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain((share, dollar), trips, book.pounds_per(tmp_path)) == Decimal(-25)
     #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
-    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
-    kept, rates_read = book_parts.rates_kept, list[Path]()
+    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406); counted
+    #: where they are read, the file opened, the rates written whole just before by another hand
+    #: (a day's own rates are added to the reading, never read again: book_parts.add), so one
+    #: read is owed
+    path = tmp_path / book_parts.RATES
+    book_parts.keep(path, [*csv.reader(path.read_text(encoding="utf-8").splitlines())])
+    was: Callable[..., IO[Any]] = Path.open
+    rates_read = list[Path]()
 
-    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
-        rates_read.append(root)
-        return kept(root)
+    def counted_rates(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
+        rates_read.extend([path] if path.name == book_parts.RATES else [])
+        return was(path, *args, **kwargs)
 
-    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
+    monkeypatch.setattr(Path, "open", counted_rates)
     pounds = book.pounds_per(tmp_path)
     assert book.currency_gain((share, dollar), trips * 20, pounds) == Decimal(-500)
     assert (
