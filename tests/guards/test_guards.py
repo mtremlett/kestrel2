@@ -189,7 +189,7 @@ def test_tests_never_outgrow_the_product() -> None:
     and change only with the operator's approval. Counting them too turned this guard
     red the moment the scenes were written before their code, as the canon requires.
     Ruled by the operator, 13 November 2026 (docs/DECISIONS.md)."""
-    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: 1.5, his ruling, 13 Nov
+    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: his ruling, 13 Nov
     product, unit = _lines(_product()), _lines(sorted((ROOT / "tests" / "unit").rglob("*.py")))
     assert unit <= ratio * product, f"unit tests {unit} lines > {ratio} x product {product}"
 
@@ -213,6 +213,38 @@ def test_the_rulebooks_stay_short() -> None:
         f"over their limits {caps}: {over}. Merge a rule into another, or make it a check; "
         "never delete one to make room."
     )
+
+
+#: a number as written, thousands split by commas or underscores, or a fraction; never in a word
+NUMBER = re.compile(r"(?<![\w.])\d+(?:[,_]\d{3})*(?:\.\d+)?(?![\w]|\.\d)")
+#: where a limit is restated: the guards that enforce limits, and the rulebooks
+RESTATED = ("tests/guards/*.py", "CLAUDE.md", "CANON.md", "docs/FAILURE_PATTERNS.md")
+
+
+def _limits(value: Any) -> set[float]:
+    """Every number in BUDGET.json past a day of the month (a date is none), and any fraction."""
+    if isinstance(value, dict):
+        return {n for v in value.values() for n in _limits(v)}
+    if isinstance(value, list):
+        return {n for v in value for n in _limits(v)}
+    number = isinstance(value, int | float) and not isinstance(value, bool)
+    return {float(value)} if number and (value > 31 or value != int(value)) else set()
+
+
+def test_each_limit_has_one_home() -> None:
+    """TWO HOMES FOR ONE LIMIT (failure pattern 8; design item 7, 'every limit has one home that
+    pre-flight reads'). A ceiling copied into a guard or a rulebook stays behind when BUDGET.json
+    changes, and the copy is what a session reads (the runner's 8914 pin did this, 27 Nov). A guard
+    reads the number from BUDGET.json; a rulebook names the file, never the figure."""
+    limits = _limits(_budget())
+    copies = [
+        f"{path.relative_to(ROOT).as_posix()}:{row}: {token}"
+        for path in sorted({p for pattern in RESTATED for p in ROOT.glob(pattern)})
+        for row, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        for token in NUMBER.findall(line)
+        if float(token.replace(",", "").replace("_", "")) in limits
+    ]
+    assert not copies, f"BUDGET.json's limits written again outside it: {copies}"
 
 
 # ---------------------------------------------------------------- sprawl
