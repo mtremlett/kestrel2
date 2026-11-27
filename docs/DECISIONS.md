@@ -2699,6 +2699,21 @@ malformed check. Driven RED on main before the checks were added: all 48 boxes n
 ("data: data-isa-twins", ... "rungs: rungs-leveraged"); planted `::A_line_moves...` (not a test id):
 "a check is a test id"; planted `data-tiers` checking `tests/unit/test_day.py` (outside its files):
 named with the file. Each plant reverted; the guard green with the 48 checks.
+## 27 Nov - the desk/ 100-file count retired for ownership and naming guards (his words)
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", the operator
+answered **"Yes, all of it"** (Fri 27 Nov, recorded in the after-first-light queue). This loosens a
+guard, so it is his alone; his words are quoted here before the commit that changes `BUDGET.json`.
+Why: the count contradicts the 800-line file cap and the hub splits (a split needs a file; at 100
+of 100 none fits), it blocked DATA six times today (stooq-into-desk), and 25 desk/ files under 70
+lines are `_parts` fragments made to dodge it. Kept hard: desk/ 30,000 and lab/ 20,000 lines, 800
+per file, 50 per function. In its place, two guards (`tests/guards/test_guards.py`): every desk/
+module is a row of its lane's manifest file with one owner and the one thing it owns; and no
+`_parts`, `_parts2` (or like fragment) name may be added in desk/ or lab/, the existing ones only
+falling (failure pattern 6 extended).
+Driven RED before the file count was removed: a planted `desk/book_parts3.py`, registered,
+"fragment names added: ['desk/book_parts3.py']"; a planted `desk/plantowner.py` whose row says
+`" "`, "desk/ modules with no lane or no stated job: ['desk/plantowner.py']". Both reverted; both
+green on main's 100 desk/ files (14 desk/ and 6 lab/ fragments stand and may only fall).
 ## 26 Nov - the rest of the answer key (PLUMB LINE v2 step 2, RUNGS)
 
 Seat 215's order, the rest of the key, every rung real (no rung's own result stubbed):
