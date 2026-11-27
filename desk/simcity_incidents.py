@@ -92,7 +92,7 @@ def hole(life: _Life, on: date) -> None:
 def beside(life: _Life, on: date) -> None:
     """Shares the book never saw rest at the broker under their own stop. The desk must not
     sell them on top of the stop (that sells twice): after the day the broker holds them
-    all, still under the stop."""
+    all, still under the stop. A hand then clears them."""
     free = sorted({x.symbol for x in life.market} - set(book.positions(life.desk)))
     symbol = life.rng.choice(free)
     level = min(b.low for x, bars in life.market.items() if x.symbol == symbol for b in bars)
@@ -102,6 +102,8 @@ def beside(life: _Life, on: date) -> None:
     life.live(on)
     held = dict(life.pretend.holdings()).get(symbol, 0)
     life.promise(SOLD, held == shares and dict(life.pretend.stops()).get(symbol, 0) == shares)
+    life.pretend.cancel_stop(symbol)  # a hand clears the stranger, so the world goes on
+    life.pretend.inject(symbol, -held)
 
 
 def cancelled(life: _Life, on: date) -> None:
