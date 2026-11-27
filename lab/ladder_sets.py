@@ -9,6 +9,7 @@ verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the b
 runs set LEV (STR-18): six trend rules, named in `TREND`, on the leveraged lines only, judged
 on their own trial count. `variants` names set VAR before any result (canon B6): every variant
 of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
+A set that ends with its `SET` line is told to his phone once (LAD-09), through the one door.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from functools import partial
 from pathlib import Path
 from typing import cast
 
+from desk import messenger
 from desk.lines import LINES, Line
 from lab import (
     basket,
@@ -346,11 +348,30 @@ def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
     return tuple(line for line in lines if line.leverage > 1)
 
 
-def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
+def told(home: Path, said: str, now: datetime, door: Callable[[], messenger.Post]) -> str:
+    """A finished set's summary sent once, under its tag and day, through `messenger.send` with
+    its record in the ladder's folder; a set cut short (no `SET` line) is not told. Its line
+    says the message's number, or why his phone was not told."""
+    tag = next((s[4:].split(":")[0] for s in said.split(NL) if s.startswith("SET ")), None)
+    if tag is None:
+        return "telegram: not told, the set did not finish"
+    try:
+        sent = messenger.send(home / FOLDER, now, f"ladder {tag} {now.date()}", said, door())
+    except (ValueError, messenger.Undelivered) as why:
+        return f"telegram: NOT TOLD, {why}"
+    return f"telegram: told, message {sent.number}"
+
+
+def main(
+    env: Mapping[str, str],
+    argv: Sequence[str] = (),
+    door: Callable[[Mapping[str, str]], messenger.Post] = messenger.telegram,
+) -> int:
     """Set EPON on every line the research store holds; `first` runs the first set instead and
     `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set INTRADAY
     (five-minute rules), `scalping` set SCALP (one-minute rules); `variants` only enters set
-    VAR's trials. The sets run on the pool (R-RUNNER-110): every core but two."""
+    VAR's trials. The sets run on the pool (R-RUNNER-110): every core but two. A finished set
+    is told to his phone by `told`; 1 when it could not be."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
@@ -385,4 +406,6 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         said = epon(home, make(), pounds, held, go=_pooled(make))
         said += "\n" + weather_line(home, make(), held)
     sys.stdout.write(said + "\n")
-    return 0
+    phone = told(home, said, datetime.now(UTC), partial(door, env))
+    sys.stdout.write(phone + "\n")
+    return int("NOT TOLD" in phone)

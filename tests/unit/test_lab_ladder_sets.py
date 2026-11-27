@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from desk import messenger
 from desk.lines import LINES, Line
 from lab import (
     history_bars,
@@ -154,12 +155,24 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
     monkeypatch.setattr(history_bars, "pounds", lambda _: {})
     monkeypatch.setattr(history_bars, "lines", lambda _: ())
     monkeypatch.setattr(intraday, "judge_set", lambda *_: "SET INTRADAY: stub")
-    env = {"KESTREL2_DATA": str(tmp_path)}
-    assert ladder_sets.main(env, ["intraday"]) == 0
-    assert "SET INTRADAY: stub" in capsys.readouterr().out
+    env, phone = {"KESTREL2_DATA": str(tmp_path)}, list[str]()
+
+    def post(text: str) -> int:
+        phone.append(text)
+        return len(phone)
+
+    def door(_: object) -> messenger.Post:
+        return post
+
+    for _ in range(2):  #: a finished set is told his phone once a day, under its tag
+        assert ladder_sets.main(env, ["intraday"], door) == 0
+        assert capsys.readouterr().out == "SET INTRADAY: stub\ntelegram: told, message 1\n"
+    assert phone == ["SET INTRADAY: stub"]
     monkeypatch.setattr(scalping, "judge_set", lambda *_: "SET SCALP: stub")
-    assert ladder_sets.main(env, ["scalping"]) == 0
-    assert "SET SCALP: stub" in capsys.readouterr().out
+    assert ladder_sets.main(env, ["scalping"], messenger.telegram) == 1  #: no key: said, red
+    assert "SET SCALP: stub\ntelegram: NOT TOLD, no TELEGRAM_BOT_TOKEN" in capsys.readouterr().out
+    cut = ladder_sets.told(tmp_path, ladder_pool.STOPPED, datetime.now(UTC), lambda: door(0))
+    assert cut == "telegram: not told, the set did not finish" and len(phone) == 1
     made = variants.family(rulebook.specs())  #: every ranged row's variants, each a trial
     assert len(made) > 12 and len({v.spec.name for v in made}) == len(made)
     for _ in range(2):  #: entered again, counted once
