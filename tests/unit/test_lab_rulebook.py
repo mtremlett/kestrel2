@@ -14,7 +14,7 @@ import desk
 from desk.lines import LINES
 from desk.store import Bar
 from desk.strategy import STRATEGIES, VARIANTS, _run
-from lab import rulebook, variants
+from lab import rulebook, spec, variants
 from lab.cell import Cell
 from lab.rulebook import CATALOGUE
 
@@ -92,3 +92,25 @@ def test_a_catalogue_row_with_no_python_file_is_served_and_equals_its_python_twi
     twin = rulebook.eponymous()["donchian_channel_breakout"]
     mine, theirs = (tuple(_run("x", made(), "X", bars)) for made in (served, twin))
     assert mine == theirs and any(d.action.name == "BUY" for d in mine)
+
+
+def test_the_spec_book_is_read_once_per_text_and_an_edited_file_is_read_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S1: the book's rows are parsed and proven once per text of the file, not on every call
+    (every cell asks); the cache is keyed by the file's bytes, so an edit is never served stale."""
+    parsed, real = [0], spec.Spec.parse
+
+    def counted(row: dict[str, object]) -> spec.Spec:
+        parsed[0] += 1
+        return real(row)
+
+    monkeypatch.setattr(spec.Spec, "parse", counted)
+    book = tmp_path / "catalogue.toml"
+    text = CATALOGUE.read_text(encoding="utf-8")
+    book.write_text(text, encoding="utf-8")
+    first = rulebook.specs(book)
+    once = parsed[0]
+    assert rulebook.specs(book) == first and parsed[0] == once, "the same text parsed again"
+    book.write_text(text.replace('"Faith, Way', '"R. Faith, Way', 1), encoding="utf-8")
+    assert rulebook.specs(book)["donchian_channel_breakout"].source.startswith("R. Faith")
