@@ -74,6 +74,11 @@ GOLDEN = [
                 "NOT APPLICABLE: breakout_20_10 carries no settings to choose among, so none was "
                 "picked from a peak (decision a)",
             ),
+            "reproduce": (
+                "PASS",
+                "no author's figure: judged on determinism: run again on the same bars and code, "
+                "it gave the identical verdict, 61 trades at 5.09 standard errors",
+            ),
         },
     ),
     (

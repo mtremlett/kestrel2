@@ -2645,3 +2645,36 @@ stops at its hard fail before plateau, so it is unchanged.
 **Cost, measured** on a 2,400-bar walk: 0.4 s a variant, about 3.6 s for a passing cell (9
 variants on average). EPON's ~21,000 cells: at most ~21 CPU hours were every cell to pass, under
 four hours on the pool's six workers; in practice only passing cells pay, a small share.
+
+## 26 Nov - reproduce, with no author's figure, is judged on determinism (RUNGS)
+
+**Ruled by chat seat 215** (26 Nov, 18:5x). A rule with no author's figure on file stayed UNRUN
+for ever (`verdict.NO_FIGURE`), and `goes()` lets nothing forward with a rung unrun. No figure
+is on file (`reproduce.FIGURES` is empty), so no rule could ever go forward.
+
+**Options.** (a) keep it UNRUN until figures are read: requiring a figure that does not exist
+forbids every unpublished rule for ever and tests nothing of the rule; (b) excuse it: a rung
+that cannot fail; (c) judge it by determinism as PLUMB LINE v2 defines reproduce, "identical
+verdict on a re-run with the same seed and data" (chosen). The determinism test can fail, so it
+is a real rung (A7).
+
+**What it does.** With no figure, the cell and its first rung are run again on the same bars
+and code; PASS only on the identical verdict (every priced trade, the t and the answer), and a
+FAIL is a hard fail that stops the line. Its reason names the form: "no author's figure: judged
+on determinism". A rule with a figure keeps the author's-figure test, whose reason begins
+"reproduced:". The shuffle is not run twice: it is seeded by the trial's name. Cost: one more
+first-rung run a cell, about 0.4 s.
+
+**Driven (A7).** A planted coin (the cell drops its last trade on every other run) FAILs the
+rung; the breakout on a walk PASSes
+(`test_a_rule_with_no_figure_is_judged_on_determinism_and_a_planted_coin_fails_it`).
+
+**The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a reproduce rung, PASS on
+determinism; no answer and no other rung changes. Its noise row stops at its hard fail first.
+
+**Blind review (26 Nov, Fable, CANON A6 step 6): one blocking finding, fixed.** Determinism stood in
+for every rule with no figure, Faber's too, whose author's test binds (`published_epon.TESTED`,
+`candidate`): his printed figure would never have been asked, and `promotion.Candidate` would have
+let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
+that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
+first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
