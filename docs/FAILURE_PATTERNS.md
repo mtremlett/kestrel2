@@ -18,8 +18,8 @@ predecessor's 2,000-line core stayed inside its cap while its runner grew to rea
 **3. Progress counted in activity.** Cards landed, commits made, tests added — all rising
 while the thing that matters does not move. The predecessor landed about 1,100 work cards
 in six weeks and proved 10 of 64 requirements.
-→ *Caught by:* the only progress number is scenes passing out of seven, and the plan
-requires a batch adding net lines to name the scene it advances.
+→ *Caught by:* the only progress number is plan boxes ticked on main per 24 hours, from one
+function, and the plan requires a batch adding net lines to name the scene it advances.
 
 **4. The set-aside test.** A test fails, is added to a known-failures list "for now", and
 is never fixed. The predecessor carried 2,221.
@@ -82,14 +82,14 @@ last run asked another lane for something, or named a file outside its claim, un
 claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
-rule into `desk/store.py`, or real prices into `desk/lines.py`: the store fitted to the data
-one line at a time (14 Nov: three rule changes in twenty minutes on six London lines). Twin:
+rule into `desk/store.py` and `desk/store_parts.py`, or real prices into `desk/lines.py`: the
+store fitted a line at a time (14 Nov: three rule changes in twenty minutes on six lines). Twin:
 `desk/keeper.py`'s withdrawal of the days its judge drops, fixed on one live line twice (#855;
 #2088, VUAG 2019). → *Caught by:* the runner halts a lane whose second `fix` touches a file
 another `fix` touched within ten landed changes; `tests/unit/test_store_rules.py` (#225) pins
 every store rule to a row of one synthetic fixture table (driven red with an unpinned rule,
-`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). *Debt:* the keeper's withdraw rule has no such
-table; #2088's test pins the VUAG case alone.
+`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). The keeper's withdraw rule has its table too
+(`test_the_withdraw_rule_table`): a day stays withdrawn only while the judge drops its held bar.
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
@@ -131,11 +131,11 @@ check reads a session's question against the recorded rulings.
 **18. The hand list beside the code.** A rule kept by hand drifts from what the code does: the
 trading-path merge hold missed `desk/bars.py`, which the trading day imports (16 November);
 conformance was scheduled inside the desk's rounds; a job pointed at a moved function; the hourly
-report repeated a state long past. Twin: `lab/basket.py` pairs a basket's sale days to its market
-line's bars by its own date lookup: each calendar edge a fix (#2217 a holiday, #2353 a stale line).
-→ *Caught by:* the desk's rounds kept once in the runner, read by every schedule and restart; the
-hourly report reads current state; `tests/unit/test_lab_basket.py` plants each edge. → *Debt:* the
-trading path computed from imports; the basket's two lines aligned once from the one calendar.
+report repeated a state long past. Twins: `lab/basket.py` pairs a basket's sale days to its market
+line's bars by its own date lookup (#2217 a holiday, #2353 a stale line); `desk/keeper_live.py`'s
+roll kept its own list of spans, so the long store's 15m and 30m never came (O12, 27 Nov).
+→ *Caught by:* rounds kept once in the runner; the report reads now; `test_lab_basket.py` plants
+edges; the roll copies all spans. *Debt:* trading path from imports; the basket on the one calendar.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
