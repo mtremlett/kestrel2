@@ -73,8 +73,22 @@ PINNED: dict[str, str] = {
 }
 
 
-@pytest.mark.parametrize("name", sorted(BOOK.keys() | RULES))
+ZWEIG = "zweig_breadth_thrust"  # the last row proven (#1382): its own check closes B4's parity
+
+
+@pytest.mark.parametrize("name", sorted((BOOK.keys() | RULES) - {ZWEIG}))
 def test_each_spec_decides_as_its_python_rule_and_its_pin_on_every_day(name: str) -> None:
+    """Every other row trades as its Python twin and its pin on the five fixture series."""
+    _decides_as_its_twin_and_pin(name)
+
+
+def test_zweig_breadth_thrust_row_trades_as_its_python_twin() -> None:
+    """Zweig's row, read on breadth-ratio bars, trades as his Python rule and its pin."""
+    _decides_as_its_twin_and_pin(ZWEIG)
+
+
+def _decides_as_its_twin_and_pin(name: str) -> None:
+    """The row's decisions equal its twin's (while it stands) and hash to its pin."""
     assert name in BOOK, f"{name}: a desk rule with no catalogue row"
     spec, seen, print_ = Spec.parse({"name": name, **BOOK[name]}), set(), hashlib.sha256()
     for seed in range(5):
