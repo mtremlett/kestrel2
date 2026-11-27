@@ -106,6 +106,15 @@ def test_a_window_too_thin_holds_the_whole_at_thin_and_a_cut_is_two_windows() ->
         _cell(short)
 
 
+def test_a_line_whose_bars_end_before_the_set_end_answers_thin_cut_at_its_own_last_bar() -> None:
+    bars = _walk(0, 0.008, days=300)
+    window = Cell("breakout_20_10", line_of("VUSA"), bars[0].day, bars[-1].day + timedelta(20_000))
+    first = rung.judge(cell.run(window, bars), bars, TEN_K, POUND)
+    answer, words = rung_regimes.RUNG.judge(first, bars, POUND)
+    assert answer is Answer.THIN, words
+    assert str(bars[0].day + (bars[-1].day - bars[0].day) / 2) in words
+
+
 def test_known_answer_thirty_trades_a_window_worked_by_hand() -> None:
     #: first window: 15 gains of +2% and 15 of 0, mean 1%, spread 1% * sqrt(30/29), so t = sqrt(29)
     #: = 5.385: PASS. second window: 15 of +1% and 15 of -1%, mean 0, t = 0: FAIL. A trade bought on

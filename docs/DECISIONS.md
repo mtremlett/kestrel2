@@ -2594,6 +2594,18 @@ own trend rules, and moves 0.91 with `supertrend_10_3`, one of the five (so drop
 not move it). On EPON, expect trend rules on a trending line to meet the same bar beside the
 desk's trend rules; that is the rung working, not a fault.
 
+## 27 Nov - a ticked box that says what remains may not rise (coordinator 221, 01:18 (4))
+
+`money-simcity-withdrawn-day` was ticked on 26 Nov while its note said "Remains: read the next
+deep run's verdict"; both deep runs since timed out at 7200 s with no verdict, so the tick
+counted progress its check had not earned (failure pattern 3). It is unticked, and
+`test_ticked_boxes_that_say_remains_never_rise` (tests/guards/test_ratchets.py) holds the count
+of ticked boxes whose note says `Remains:` to main's: it may fall, never rise. A refusal of all
+of them would have turned main red on 26 standing boxes, so it is a ratchet, like the two-homes one.
+*Driven (A7):* planted on this branch, `money-simcity-withdrawn-day` ticked again and `data-tiers`
+ticked with "Remains: planted": FAILED, "rise from 26 on main to 27; new: ['data-tiers']";
+restored, it passes.
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was

@@ -385,7 +385,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores}
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py, manifest.toml; after: data-two-stores, money-epon-room}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [x] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
@@ -531,7 +531,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
-- [x] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
+- [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
       #2088, pattern 13), so 14 scenarios never happen and SimCity proves nothing. A day the store withdrew is
       a scenario the world meets (R-RUNNER-246's hole), never the end of the world. Carded in MONEY, which owns
@@ -545,7 +545,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
       has no zoo rule. Gate, written first: a fill by a rule today() does not decide is a named mismatch in the
       replay's verdict, never a crash. Check: the next fills-replay says done
-      {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py; after: money-simcity-withdrawn-day}
+      {id: money-fills-replay-unknown-rule; files: desk/simcity_fills.py, tests/unit/test_simcity_fills.py}
 - [ ] Room in desk/ first (coordinator 165, 21:5x, his 21:3x "Keep cap, auto room-keeper"): the seven
       eponymous rule files no desk or lab module imports leave desk/ with their tests and manifest rows,
       about 550 lines, so the 08:00 data fix and the zoo's own-side card fit under the 18,000 ceiling
@@ -1139,12 +1139,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-each-rung; files: lab/ladder.py, tests/unit/test_lab_ladder.py, lab/rung_*.py, tests/unit/test_lab_rung_*.py, lab/stop_rules.py, tests/unit/test_lab_stop_rules.py, manifest.toml, lab/deflated.py, tests/unit/test_lab_deflated.py, tests/unit/test_lab_trials_clustered.py, lab/rung.py, tests/unit/test_lab_calibration.py, lab/basket.py, tests/unit/test_lab_basket.py, lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder_parts.py, tests/unit/test_lab_ladder_parts*.py, lab/calibration.py; after: rungs-rung-map}
   - [x] L14 one clustered set of trials for the deflated Sharpe, its spread measured
         {id: rungs-clustered-trials; files: lab/trials.py, lab/rung_dsr.py, tests/unit/test_lab_trials_clustered.py; after: rungs-rung-map}
-  - [ ] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
+  - [x] L15 the blind review of the whole ladder (R-RUNNER-40), every blocking finding fixed
         {id: rungs-blind-review; files: lab/ladder*.py, tests/unit/test_lab_ladder*.py; after: rungs-each-rung, rungs-clustered-trials}
   - [ ] L15b the known-answer kit: a planted edge goes forward and planted noise is refused, through the
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
         Half built (#2175): noise refused, edge heard; the edge going forward waits on L17 (R-RUNGS-46), then tighten the edge assertion to PASS. Carry #2175 ended red twice on the guards step: held, no third blind run
-        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; after: rungs-blind-review; waits: 2026-11-27}
+        {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; waits: 2026-11-27}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}

@@ -13,7 +13,7 @@ from test_lab_ladder import SPY, _door, _set
 from test_lab_rung import _walk
 
 from desk.lines import LINES
-from lab import ladder, shuffle, verdict
+from lab import ladder, verdict
 
 NAMES = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
 SIXTEEN = [next(line for line in LINES if line.symbol == name) for name in NAMES]
@@ -31,7 +31,6 @@ def _answers(home: Path, drift: float) -> list[dict[str, Any]]:
 def test_a_planted_edge_goes_forward_and_planted_noise_is_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))
     monkeypatch.setattr(verdict, "EASED", False)
     edge, noise = _answers(tmp_path / "edge", 0.012), _answers(tmp_path / "noise", 0)
     assert {row["answer"] for row in noise} == {"FAIL"} and not any(r["every"] for r in noise)

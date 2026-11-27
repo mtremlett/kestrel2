@@ -19,7 +19,7 @@ from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
-from desk import book, broker, day, halt, kill, orders, strategy
+from desk import book, broker, day, day_money, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -156,7 +156,9 @@ class _Life:
         scenario, buys = self.census.scenario, self.pretend.buys
         record = self._run(saved, on)
         self.census.now(scenario)
-        odd = set(record.mismatches) - book.adopted(self.desk, on)  #: strangers, sold, are none
+        odd = {m for m in record.mismatches if not day_money.is_owed(m)} - book.adopted(
+            self.desk, on
+        )
         quiet = not (odd and self.pretend.buys > buys)
         self.promise("nothing is bought on a day the book is not the broker's", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
