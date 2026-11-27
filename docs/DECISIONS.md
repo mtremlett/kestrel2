@@ -2619,7 +2619,6 @@ the check refuses to call such a run green. Failure pattern 5's twin, folded int
 running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
 .venv's python it passes.
 
-
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
@@ -2708,8 +2707,9 @@ Seat 215's order, the rest of the key, every rung real (no rung's own result stu
   and SD under the new tolerances (means 1.27, 2.26, 3.37, 4.33). A seed's found t spreads about
   0.71, not 1, so the found rates sit beyond the stated ones away from t 2, inside 0.15.
 - **A delisted line** (AMD cut at 2023-06-30 among 16): judged, FAIL, never an error; the 2025 fold
-  pooled over the 15 lines still trading. Found: its regimes rung FAULTs (STATUS, found not fixed).
-- **L17's gate met:** the kit's paid edge goes forward on every line.
+  pooled over the 15 lines still trading. Its regimes rung FAULTed when this was written; #2278
+  fixed that on main.
+- **L17's gate met:** the kit's paid edge goes forward on every line deep enough to take its trades.
 
 **Driven (A7)**, each against a planted fault from a plugin outside the tree: the shuffle replaced
 by a constant pass (main's fake proof) turns the drift-rider's shuffle row red; a ladder that
@@ -2717,13 +2717,27 @@ passes everything turns the noise test red (9 of 160 went forward); a first rung
 above nothing turns the planted-edge rates red. The paid-edge test was red on the plateau branch
 alone, reproduce still UNRUN.
 
-**Shard weights.** `check.py` SECONDS gains the two key files (220 s, 205 s, measured on the PC), so
+**Shard weights.** `check.py` SECONDS weighs the two key files as measured on the PC (WEIGHTS), so
 the sharder does not weigh them by size as near nothing. A weight loosens nothing.
 
-**Merged with the liquidity rung (#2230).** The paid edge's lines trade one share a day, which
-the liquidity rung rightly FAILS (its own kit row), so the paid edge no longer goes forward. Its L17
-test now asks what L17 owns: no rung unrun, plateau NOT APPLICABLE, and liquidity the one hard rung
-holding it back. Still red if plateau or reproduce is left unrun.
+**Merged with the liquidity rung (#2230).** The paid edge's lines traded one share a day, which
+the liquidity rung rightly FAILS, so the paid edge stopped going forward.
+
+**Blind review (27 Nov, CANON A6 step 6): BLOCK, three findings, each fixed (after #2237 landed, here).**
+- *L17 ticked with no planted edge going forward.* The kit's paid lines now trade a million shares a
+  day, and `test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it` asserts `goes`
+  on every one; a copy of one paid line at one share a day keeps liquidity's FAIL row, the one rung
+  holding it back.
+- *The noise test measured liquidity, not the ladder.* Its walks traded one share a day, so liquidity
+  refused any noise the gains-judging rungs let through. The walks are deep now. Driven, with every gate
+  but liquidity leaking (the first rung passing any t, `verdict.judge`'s rungs read as passed, of
+  the declared rungs only liquidity read): the deep test goes red (148 of 160 went forward); on the
+  old one-share walks the same leak stays green (0), the gap the review found.
+- *The planted-edge tolerances hid the t + 0.3 bias.* Fixed by R-RUNNER-553 (above), measured at
+  the tilt. Driven: the old B turns the test red (mean t 1.27, 2.26, 3.37, 4.33).
+Notes taken: a missing t is asserted, never read as 0; the rates must rise strictly; the delisted
+line's fold count is no longer pinned to one run's 82.
+
 ## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
 Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
 "Work in progress is capped" becomes "A box is the only unit of work" (pre-flight, typed endings,
