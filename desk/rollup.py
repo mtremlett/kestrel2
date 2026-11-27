@@ -49,13 +49,18 @@ def rollup(venue: str, candles: list[Candle], timeframe: str, base: str = "1m") 
     if length % step or length <= step:
         raise ValueError(f"{timeframe} bars cannot be built from {base} bars")
     groups: dict[datetime, list[Candle]] = {}
+    held: dict[date, venues.Hours | None] = {}  # the calendar, asked once per day
     for candle in sorted(candles, key=lambda c: c.start):
         if candle.start.tzinfo is None:
             raise ValueError(f"{candle.start} has no time zone: the calendar cannot place it")
         day = candle.start.astimezone(UTC).date()
-        if venues.sessions(venue, day, day) != (day,):
+        if day not in held:
+            held[day] = (
+                venues.hours(venue, day) if venues.sessions(venue, day, day) == (day,) else None
+            )
+        hours = held[day]
+        if hours is None:
             continue
-        hours = venues.hours(venue, day)
         into = (candle.start - hours.open) // timedelta(minutes=length)
         start = hours.open + into * timedelta(minutes=length)
         if candle.start >= hours.open and start + timedelta(minutes=length) <= hours.close:

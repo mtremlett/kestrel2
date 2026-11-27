@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
+import pytest
+
+from desk import venues
 from desk.rollup import Candle, merged, rollup, weekly
 
 OPEN = datetime(2026, 11, 16, 8, 0, tzinfo=UTC)  # a London Monday in winter: 08:00 to 16:30
@@ -95,3 +100,23 @@ def test_a_rolled_hour_equals_its_twelve_five_minute_bars() -> None:
         sum(c.volume for c in fives),
     )
     assert len(fives) == 12 and hour.source == "rollup:5m"
+
+
+def test_the_calendar_is_asked_once_per_day_not_once_per_candle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asked: list[str] = []
+    sessions, hours = venues.sessions, venues.hours
+
+    def counted(name: str, real: Callable[..., Any]) -> Callable[..., Any]:
+        def ask(*args: Any) -> Any:
+            asked.append(name)
+            return real(*args)
+
+        return ask
+
+    monkeypatch.setattr(venues, "sessions", counted("s", sessions))
+    monkeypatch.setattr(venues, "hours", counted("h", hours))
+    got = rollup("LSE", [minute(n) for n in range(510)], "5m")
+    assert len(got) == 102 and got[0].open == Decimal(0) and got[-1].close == Decimal(510)
+    assert len(asked) <= 2

@@ -13,6 +13,8 @@ READING HERE: long only, on the close. Buy a close over the highest high of the 
 before, with that close over both the 10- and the 20-day exponential averages (the breakout
 leaves the base on the rising averages); sell a close under the 10-day average. Nothing is
 bought until 20 sessions are seen.
+Holding period: none. The sale is the close under the 10-day average alone; his write-ups
+give no day limit, so none is declared.
 
 The old desk is a quarry for the reading only; none of its code is copied.
 """

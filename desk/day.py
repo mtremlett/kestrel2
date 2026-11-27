@@ -93,7 +93,8 @@ def publish(
     since, opened, counted = next(plain, (start, Decimal(0), 0))
     ledger = [fill.day for fill in book.fills(root) if fill.day <= day]
     cash, costs = book.dealt(root, archive, day, since, counted)
-    worth = day_money.worth(root, archive, day)
+    worth, refused = day_money.worth(root, archive, day)
+    differ = (*differ, *refused)  #: a line owed its close is named, the day's profit withheld
     market = (
         day_money.close(archive, YARDSTICK, day) / day_money.close(archive, YARDSTICK, since) - 1
     )
