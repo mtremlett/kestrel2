@@ -1,5 +1,5 @@
-"""The known-answer kit: a planted edge goes forward through the whole ladder and planted noise
-is refused, on fixture data (L15b)."""
+"""The known-answer kit: planted noise is refused and a planted edge heard through the whole ladder
+on fixture data (L15b); it goes forward only once `reproduce` is judged on a rule with no figure."""
 
 from __future__ import annotations
 
