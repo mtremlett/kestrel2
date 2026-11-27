@@ -159,13 +159,14 @@ def send(
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
     twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
-    at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
-    its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
-    blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
-    (Alarm); one that disagrees halts buying and is told (tell). Given the book's standing the gate
-    also refuses a buy past a loss limit or the day's new lines, and, given the pounds controlled
-    per underlying (exposure), one past its market's cap, and given the daily returns of the line
-    and the lines held (moves), one correlated with a held line past the cap (orders.gate)."""
+    at the broker. A line the book is not the broker's on is not bought, and sells only if
+    its shares agree; every other line trades. Kill switch on: nothing is sent; a halt: no buy.
+    Every refusal names its blocker (Stopped), as does a short answer. A place that fails
+    unknown pulls the kill switch (Alarm); one that disagrees halts buying and is told (tell).
+    Given the book's standing the gate also refuses a buy past a loss limit or the day's new
+    lines, and, given the pounds controlled per underlying (exposure), one past its market's cap,
+    and given the daily returns of the line and the lines held (moves), one correlated with a
+    held line past the cap (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if again := retry_id(root, order.order_id, report, datetime.now(UTC).date()):
@@ -173,7 +174,8 @@ def send(
     if report is None:
         _unless_stopped(root, order)
         held, differ, unsure, _ = _compare(root, broker)
-        if differ and (isinstance(order, Order) or order.line.symbol in unsure):
+        sale = isinstance(order, Sale)
+        if order.line.symbol in (unsure if sale else differ):  #: one line never stops the others
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
