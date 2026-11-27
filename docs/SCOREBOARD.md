@@ -262,6 +262,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2168 R-RUNNER-488 reworked after review block; fresh Fable blind review, one blocker fixed.
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2287 money-simcity-withdrawn-day: withdrawn-day gate pinned by a test.
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2288 R-RUNNER-540 met: four rules' holding periods stated from their own sell logic, tests pinned.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2212 money-fills-replay-unknown-rule done: fills-replay returns a verdict, not a crash. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2216 R-RUNNER-480: test pins one fills read per zoo buy. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2224 R-RUNNER-538 four eponymous rules declare their holding period (none, stated). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2243 money-size-live-price early test restored, 1 test line pair. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2248 R-RUNNER-481 zoo drops non-ISA lines; zoo now 9 London + 7 US lines. |
 
 
 ### DATA
@@ -587,6 +592,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2205 R-RUNNER-525: old stores checked against the one store, restore drilled. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2208 R-RUNNER-524: history database kept fresh every keeper round; data-history-fine ticked. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2244 test only: keeper withdrawn-day contract extended. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2258 data-monitor: escalation rule added and pinned, caller still to come. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2263 DATA: store flags an unconfirmed newest-bar pound step. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2268 R-RUNNER-547 keeper fault: rollup calendar asks per day, not per candle. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2274 data-consolidated: daily comparison built; real run and hourly open. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
