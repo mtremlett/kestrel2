@@ -2847,4 +2847,7 @@ Known answers: the kit's churner on its paid line (the whole gain is the next op
 on time and FAILS a bar late; the kit's crowd PASSES a bar late and still goes forward through the
 whole ladder; the fixture breakout's trend edge keeps most of it (12.62% to 11.41% a trade, t 5.09
 to 4.70, golden row pinned); a cell the first rung did not pass is not priced again. The rung
-kit's paid edge is now held by liquidity and late (its L17 test names both).
+kit's paid edge is now held by liquidity and late (its L17 test names both). `tests/unit/test_lab_rung_late.py` was red first (no rung_late module), then green. Edges, from
+its blind review: a late trade is sized at its own close, so its stop is its own and may sell it
+on the on-time sale's day; a pass on exactly 30 trades whose last falls off the bars is THIN late
+and does not go forward (too few to say), recorded rather than special-cased.

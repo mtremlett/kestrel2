@@ -76,11 +76,19 @@ def test_an_edge_paid_only_on_the_next_open_fails_a_bar_late() -> None:
     assert answer is Answer.FAIL, why
 
 
-def test_a_cell_the_first_rung_did_not_pass_keeps_its_answer_and_is_not_priced_again() -> None:
+def test_a_cell_the_first_rung_did_not_pass_keeps_its_answer_and_is_not_priced_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     bars = crowds._crowds(1, 0)
+    unpriced = _first("crowd", AMD, crowds._crowds(1, crowds.RISE))
+
+    def priced(*_: object) -> rung.Verdict:
+        raise AssertionError("priced a bar late a cell the first rung did not pass")
+
+    monkeypatch.setattr(rung_late, "late", priced)
     first = _first("crowd", AMD, bars)
     assert first.answer is Answer.FAIL
     assert rung_late.RUNG.judge(first, bars, _rates(bars)) == (Answer.FAIL, rung_late.KEPT)
     assert rung_late.RUNG.read(first) == (Answer.FAIL, rung_late.KEPT)
     with pytest.raises(ValueError, match="bars"):
-        rung_late.RUNG.read(_first("crowd", AMD, crowds._crowds(1, crowds.RISE)))
+        rung_late.RUNG.read(unpriced)

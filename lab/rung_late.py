@@ -11,7 +11,10 @@ judged, as the first rung judges none still held. The late trades are priced by 
 own pricing (`rung.judge`: the desk's sizing, its pretend broker's fills and stop, the broker's
 costs, each leg at its own day's rate) and judged by the first rung's own rule (`rung.decide`:
 MIN_TRADES judged trades whose mean gain after costs is T_PASS standard errors above nothing).
-Its answer is that rule's: PASS, FAIL, THIN or FAULT. No new bar is set here.
+Its answer is that rule's: PASS, FAIL, THIN or FAULT. No new bar is set here. A late trade is
+sized at its own later close, so its stop rests at its own level and the broker may sell it at
+that stop on any day, the on-time sale's included. A pass on just MIN_TRADES whose last trade
+falls past the shown bars is THIN late: too few to say, so it does not go forward.
 
 IT ONLY LOWERS A PASS (as the costs rung does): a cell the first rung did not pass keeps its
 answer, and nothing is priced again for it (LAD-06). The reason names both, on time and a bar
@@ -37,8 +40,8 @@ def late(first: Verdict, bars: Sequence[Bar], rates: Rates) -> Verdict:
     """The first rung's verdict on its judged trades, each made one bar later."""
     c = first.key.cell
     read = cell.shown(c, bars)
-    if cell.key(c, bars).data != first.key.data:
-        raise ValueError(f"{c}: these bars did not make the first rung's verdict")
+    if cell.key(c, bars).rung(rung.__name__) != first.key:
+        raise ValueError(f"{c}: these bars or this code did not make the first rung's verdict")
     at = {bar.day: n for n, bar in enumerate(read)}
     later = []
     for priced in first.trades:
