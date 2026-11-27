@@ -268,6 +268,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2330 claim gap closed for money-small (desk/strategy.py and its tests named); no box ticked. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2324 R-RUNNER-541 done: three rules declare their hold limit (zweig 230 sessions, two none). |
 
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2333 R-RUNNER-534 done: one differing line no longer stops London or the zoo. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2354 R-RUNNER-510 fault matrix: 7 of 325 cells built. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2363 R-RUNNER-542 part: a gap past the loss limit halts buying at collect; no caller passes lines yet. |
 
 ### DATA
 
@@ -747,6 +750,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2102 paper-supervisor-windows: install command built, tested. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2109 R-RUNNER-478 done, desk/ -49 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2110 paper-supervisor-windows: install command fixed to start in the code folder; box still needs the operator's one run. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2264 R-RUNNER-454 IDTL contract built in desk/listing.py. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
 
 ### GRID
 

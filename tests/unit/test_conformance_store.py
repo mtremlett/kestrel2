@@ -13,6 +13,7 @@ from test_conformance import FRI, FX, MON, SPY, STAMP, VUAG, _fetch, _run, _worl
 from desk import archive, conformance, keeper
 from desk import bars as hot_bars
 from desk.lines import Line
+from desk.orders import Refused
 from desk.spans import Five
 from desk.store import Bar
 
@@ -47,9 +48,12 @@ def test_a_gap_under_the_last_close_puts_the_stop_under_the_market_not_the_close
     def five(price: str) -> Callable[..., tuple[Five, ...]]:
         return lambda *_: (Five(at, *(Decimal(price),) * 4, 1),)
 
-    monkeypatch.setattr(hot_bars, "five", five("625"))
+    monkeypatch.setattr(hot_bars, "five", five("640"))
     gapped = conformance.plan([VUAG], SPY, MON.date(), FX, STAMP, tmp_path)
-    assert gapped.first.stop < 625 and gapped.second.stop < 625
+    assert gapped.first.stop < 640 and gapped.second.stop < 640
+    monkeypatch.setattr(hot_bars, "five", five("625"))  #: through the stop
+    with pytest.raises(Refused, match="emergency rule"):
+        conformance.plan([VUAG], SPY, MON.date(), FX, STAMP, tmp_path)
     monkeypatch.setattr(hot_bars, "five", five("710"))  #: a gap up keeps the stop under the close
     flat = conformance.plan([VUAG], SPY, MON.date(), FX, STAMP, tmp_path)
     assert flat.first.stop == Decimal("707.70") * Decimal("0.9")

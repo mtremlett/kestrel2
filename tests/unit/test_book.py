@@ -507,3 +507,27 @@ def test_a_fill_the_broker_reports_and_the_send_path_never_recorded_is_booked_by
     assert book.reconcile(tmp_path, broker) == (), "the book is the broker's once it has collected"
     assert book.positions(tmp_path) == {"A": 10} and book.fills(tmp_path) == broker.fills()
     assert _send(tmp_path, broker, "o-3", n=1).filled == 1, "the next send is not refused"
+
+
+class _Gapped:
+    def __init__(self, *told: Fill) -> None:
+        self.told = told
+
+    def fills(self) -> tuple[Fill, ...]:
+        return self.told
+
+    def cancel(self) -> tuple[str, ...]:
+        return ()
+
+
+@pytest.mark.parametrize(("price", "stands_down"), [(45, False), (44, True)])
+def test_a_stop_filled_past_its_level_beyond_the_gap_loss_stands_the_desk_down_at_collect(
+    tmp_path: Path, price: int, stands_down: bool
+) -> None:
+    buy = Fill("1.1.01", "o-1", "A", 10, Decimal(50), MON)
+    sale = Fill("2.1.01", "o-1-stop", "A", -10, Decimal(price), TUE)  #: limit 5% of 1,000 = 50
+    told: list[str] = []
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    stub: Broker = _Gapped(buy, sale)  # type: ignore[assignment]  # a stub broker
+    book.collect(tmp_path, stub, SIX, Settings(Decimal(1000)), lambda *w: told.extend(w))
+    assert bool(halt.in_force(tmp_path)) is stands_down and bool(told) is stands_down
