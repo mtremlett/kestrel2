@@ -361,4 +361,4 @@ def test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it(
     ]  #: a graded rung's mark is the scorecard's, never a hold
     assert thin and all(row["unrun"] == {} and row["answer"] == "PASS" for row in thin)
     assert held == [{"liquidity"}] * len(thin) and not any(goes(row) for row in thin), held
-    assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in deep + thin)
+    assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in [*deep, *thin])
