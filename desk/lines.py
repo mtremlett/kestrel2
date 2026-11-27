@@ -223,6 +223,22 @@ LINES = tuple(
 REFERENCE = tuple(line for line in LINES if line.retail is False)
 
 
+#: Five more US lines, watched and never traded (not in LINES, so no caller can buy, rank or
+#: rehearse them): the polled round needs 27 lines to reach its floor (desk.keeper.POLLED).
+WATCHED = tuple(
+    Line(symbol, "US", "USD", 1, NO_TAX, None, None, underlying=symbol, source=name, isin=isin)
+    for symbol, name, isin in (
+        ("MSFT", "Microsoft Corp.", "US5949181045"),
+        ("AMZN", "Amazon.com Inc.", "US0231351067"),
+        ("GOOGL", "Alphabet Inc.", "US02079K3059"),
+        ("META", "Meta Platforms Inc.", "US30303M1027"),
+        ("AVGO", "Broadcom Inc.", "US11135F1012"),
+    )
+)
+#: Every line the keeper's polled rounds ask: the traded lines, the references, the watched.
+POLLED_LINES = (*LINES, *WATCHED)
+
+
 #: The pound in dollars at the archive, kept as a reference series (never traded), and the band
 #: its close must lie in, in dollars, to be trusted (R-PAPER-22). The pound stood above two dollars
 #: in 2007 (the archive's own closes), so the band is one to three: a pence figure or the dollar's
