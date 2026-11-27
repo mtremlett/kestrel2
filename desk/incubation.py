@@ -14,7 +14,9 @@ from desk.lines import Line
 from desk.orders import Order, Refused, Settings
 from desk.strategy import Action, Decision
 
-TAG = "inc_"  #: the front of every incubating rule's strategy name, so its orders are its own
+INC_PREFIX = (
+    "inc_"  #: the front of every incubating rule's strategy name, so its orders are its own
+)
 POSITION = Decimal(250)  #: pounds one position may cost, counted at what the line controls
 MOST_OPEN = 2  #: the lines an incubating book may hold at once
 BOOK_ROOM = Settings(
@@ -23,8 +25,8 @@ BOOK_ROOM = Settings(
 
 
 def is_incubating(order_id: str) -> bool:
-    """Whether the order, or the stop it left, is an incubating rule's: its strategy begins TAG."""
-    return orders.strategy_of(order_id).startswith(TAG)
+    """Whether the order, or the stop it left, is an incubating rule's: its strategy has the prefix."""
+    return orders.strategy_of(order_id).startswith(INC_PREFIX)
 
 
 def side(fills: Iterable[Fill], held: Mapping[str, int]) -> dict[str, int]:
@@ -47,5 +49,5 @@ def buy(
     mine is the incubation line's holdings (side)."""
     if line.symbol not in mine and len(mine) >= MOST_OPEN:
         raise Refused(f"{rule}-{line.symbol}: {len(mine)} incubating, at most {MOST_OPEN} open")
-    decision = Decision(f"{TAG}{rule}", line.symbol, day, Action.BUY)
+    decision = Decision(f"{INC_PREFIX}{rule}", line.symbol, day, Action.BUY)
     return orders.size(decision, line, price, fx, BOOK_ROOM, mine, market)
