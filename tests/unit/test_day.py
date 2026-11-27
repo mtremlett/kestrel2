@@ -54,9 +54,12 @@ ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
 FIVE = Settings(Decimal(10_000), new_lines=5, correlation=Decimal(2))  #: A to D, F move alike
 
 
-def _trade(root: Path, broker: Restopping, on: date) -> tuple[book.Sent, ...]:
+def _trade(
+    root: Path, broker: Restopping, on: date, market: dict[str, Decimal] | None = None
+) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
-    return day.trade(root, before, broker, FIVE, on, {"GBP": Decimal(1)}, strangers=True)
+    rates = {"GBP": Decimal(1)}
+    return day.trade(root, before, broker, FIVE, on, rates, strangers=True, live=market)
 
 
 class Door:
@@ -66,6 +69,21 @@ class Door:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
         self.holdings, self.stops, self.cancel = inner.holdings, inner.stops, inner.cancel
         self.restop = inner.restop
+
+
+def test_a_buy_into_a_gap_down_open_is_refused_or_stopped_under_the_market(tmp_path: Path) -> None:
+    """The signal's close is 9, its stop 8.1: an open at 8 is through the stop, so no buy is sent;
+    an open at 8.5 rests the stop under 8.5; an open at the close changes nothing."""
+    for live, root in ((Decimal(8), "through"), (Decimal("8.5"), "under"), (Decimal(9), "none")):
+        broker = Pretend(ARCHIVE, {})
+        broker.open(DAYS[21])
+        first = _trade(tmp_path / root, Door(broker), DAYS[21], {"A": live})[0]
+        stop = broker.resting_stops().get("A", (0, Decimal(0)))[1]
+        assert (first.blocker, stop) == {
+            "through": (Blocker.GATE, 0),
+            "under": (None, Decimal("7.65")),
+            "none": (None, Decimal("8.1")),
+        }[root]
 
 
 def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_send(
