@@ -538,8 +538,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the SimCity modules (manifest.toml, the money lane; the lanes guard refuses DATA there). Gate, written
       first: a world whose line has a withdrawn day still lives past it and meets its later scenarios. Check:
       the next deep run's verdict has no 'stops on' line
-      (#2187: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before. Remains: read the next deep run's verdict)
-      {id: money-simcity-withdrawn-day; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
+      (#2187, #2287: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before, pinned by a test. Remains: read the next deep run's verdict, which needs the nightly run)
+      {id: money-simcity-withdrawn-day; waits: 2026-11-28; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once}
 - [x] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
       desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
@@ -552,14 +552,14 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (main 17,951, room -26 with riding PRs). The eleven the zoo imports stay. Gate: the whole check green and
       the desk/ line count on main falls by the deleted lines; a rule the ladder still needs has its catalogue row
       (if one has none, keep that file and say so under Remains:).
-      Two things the deletion meets (read on main by runner ops 168): `lab/ladder.py` eponymous() looks every
-      catalogue name up among the Python rules, so a row whose file is gone raises KeyError there: it reads a
-      spec-only row through the rulebook's spec maker instead; and the swing test file also holds the check that
+      Two things the deletion meets (read on main by runner ops 168): the ladder's eponymous list reads a
+      catalogue row whose Python rule file is gone through the rulebook's spec maker (met on main by #2295,
+      R-RUNNER-485, so nothing of it is left to this box); and the swing test file also holds the check that
       every eponymous module declares unique runnable rules, which moves to the Connors test file, never lost.
       Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
-      {id: money-epon-room; waits: R-RUNNER-485; files: tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
+      {id: money-epon-room; files: tests/unit/test_lab_published_epon.py, tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, manifest.toml, docs/lanes/money.md}
 - [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
       'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
       the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
@@ -686,12 +686,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders*.py,
       tests/unit/test_day*.py, desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml,
-      tests/unit/test_restop.py}
+      tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy*.py}
+      (runner ops, 27 Nov: claim gap, strategy.py and its tests are MONEY files (manifest/money.toml:5), no RUNGS request needed)
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
-      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside this claim, B5), then `orders.gapped` at `book.collect`.
-      {id: money-time-gaps; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Remains: each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
+      {id: money-time-gaps; waits: 2026-11-28; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day*.py, tests/unit/test_orders*.py, tests/unit/test_strategy*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py, manifest.toml, desk/book.py, tests/unit/test_book*.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
@@ -1154,7 +1155,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         A rule with no settings is declared NOT APPLICABLE for plateau, reviewed, never UNRUN by default (decision a);
         wire: verdict.judge on every cell; gate: a planted edge goes forward and a no-settings rule is not blocked
         Step 1 landed (#1660): plateau.Surface and plateau.judged, verdict.judge(surface=); no surface stays UNRUN. Built: `plateau.Fixed` (#1702) and `plateau.of(rule, book, firsts)` builds a cell's Surface or FIXED (#1742).
-        Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): the claim below already names the four files; it is held only by its after: link (rungs-faults-not-answers, which holds lab/ladder.py). Remains: wire it: lab/ladder.py and lab/ladder_sets.py pass `surface=plateau.of(c.strategy, rulebook.specs(), firsts)` into verdict.judge (changes test_lab_ladder.py and test_lab_ladder_epon.py; the claim must name those four files)
+        Wired (26 Nov, seat 215's order; DECISIONS): verdict.judge builds the plateau itself when handed none (`plateau.at`), a variant held to its row's publication; plateau is never UNRUN. Remains: the gate's 'a planted edge goes forward', which waits on reproduce (no author's figure, judged on determinism), and dropping judge's dead `surface` once lab/ladder.py is free
         {id: rungs-plateau-wired; files: lab/plateau.py, lab/verdict.py, lab/ladder.py, lab/ladder_sets.py, tests/unit/test_lab_plateau.py, tests/unit/test_lab_verdict.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_ladder_epon.py; after: rungs-faults-not-answers}
   - [x] L18 TRIALS COUNTED HONESTLY: `trials.family` counts every line ever entered and never shrinks (3,435 per
         rule against ~1,017 judged), luck then needs t>=4.6 and no line reaches it (highest 4.36). The family is

@@ -1805,6 +1805,15 @@ This lane's decisions are in `docs/lanes/grid.md`; its scribe writes there (from
 This lane's decisions are in `docs/lanes/rungs.md`; its scribe writes there (from
 14 November 2026, 21:04) and moves there any entry that lands below.
 
+### The ladder's hold stays until the speed work lands (his ruling, Fri 27 November 2026, 08:4x)
+
+Asked whether EPON should start on the rungs already landed, his words through the chat seat:
+"No, keep the hold". `job-ladder.hold` stays in the runner's state, and EPON waits on the
+critical path: E4 (#2226) and E5 (#2232) land first, `lab/ladder.py` is split so the new rungs
+stop waiting on one hub file (E16, E17), then E8, E11, E12 and E13 each in its own module and
+test, and the E20 blind review after E13. The check: the runner starts no ladder job while the
+hold file exists. Recorded by runner ops 241 for coordinator 240.
+
 ### R-RUNNER-107 — the master and the calendars agree (DATA, 15 November 2026)
 
 `tests/unit/test_lines_worlds.py`: every line of `desk.lines` has a rule and a clock in
@@ -2618,3 +2627,30 @@ the check refuses to call such a run green. Failure pattern 5's twin, folded int
 *Driven (A7):* run with the PC's own python (Python311), it FAILED: "mypy: pinned 1.14.1,
 running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
 .venv's python it passes.
+
+## 26 Nov - plateau is judged on every cell (L17, RUNGS)
+
+**Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
+always unrun, as the ladder hands `verdict.judge` no surface (`lab/ladder.py`, claimed by RUNGS-s4).
+Chat seat 215's order (26 Nov): the verdict builds the plateau itself, the one home of the answer.
+
+**Options.** (a) the ladder builds the surface (its file is claimed; two homes for one rung);
+(b) `verdict.judge` builds it when handed none (chosen). Its parameter goes dead: dropping it is a
+RUNGS follow-up once RUNGS-s4 frees `lab/ladder.py`.
+
+**What it does.** A rule with no ranges is FIXED: NOT APPLICABLE, a PASS (decision a). A ranged
+rule's own setting that failed its first rung is 0 deep whatever its neighbours, so it FAILs with
+no variant run. Only a cell whose own setting passed has its row's variants (3 to 27) run on its
+own line, window and bars. Found on the way: `published.proven` refused every variant (no
+publication under a variant's name), so a variant could never be judged. A variant is its row's
+code at other settings, so it is held to its row's publication; a variant of a row with none is
+still refused (`test_a_variant_is_held_to_its_rows_publication_and_refused_without_one`). A basket
+keeps its own unrun line, so its pass is still no pass of the whole ladder.
+
+**The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a plateau rung, PASS as NOT
+APPLICABLE (the breakout has no settings); no answer and no other rung changes. The noise row
+stops at its hard fail before plateau, so it is unchanged.
+
+**Cost, measured** on a 2,400-bar walk: 0.4 s a variant, about 3.6 s for a passing cell (9
+variants on average). EPON's ~21,000 cells: at most ~21 CPU hours were every cell to pass, under
+four hours on the pool's six workers; in practice only passing cells pay, a small share.
