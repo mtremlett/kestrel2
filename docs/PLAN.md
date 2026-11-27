@@ -1148,7 +1148,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py; waits: 2026-11-27}
   - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
-        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-blind-review}
+        Remains (#2293): in-repository parts are on main (#2257, #2189, #2312); the runner's 24x7 catalogue job obeys job-ladder.hold until the known-answer kit passes on main (waits on R-RUNGS-46); stale-market crash at publish (lab/basket.py)
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; waits: R-RUNGS-46}
   - [ ] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
