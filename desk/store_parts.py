@@ -118,6 +118,18 @@ def _untraded(kept: list[Bar], bar: Bar, rate: Decimal | None, faults: list[Faul
         faults.append(Fault(day, f"{day} {ASTRAY}: it has no volume"))
 
 
+def _unconfirmed(
+    line: Line, kept: list[Bar], sound: Sequence[Bar], faults: list[Fault], rates: Rates
+) -> None:
+    """The newest bar has no close after it: a step the pound's size is kept, and told."""
+    if len(kept) > 1 and kept[-1] is sound[-1] and line.leverage == 1:
+        last, pound = kept[-1], pound_on(rates, kept[-1].day)
+        if same_as_pound(last.close / kept[-2].close, pound, FX_STEP):
+            faults.append(
+                Fault(last.day, f"{last.day} unconfirmed: a step the pound's size", noted=True)
+            )
+
+
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
     """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
     other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
@@ -151,8 +163,5 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
             )
             faults.append(Fault(bar.day, what, lasting=True))
         kept.append(bar)
-    if len(kept) > 1 and kept[-1] is sound[-1] and line.leverage == 1:  # no close follows it yet
-        last, pound = kept[-1], pound_on(rates, kept[-1].day)
-        if same_as_pound(last.close / kept[-2].close, pound, FX_STEP):
-            faults.append(Fault(last.day, f"{last.day} unconfirmed: a step the pound's size", noted=True))
+    _unconfirmed(line, kept, sound, faults, rates)
     return kept

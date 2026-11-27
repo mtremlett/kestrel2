@@ -60,7 +60,7 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         "unit",
     ),
     "_priced:4": (lambda b: [*b[:-8], _scaled(b[-8], Decimal("1.7")), *b[-7:]], US, "moved from"),
-    "_priced:5": (  # the newest bar has no next close: a pound-sized step is kept, told unconfirmed
+    "_unconfirmed:1": (  # newest bar, a pound-sized step: kept, told
         lambda b: [*b[:-1], _scaled(b[-1], 1 / POUND)],
         US,
         "unconfirmed",
@@ -131,9 +131,9 @@ def test_each_rule_fires_on_its_synthetic_row(site: str) -> None:
     clean = list(_bars(US, LONG))
     answer = make(clean)
     shelf = [_scaled(x, Decimal(1) / 100) for x in clean] if site == "_joined:1" else clean
-    rates = {x.day: POUND for x in clean} if site == "_priced:5" else {}
-    shelf = shelf if site.startswith("_joined") else None
-    faults = store.judge(line, answer, DAY, rates, shelf=shelf)[1]
+    rates = {x.day: POUND for x in clean} if site == "_unconfirmed:1" else {}
+    held = shelf if site.startswith("_joined") else None
+    faults = store.judge(line, answer, DAY, rates, shelf=held)[1]
     assert any(seen in f.what for f in faults), site
 
 
