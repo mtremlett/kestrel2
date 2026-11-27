@@ -49,7 +49,9 @@ def test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired
         "regimes",
     ]
     assert waiting == OFF_PATH, "a rung module off verdict.judge's path: wire it, or merge it away"
-    assert not [r for r in ladder_map.rows() if "unwired" in r], "the map names a judge off the path: wire it, or merge it"
+    assert not [
+        r for r in ladder_map.rows() if "unwired" in r
+    ], "the map names a judge off the path: wire it, or merge it"
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA, ISF))
     assert all(not ({"planted"} & set(row["rungs"])) for row in _rows(tmp_path))
     rows = _rows(tmp_path)  #: EASED: a hard fail on the first rung stops that line there
