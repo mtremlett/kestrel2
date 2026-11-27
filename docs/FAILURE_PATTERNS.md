@@ -18,8 +18,8 @@ predecessor's 2,000-line core stayed inside its cap while its runner grew to rea
 **3. Progress counted in activity.** Cards landed, commits made, tests added — all rising
 while the thing that matters does not move. The predecessor landed about 1,100 work cards
 in six weeks and proved 10 of 64 requirements.
-→ *Caught by:* the only progress number is scenes passing out of seven, and the plan
-requires a batch adding net lines to name the scene it advances.
+→ *Caught by:* the only progress number is plan boxes ticked on main per 24 hours, from one
+function, and the plan requires a batch adding net lines to name the scene it advances.
 
 **4. The set-aside test.** A test fails, is added to a known-failures list "for now", and
 is never fixed. The predecessor carried 2,221.
@@ -131,11 +131,11 @@ check reads a session's question against the recorded rulings.
 **18. The hand list beside the code.** A rule kept by hand drifts from what the code does: the
 trading-path merge hold missed `desk/bars.py`, which the trading day imports (16 November);
 conformance was scheduled inside the desk's rounds; a job pointed at a moved function; the hourly
-report repeated a state long past. Twin: `lab/basket.py` pairs a basket's sale days to its market
-line's bars by its own date lookup: each calendar edge a fix (#2217 a holiday, #2353 a stale line).
-→ *Caught by:* the desk's rounds kept once in the runner, read by every schedule and restart; the
-hourly report reads current state; `tests/unit/test_lab_basket.py` plants each edge. → *Debt:* the
-trading path computed from imports; the basket's two lines aligned once from the one calendar.
+report repeated a state long past. Twins: `lab/basket.py` pairs a basket's sale days to its market
+line's bars by its own date lookup (#2217 a holiday, #2353 a stale line); `desk/keeper_live.py`'s
+roll kept its own list of spans, so the long store's 15m and 30m never came (O12, 27 Nov).
+→ *Caught by:* rounds kept once in the runner; the report reads now; `test_lab_basket.py` plants
+edges; the roll copies all spans. *Debt:* trading path from imports; the basket on the one calendar.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
