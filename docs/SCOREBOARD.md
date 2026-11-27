@@ -257,6 +257,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2224 R-RUNNER-538 four eponymous rules declare their holding period (none, stated). |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2243 money-size-live-price early test restored, 1 test line pair. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2248 R-RUNNER-481 zoo drops non-ISA lines; zoo now 9 London + 7 US lines. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2168 R-RUNNER-488 a line owed its close is refused by name, the rest trade; reworked after review block, one blocker fixed. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2275 R-RUNNER-535 done, gap-up sizing within room. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2276 R-RUNNER-539 met: four rules declare no holding period, each test red then green. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2287 money-simcity-withdrawn-day: withdrawn-day gate pinned by a test. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2288 R-RUNNER-540 met: four rules' holding periods stated from their own sell logic, tests pinned. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2300 R-RUNNER-514 half: replay sized with the live price; the live round still unprotected. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2298 money-stranger-stopped done: shares under the desk's own broker stop are no stranger, no double sale. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2335 R-RUNNER-554 test lands: a holed line sold before the close keeps the promise, desk/ unchanged. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2330 claim gap closed for money-small (desk/strategy.py and its tests named); no box ticked. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2324 R-RUNNER-541 done: three rules declare their hold limit (zweig 230 sessions, two none). |
 
 
 ### DATA
@@ -577,12 +587,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2171 R-RUNNER-501: rolled spans pinned equal to their bases and fresh; no product change. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2172 R-RUNNER-502: a newest daily bar the broker answered is stored as IBKR's. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2191 R-RUNNER-508: one-minute and daily history asks no longer held by the small-bar count. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2168 R-RUNNER-488 a line owed its close is refused by name, the rest trade; reworked after review block, one blocker fixed. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2275 R-RUNNER-535 done, gap-up sizing within room. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2276 R-RUNNER-539 met: four rules declare no holding period, each test red then green. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2287 money-simcity-withdrawn-day: withdrawn-day gate pinned by a test. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2288 R-RUNNER-540 met: four rules' holding periods stated from their own sell logic, tests pinned. |
-| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2300 R-RUNNER-514 half: replay sized with the live price; the live round still unprotected. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2197 R-RUNNER-511: keeper judges before its round, lock held only while writing. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2201 R-RUNNER-522: data-monitor names each stale span. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2205 R-RUNNER-525: old stores checked against the one store, restore drilled. |

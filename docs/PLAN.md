@@ -791,13 +791,14 @@ day's trading and reconciliation are built, and any broker can stand behind them
       replaying world 0 to day 56 and world 1's gap scenario on a fixture with a late-starting line
       Remains: world 0 halts at day 870 (no close of VUAG) and the world-1 gap-limit finding needs a replay (#1909).
       {id: money-simcity-firstbar; files: desk/simcity*.py, tests/unit/test_simcity*.py}
-- [ ] **Shares under a broker stop, taken in and sold** (coordinator 107 E1, deep 23 Nov 00:44): "shares the book
+- [x] **Shares under a broker stop, taken in and sold** (coordinator 107 E1, deep 23 Nov 00:44): "shares the book
       lacks, under a stop at the broker, are taken into the book and sold" in 6 of 20 worlds, first world 4: the
       stranger path adopts shares that already sit under a working stop and sells them, which can sell twice. Find
       where the adoption reads the broker's stops; a stranger under a stop is booked with that stop, never sold on
       top of it. Opus, A6 blind review (money path). Gate: a test, written first, red on main, replaying world 4
       {id: money-stranger-stopped; files: desk/book.py, desk/book_parts2.py, tests/unit/test_book*.py,
       desk/simcity*.py, tests/unit/test_simcity*.py}
+      (#2298: shares the desk's own resting stop covers are no stranger, several stop entries summed, only the excess beyond max(book, stop) is sold. Open, not this box: booking the stop-covered shares with their stop needs desk/day.py)
 - [x] **Scenarios for four book parts** (coordinator 107 E1, deep 23 Nov 00:44 census: 67 parts, 4 with no
       scenario): `book.attributed`, `book.chains`, `book.conformance_cost` and `book.told` are run by no SimCity
       scenario; give each one in the night's census, no change to the parts themselves. Gate: the census test
