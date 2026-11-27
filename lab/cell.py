@@ -3,7 +3,7 @@ of what it did there, keyed by the versions of the code and the bars that produc
 
 The trades are the desk's own decisions. The fast grid engine (`lab/grid.py`) works them out
 wherever it can; it holds what the desk's engine holds after every bar or it refuses, and a
-cell it refuses is decided by the desk's own engine (`strategy.decide`), the same record
+cell it refuses is decided by the desk's own engine (that one rule's run), the same record
 either way. The rule is shown every bar the line has up to the window's end, so the history
 before the window warms it, and nothing after the end is read. A trade belongs to the window
 it was bought in. The record holds days only: a price, a profit or a verdict is a later
@@ -28,12 +28,12 @@ from __future__ import annotations
 import ast
 import hashlib
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import localcontext
 from pathlib import Path
 
-from desk import strategy
 from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, STRATEGIES, Action, _run
@@ -213,24 +213,19 @@ def _version(cell: Cell, bars: Sequence[Bar], read: Sequence[Bar]) -> str:
 
 def _held(cell: Cell, bars: Sequence[Bar]) -> list[bool]:
     """Whether the rule is in the market after each bar: the grid's answer, and the desk's
-    own engine's wherever the grid refuses to give one."""
-    if cell.strategy not in STRATEGIES:  #: an eponymous rule has no array form: the desk's engine
-        held: list[bool] = []
-        with localcontext(ARITHMETIC):
-            for decision in _run(
-                cell.strategy, rulebook.rule(cell.strategy)(), cell.line.symbol, bars
-            ):
-                was = held[-1] if held else False
-                held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
-        return held
-    try:
-        held = grid.held(cell.strategy, grid.prices(bars)).tolist()
-    except grid.TooClose:
-        held = []
-        for decision in strategy.decide({cell.line.symbol: bars}):
-            if decision.strategy == cell.strategy:
-                was = held[-1] if held else False
-                held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
+    own engine's, for this one rule alone, wherever the grid refuses to give one (S9)."""
+    if cell.strategy in STRATEGIES:
+        with suppress(grid.TooClose):  #: floating point cannot call it: the desk's engine does
+            held: list[bool] = grid.held(cell.strategy, grid.prices(bars)).tolist()
+            return held
+    #: the desk's engine: an eponymous rule has no array form, and one of the five is built as
+    #: `decide` builds it, with no rule book read
+    make = STRATEGIES.get(cell.strategy) or rulebook.rule(cell.strategy)
+    held = []
+    with localcontext(ARITHMETIC):
+        for decision in _run(cell.strategy, make(), cell.line.symbol, bars):
+            was = held[-1] if held else False
+            held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
     return held
 
 
