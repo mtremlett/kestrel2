@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -22,6 +23,7 @@ from desk import (
     keeper_live,
     paper,
     simcity,
+    simcity_incidents,
     simcity_parts,
     store,
     venues,
@@ -89,6 +91,18 @@ def test_without_the_refusal_the_scenario_is_red(
 ) -> None:
     monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
     assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path).broken)
+
+
+def test_a_holed_line_sold_before_the_close_keeps_the_promise_and_without_the_sale_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
+    sold = SimpleNamespace(positions=lambda _desk: {})  #: the held line left the book that day
+    monkeypatch.setattr(simcity_incidents, "book", sold)
+    assert not any(PROMISE in broken for broken in night(monkeypatch, tmp_path / "sold").broken)
+    monkeypatch.undo()
+    monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
+    assert any(PROMISE in broken for broken in night(monkeypatch, tmp_path / "held").broken)
 
 
 def test_shares_beside_the_book_under_a_stop_are_left_under_it_and_the_census_counts_it(
