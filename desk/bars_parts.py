@@ -118,6 +118,7 @@ READ = (
     " AND NOT EXISTS (SELECT 1 FROM withdrawn w WHERE w.venue = bar.venue AND"
     " w.symbol = bar.symbol AND w.span = bar.span AND w.at = bar.at) ORDER BY at"
 )
+UNDER = READ.replace("NOT EXISTS", "EXISTS")  #: the bars held under a withdrawn mark
 
 
 class StoreWait(sqlite3.OperationalError):
