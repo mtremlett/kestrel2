@@ -8,6 +8,7 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import csv
 import filecmp
 import json
 import os
@@ -15,6 +16,7 @@ import shutil
 import sys
 from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from functools import partial
 from pathlib import Path
 
@@ -202,6 +204,44 @@ def rolloff(old: Path, kept: Path) -> tuple[list[Path], list[Path]]:
         else:
             listed.append(file)
     return deleted, listed
+
+
+def _held_rows(file: Path, home: Path, lines: Iterable[Line]) -> bool:
+    """True when the file is a CSV of daily bars (symbol, day, open, high, low, close, volume)
+    and the store holds every row exactly; unreadable, unknown or differing, False."""
+    by_name, held = {line.symbol: line for line in lines}, {}
+    try:
+        with file.open(newline="", encoding="utf-8") as rows:
+            for row in csv.DictReader(rows):
+                line = by_name[row["symbol"]]
+                if line.symbol not in held:
+                    held[line.symbol] = {b.day: b for b in backfill._held(home / keeper.HOT, line)}
+                at = held[line.symbol].get(date.fromisoformat(row["day"]))
+                o, h, lo, c = (Decimal(row[k]) for k in ("open", "high", "low", "close"))
+                if at is None or at != Bar(at.day, o, h, lo, c, int(row["volume"])):
+                    return False
+    except (
+        KeyError,
+        ValueError,
+        ArithmeticError,
+        OSError,
+    ):  # an unknown line, a bad row or file: kept, named
+        return False
+    return True
+
+
+def rolloff_rows(
+    files: Iterable[Path], home: Path, lines: Iterable[Line]
+) -> tuple[list[Path], list[Path]]:
+    """Old research files with no byte twin, checked row by row against the store: a file whose
+    every row the store holds is safe to roll; any other is kept. Nothing is deleted.
+    -> (safe, kept)."""
+    safe: list[Path] = []
+    kept: list[Path] = []
+    every = tuple(lines)
+    for file in files:
+        (safe if _held_rows(file, home, every) else kept).append(file)
+    return safe, kept
 
 
 Pull = Callable[[Line, str], Sequence[Timed] | Refused]  #: a source's bars of one line's span
