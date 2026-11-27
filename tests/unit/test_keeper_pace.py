@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from desk import bars, keeper
-from desk.lines import Line
+from desk.lines import LINES, POLLED_LINES, WATCHED, Line
 from desk.spans import Timed
 
 
@@ -32,3 +32,20 @@ def test_a_polled_run_keeps_its_rate_between_runs(tmp_path: Path) -> None:
 
     keeper.polled(tmp_path, now, 5, ask)
     assert (tmp_path / "polled_5.rate").read_text() == "33"
+
+
+def test_a_polled_round_at_the_floor_asks_the_floor_of_lines(tmp_path: Path) -> None:
+    """At 15:00 UTC both venues are open: all 27 lines are asked once, drawn from reference data."""
+    now = datetime(2026, 11, 17, 15, tzinfo=bars.EPOCH.tzinfo)
+    asked: list[str] = []
+
+    def ask(line: Line, when: datetime) -> tuple[Timed, ...]:
+        asked.append(line.symbol)
+        price = Decimal(5)
+        return (Timed("1m", when - timedelta(minutes=1), price, price, price, price, 1),)
+
+    words = keeper.polled(tmp_path, now, 5, ask)
+    assert keeper.POLLED[5][0] == len(asked) == len({line.symbol for line in POLLED_LINES})
+    assert sorted(asked) == sorted(line.symbol for line in POLLED_LINES)
+    assert "27 requests" in words
+    assert not {line.symbol for line in WATCHED} & {line.symbol for line in LINES}

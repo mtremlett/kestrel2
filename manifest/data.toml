@@ -23,6 +23,7 @@
 "lab/universe.py" = "the research list: the tickers research may study, none of them traded, and their bars kept by the one store"
 "lab/universe_parts.py" = "how research reads the list's bars, split from lab/universe.py: its rule for unconfirmed large moves, the longest run on one scale of price, and the second source of London's daily bars"
 "lab/universe_history.py" = "the research bars in the history database: the research store's CSV bars and the ladder's pound table let in through the one writer, each bar under its source, only on days the database holds none"
+"lab/shiller.py" = "the S&P 500 total-return monthly line from January 1901: Shiller's free monthly table (price and dividend) turned into flat monthly bars with dividends reinvested, source shiller, a gap or bad price refused"
 "lab/members.py" = "the lists' past members: who was on a published list on a past day, the ones still listed told from the ones that left"
 "lab/members_feed.py" = "the FTSE reviews read in: an announcement's joiners and leavers and the Wikipedia page's members either side of it (MediaWiki API), joined by members.reconcile, a disagreement named"
 "desk/collector.py" = "the free collector: once a day the free vendors' price second opinions, macro series, earnings dates and timestamped news, each answer kept raw and its facts in the one store"
