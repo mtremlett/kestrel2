@@ -767,11 +767,17 @@ true result on the fixture, not a tuning target.
 ### 2026-11-26 - R-RUNNER-533 kept at book level, no book.py change (#2210)
 - Options: pin the contract through `book.reconcile` (taken: the book code already meets it) or adopt stranger shares in book.py (rejected: it would hide the broker door's fault). The loss is upstream in `broker.fills()` / `desk/reports.py`, outside the claim.
 
-### 2026-11-27 - A fill by an undecided rule is a named mismatch (#2212)
-- Options: (a) a named "rule" mismatch for that fill, the replay goes on (taken, his gate wording); (b) skip zoo fills silently (rejected: hides them). Replaying zoo fills through a zoo rule is a separate box.
+### 2026-11-27 - Fills-replay names an undecided rule (#2212)
+- Options: (A) a named "rule" mismatch for a fill whose rule `strategy.today()` does not decide (taken, his gate wording); (B) skip zoo fills silently (rejected: hides the gap). Replaying zoo fills through a zoo rule is a separate box.
 
-### 2026-11-27 - Four eponymous rules declare no holding period (#2224, R-RUNNER-538)
-- Options: invent a limit (say 10 days) or declare none with its reason. Took none: no source on hand gives a day limit for connors, three-day high-low, dan_zanger or demark_sequential, and a guess is worse (his 21 Nov ruling: each limit from its own sell logic, or none with reason). No golden day moves.
+### 2026-11-27 - Four rules declare no holding period (#2224, #2276, #2288; R-RUNNER-538, 539, 540)
+- Options: invent a day limit per rule (e.g. 10 days) or declare none with the reason in the docstring. Taken: none, per his 21 Nov ruling (each limit from its own sell logic, or none with reason); no source on hand gives a limit for connors (RSI-2, %b), connors_three_day_high_low, dan_zanger, demark_sequential, faber_tactical, kell_breakout, keltner_channel_trend, mansfield_rs_momentum, minervini_breakout, momentum, raschke_swing. `swing` declares five sessions (Jegadeesh/Lehmann week). No golden day moves.
 
-### 2026-11-27 - The zoo drops only lines the master marks isa=no (#2248, R-RUNNER-481)
-- Options: drop unrecorded isa (None) too (removes nothing today, hides unrecorded lines) or keep them. Took keep: the card says "marks isa=no". IB1T, SPY, QQQ leave; the count test moved 10/9 to 9/7.
+### 2026-11-27 - The zoo drops only a recorded isa=no line (#2248, R-RUNNER-481)
+- Options: also drop lines whose isa is unrecorded (None) or keep them. Taken: keep, since the card says "marks isa=no"; dropping None would hide unrecorded lines. Effect: IB1T, SPY and QQQ leave the zoo (9 London, 7 US).
+
+### 2026-11-27 - Size at the dearer of signal and live price (#2275, R-RUNNER-535)
+- Options: overwrite `order.price` with the live price (rejected: the order's id and stop contract stays) or count shares at max(signal close, live price) in `size()` (taken: a gap up never makes a holding cost more than its room). The stop still rests 10% under min(price, market).
+
+### 2026-11-27 - A held line owed its close is named, the day's profit withheld (#2168, R-RUNNER-488)
+- Options: a new Record field (rejected: changes the comma file's columns, outside the claim); a raise (rejected: it is the fault); the refusal rides the record's mismatches with one wording constant (taken, `day_money.CloseOwed`). A held yardstick owed its close still gives no record (its close is every record's yardstick): refuse, unchanged. A missing rate still stops the day. Open: wording in `desk/messenger.py:214` and `desk/simcitycmd.py:111` still says "book differs from broker" for an owed day; `day_money.fx_split` prices an owed line at its older bar; loss limits read a withheld day as 0 (pattern 20 debt).
