@@ -121,13 +121,12 @@ def _untraded(kept: list[Bar], bar: Bar, rate: Decimal | None, faults: list[Faul
 def _unconfirmed(
     line: Line, kept: list[Bar], sound: Sequence[Bar], faults: list[Fault], rates: Rates
 ) -> None:
-    """The newest bar has no close after it: a step the pound's size is kept, and told."""
+    """The newest bar has no close after it: a step the pound's size is kept, and parks the line
+    until a later bar confirms it (R-RUNNER-492)."""
     if len(kept) > 1 and kept[-1] is sound[-1] and line.leverage == 1:
         last, pound = kept[-1], pound_on(rates, kept[-1].day)
         if same_as_pound(last.close / kept[-2].close, pound, FX_STEP):
-            faults.append(
-                Fault(last.day, f"{last.day} unconfirmed: a step the pound's size", noted=True)
-            )
+            faults.append(Fault(last.day, f"{last.day} unconfirmed: a step the pound's size"))
 
 
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:

@@ -329,9 +329,8 @@ def test_the_newest_bar_a_pound_step_from_the_day_before_is_kept_a_hundredfold_o
     (R-RUNNER-487); a normal move is kept, a bar of 100 times the day before is still refused."""
     clean = _bars(US, LONG)
     kept, _, reasons = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
-    assert reasons == [] and len(kept) == len(clean)
-    _, faults, _ = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
-    assert any("unconfirmed" in f for f in faults)  # kept, but listed (R-RUNNER-492)
+    assert len(kept) == len(clean) and any("unconfirmed" in r for r in reasons)  # R-RUNNER-492:
+    # kept, and the line parked until a later bar confirms it
     kept, faults, reasons = _priced((*clean[:-1], _scaled(clean[-1], Decimal(100))), US)
     assert len(kept) == len(clean) - 1 and any("wrong unit" in f for f in faults) and reasons
 
