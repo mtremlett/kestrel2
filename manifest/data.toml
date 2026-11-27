@@ -28,6 +28,7 @@
 "lab/members_feed.py" = "the FTSE reviews read in: an announcement's joiners and leavers and the Wikipedia page's members either side of it (MediaWiki API), joined by members.reconcile, a disagreement named"
 "desk/collector.py" = "the free collector: once a day the free vendors' price second opinions, macro series, earnings dates and timestamped news, each answer kept raw and its facts in the one store"
 "desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
+"desk/keeper_parts.py" = "the keeper's live-day judgement and rounds: the polled round's pace, lines parked for late or faulty five-minute bars, each source's delay, the roll-up round, the day a venue is readied for, and the reference series kept"
 "desk/store_scope.py" = "the keeper's judging scoped to the window the desk decides on: store.judge, but a fault dated before that window is named on its own day and never parks the line"
 "desk/keeper_rotate.py" = "the keeper's record of a venue's last refresh, and the order it asks the broker in: the yardstick before all, then the lines not asked on the last call, so a line the broker refuses never starves the others"
 "desk/keeper_receipt.py" = "the keeper's dated receipt: a file a day, a line for each call that did anything, saying which newest bars arrived, their span, moment and source, and surviving a kill between the line and the record of what was seen"

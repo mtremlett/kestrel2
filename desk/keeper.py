@@ -25,7 +25,6 @@ from desk import (
     bars,
     carry,
     history,
-    history_write,
     keeper_live,
     keeper_receipt,
     live,
@@ -34,48 +33,53 @@ from desk import (
 )
 from desk.bars import Five
 from desk.bars_form import entered
+from desk.keeper_parts import (  # re-exported: callers keep importing them from here
+    DAILY,
+    DAY,
+    HOT,
+    POLLED,
+    SETTLED,
+    _reference,
+    _short,
+    _told,
+    delays,
+    pace,
+    parked_live,
+    polled,
+    rolled,
+    target,
+)
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
-from desk.lines import ADJUSTED, DOLLARS, LINES, POLLED_LINES, POUND, REFERENCE, YARDSTICK, Line
+from desk.lines import ADJUSTED, DOLLARS, LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Parked, Refused
 from desk.store_scope import judge as scoped_judge
 
-DAILY, HOT = "daily", bars.LIVE
+__all__ = [
+    "DAILY",
+    "DAY",
+    "HOT",
+    "POLLED",
+    "SETTLED",
+    "delays",
+    "pace",
+    "parked_live",
+    "polled",
+    "rolled",
+    "target",
+]
 RULES = hashlib.sha256(  #: a hash of every desk/store*.py: a record of another is cleaned again
     b"\0".join(
         f.read_bytes().replace(b"\r\n", b"\n")
         for f in sorted(Path(store.__file__).parent.glob("store*.py"))
     )
 ).hexdigest()
-SETTLED = timedelta(minutes=30)
 HELD = SETTLED + timedelta(minutes=5 + 4)  #: by this long after the auction the closes are held
-LATE = timedelta(minutes=15)  #: a line's five-minute bars are late, and it is parked, after this
 ROOM = 6  #: lines one call asks the broker for, per venue: at its pacing, two venues fit in SPENT
 TRIES = 6  #: the calls at which a line parked for a fault is asked again (half an hour)
 SPENT = 150.0  #: seconds of a call in which the archive is still asked (runner: 240)
-DAY = timedelta(days=1)
 ANCIENT = partial(archive.fetch, since=archive.REFERENCE_SINCE)  #: the reference series
-#: polled tickers by minutes: (floor, ceiling)
-POLLED = {5: (27, 270), 15: (81, 810), 60: (324, 3240)}
-
-
-def pace(minutes: int, rate: int, refusals: int) -> int:
-    """The next round's tickers: a refusal halves the rate, a clean round adds a quarter."""
-    floor, ceiling = POLLED[minutes]
-    return max(floor, rate // 2) if refusals else min(ceiling, max(rate + 1, int(rate * 1.25)))
-
-
-def polled(home: Path, now: datetime, minutes: int, ask: keeper_live.Minutes) -> str:
-    """One `--polled <minutes>` run at the kept rate (floor first); keeps pace()'s next rate."""
-    kept = home / f"polled_{minutes}.rate"
-    rate = int(kept.read_text()) if kept.is_file() else POLLED[minutes][0]  # bounded: one integer
-    words, _, refusals = keeper_live.polled_round(home / HOT, POLLED_LINES, now, ask, minutes, rate)
-    (tmp := kept.with_suffix(".tmp")).write_text(str(pace(minutes, rate, refusals)))
-    tmp.replace(kept)
-    return words
-
-
 When = TypeVar("When")
 Read = TypeVar("Read")
 Ask = Callable[[Line, When], Read]
@@ -84,18 +88,6 @@ Broker = Callable[[Sequence[Line], date], Mapping[Line, store.Answer]]  #: the f
 
 class Stale(LookupError):
     """The daily store lacks what was asked: a venue never refreshed, or a session since."""
-
-
-def target(venue: str, now: datetime) -> date:
-    """The day a venue's bars are readied for: today until its session is settled, else tomorrow."""
-    day = now.date()
-    trades = venues.sessions(venue, day, day) == (day,)
-    return day if trades and now < venues.hours(venue, day).auction + SETTLED else day + DAY
-
-
-def _short(venue: str, last: Kept | None, day: date) -> bool:
-    """The venue's last refresh lacks a session before a day: none was made, or it traded since."""
-    return last is None or bool(venues.sessions(venue, last.day, day - DAY))
 
 
 def pound_closes(hot: Path) -> store.Rates:
@@ -260,59 +252,6 @@ def pound(home: Path, day: date) -> Decimal:
     return rate
 
 
-def _reference(
-    home: Path, now: datetime, ask: Ask[date, tuple[Bar, ...]], series: Sequence[Line]
-) -> list[str]:
-    """Each reference series kept once the US day has settled, in words; not asked twice a day."""
-    day, told = target("US", now), list[str]()
-    if day == now.date() or venues.sessions("US", now.date(), now.date()) != (now.date(),):
-        return told
-    for line in series:
-        folder = home / DAILY / line.venue
-        mark = folder / "reference" / f"{line.symbol}.kept"
-        if mark.is_file() and mark.read_text(encoding="utf-8") == day.isoformat():
-            continue
-        answer = archive.gather([line], day, ask)[line]
-        if isinstance(answer, Refused):
-            told.append(f"{line.symbol}: reference series not kept: {answer.reason}")
-            continue
-        faults = archive.keep_reference(home / HOT, line, answer, only_new=line in LINES)
-        mark.parent.mkdir(parents=True, exist_ok=True)
-        mark.write_text(day.isoformat(), encoding="utf-8")
-        told.append(f"{line.symbol}: reference kept before {day}, {len(faults)} faults listed")
-    return told
-
-
-def _ended(hot: Path, line: Line, now: datetime) -> list[Five] | None:
-    """A line's ended bars of the last LATE; none until its venue has been open for LATE."""
-    session = venues.open_at(line.venue, now)
-    if session is None or now - session.open < LATE:
-        return None
-    try:
-        held = bars.five(hot, line, now - LATE, now)
-    except LookupError:  # the store never held a bar of the line: it is missing
-        return []
-    return [bar for bar in held if bar.start + live.BAR <= now]
-
-
-def parked_live(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, str]:
-    """EACH LINE NOT TO BE TRADED NOW, and why: no ended bar for LATE, or bars out of line."""
-    parked = {}
-    for line in lines:
-        ended = _ended(hot, line, now)
-        if ended is not None and (
-            faults := bars.checked(line, ended)[1] if ended else ["no ended bar"]
-        ):
-            parked[line.symbol] = f"{faults[0]} in the last {LATE.seconds // 60} minutes"
-    return parked
-
-
-def delays(hot: Path, lines: Sequence[Line], now: datetime) -> dict[str, int]:
-    """THE SOURCE'S DELAY: minutes since each line's newest ended bar ended; parked lines absent."""
-    found = {line.symbol: _ended(hot, line, now) for line in lines}
-    return {s: (now - (e[-1].start + live.BAR)).seconds // 60 for s, e in found.items() if e}
-
-
 def stale(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
     """EACH LINE STALER THAN ONE SESSION: its newest daily bar precedes its venue's last session."""
     told = []
@@ -334,17 +273,6 @@ def _within(ask: Ask[When, Read], clock: Callable[[], float], ends: float) -> As
         return ask(line, when)
 
     return asking
-
-
-def _told(kept: Kept, mine: Sequence[Line]) -> tuple[str, bool]:
-    """A venue's refresh in words, and whether it was a miss."""
-    clean, venue = len(mine) - len(kept.parked), mine[0].venue
-    words = (
-        f"{venue}: daily bars before {kept.day}: {clean} of {len(mine)} lines clean, "
-        f"{len(kept.refused)} refused by the archive (asked {kept.tries} times today)"
-        f"{''.join('; ' + note for note in kept.notes)}"
-    )
-    return words, len(mine) in (len(kept.refused), len(kept.parked))
 
 
 def keep(
@@ -384,22 +312,6 @@ def keep(
     again = _within(ancient, clock, ends)
     spoken = [words for words, _ in told] + _reference(home, now, again, series)
     return spoken, [words for words, miss in told if miss]
-
-
-def rolled(hot: Path, lines: Sequence[Line], now: datetime) -> list[str]:
-    """THE ROLL-UP ROUND: each line's held five-minute bars built into 15m, 30m, 1h and 4h bars
-    and its daily bars into weekly ones, through the one writer, marked rollup:<from>; a partial
-    span writes nothing, and a round that built nothing says nothing.
-    Twice: the 30m bars of the first pass are the second's 1h and 4h."""
-    long = bars.files(hot)[bars.DAILY]
-    if not (hot.is_file() and long.is_file()):
-        return []
-    since = history_write.recent(now)  # the whole history is rolled and judged nightly (quality)
-    landed = sum(history_write.roll(hot, line, now, since) for line in lines for _ in range(2))
-    faults = [f"FAULT {f}" for line in lines for f in history_write.clashes(hot, line, now, since)]
-    return faults + [
-        f"roll-up: {landed} coarser bars built from the five-minute and daily bars"
-    ] * bool(landed)
 
 
 def main(home: Path, now: datetime, args: Sequence[str] = (), broker: Broker | None = None) -> int:
