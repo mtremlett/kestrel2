@@ -18,6 +18,7 @@
 "desk/eponymous_keltner_channel_trend.py" = "Keltner's channel trend rule (How to Make Money in Commodities) as a rule under the one template, author, source and published figure written down; not traded by the paper desk"
 "desk/eponymous_raschke_swing.py" = "Linda Raschke's Turtle Soup (Street Smarts) as a rule under the one template, with its author, source and the range of its setting; not traded by the paper desk"
 "desk/eponymous_mansfield_rs_momentum.py" = "Mansfield's relative-strength rule (Weinstein) as a rule under the one template, measured against the SPY line, author, secondary source and published figure written down; not traded by the paper desk"
+"desk/incubation.py" = "a rule the ladder calls INCUBATE, on paper only: one fixed small size (250 pounds a position, two open) on its own book line apart from the desk's rules, through the same gate (R-RUNNER-232)"
 "desk/risk.py" = "where the book stands against its loss and order-rate limits: the losses so far today and this week and the new lines entered today, and which loss limit has been reached; the limits themselves are in orders.Settings"
 "desk/orders.py" = "the order, sized from the one capital number, its stop, the pre-trade gate"
 "desk/orders_parts.py" = "the order's lower part: the legs of a trade, the one cost model and the broker's schedule that prices it, and the one rounding policy; desk.orders gives them to its callers"
