@@ -106,6 +106,10 @@ def judge(basket: Sequence[float], market: Sequence[float]) -> tuple[Answer, str
     return (Answer.PASS if beats(ours, theirs) else Answer.FAIL), why
 
 
+class StaleMarket(ValueError):
+    """A market line whose bars end before a day of the basket's sales: it cannot be set beside."""
+
+
 @dataclass(frozen=True)
 class Against:
     """The market a basket is set beside: its line, its bars oldest first, the rates."""
@@ -118,7 +122,7 @@ class Against:
 def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
     """The basket's days and its market's, paired, over the market's bars from the basket's first
     buy to the bar its last sale is booked to; a sale on a day the market is shut lands on its
-    next bar, and one after its last bar is refused."""
+    next bar, and one after its last bar is refused (StaleMarket)."""
     open_on = [b.day for b in against.bars]
 
     def booked(day: date) -> date:
@@ -126,7 +130,9 @@ def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
         on a UK bank holiday with New York open, and its pounds land on ISF's next bar."""
         at = bisect_left(open_on, day)
         if at == len(open_on):
-            raise ValueError(f"{against.line.symbol} has no bar on or after {day}, a day of a sale")
+            raise StaleMarket(
+                f"{against.line.symbol} has no bar on or after {day}, a day of a sale"
+            )
         return open_on[at]
 
     first = min(p.held[0] for p in basket.trades)
@@ -147,7 +153,11 @@ def grade(basket: Verdict, against: Against) -> tuple[Answer, str] | None:
         return None
     if basket.answer in (Answer.FAULT, Answer.THIN):
         return basket.answer, "the first rung found too few trades, or none, to set beside it"
-    return judge(*days(basket, against))
+    try:
+        paired = days(basket, against)
+    except StaleMarket as stale:
+        return Answer.FAULT, f"stale market line refused: {stale}"
+    return judge(*paired)
 
 
 NAME = ("BASKET", "all lines pooled")  #: the line and the venue of a basket's cell in the table

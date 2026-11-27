@@ -81,6 +81,20 @@ def test_the_retail_rung_stands_in_a_basket_row_only_while_eased_and_given_a_mar
     assert row["rungs"]["retail"][0] == "FAULT"  #: no trade to set beside the market: inherited
 
 
+def test_a_basket_with_one_stale_market_line_publishes_naming_the_line_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", True)
+    bars = _bars([100] * 40)
+    late = (bars[-1].day + timedelta(days=10),) * 2
+    lines = [_line_verdict(s) for s in LINE_NAMES]
+    lines = [replace(v, trades=tuple(replace(p, held=late) for p in v.trades)) for v in lines]
+    row = basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, Against(YARDSTICK, bars, POUND))
+    assert row["rungs"]["retail"][0] == "FAULT"
+    assert f"stale market line refused: {YARDSTICK.symbol} has no bar" in row["rungs"]["retail"][1]
+    assert verdict.write_table(tmp_path, "T", "Q?", [row], ["breakout_20_10"], 3, (1, 2)).exists()
+
+
 @pytest.fixture
 def eased_off(monkeypatch: pytest.MonkeyPatch) -> None:
     """The off assertions of these tests: the ladder's easing switch is set off, not assumed."""
