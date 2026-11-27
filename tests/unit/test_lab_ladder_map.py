@@ -17,7 +17,7 @@ MODULE, TEST = r"lab/\w+\.py", r"tests/unit/test_lab_\w+\.py"
 ENTRY = re.compile(rf" *(\d+) ([^:]+): ({MODULE})( \(unbuilt\))?, ({TEST})( \(unbuilt\))?( - .+)?")
 
 
-def test_the_map_names_twelve_rungs_once_each_to_files_there_or_marked_unbuilt() -> None:
+def test_the_map_names_its_rungs_once_each_to_files_there_or_marked_unbuilt() -> None:
     doc = ladder.__doc__ or ""
     assert "THE RUNG MAP" in doc, "lab/ladder.py's docstring holds no rung map"
     paragraph = doc[doc.index("THE RUNG MAP") :].split("\n\n")[0]
@@ -26,7 +26,7 @@ def test_the_map_names_twelve_rungs_once_each_to_files_there_or_marked_unbuilt()
     unread = [line for line, entry in zip(lines, found, strict=True) if entry is None]
     assert not unread, f"not `n name: module, test`: {unread}"
     rungs = [entry.groups() for entry in found if entry is not None]
-    assert [int(rung[0]) for rung in rungs] == list(range(1, 13)), "twelve rungs, 1 to 12, once"
+    assert [int(rung[0]) for rung in rungs] == list(range(1, 14)), "thirteen rungs, 1 to 13, once"
     for what, column in (("name", 1), ("test", 4)):
         seen = [rung[column] for rung in rungs]
         twice = sorted({one for one in seen if seen.count(one) > 1})
@@ -46,7 +46,7 @@ def test_a_row_is_built_exactly_when_its_module_declares_a_rung_and_the_count_re
     rows = re.findall(r"lab/(\w+)\.py, \S+( - no RUNG)?", doc)
     wrong = [m for m, owed in rows if hasattr(import_module(f"lab.{m}"), "RUNG") == bool(owed)]
     assert not wrong, f"the map's built-or-not disagrees with the module's RUNG: {wrong}"
-    assert ladder.rungs_built() == (4, 12)  #: costs, ci, regimes, cpcv
+    assert ladder.rungs_built() == (5, 13)  #: costs, ci, regimes, cpcv, liquidity
 
 
 def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:
