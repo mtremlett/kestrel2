@@ -11,6 +11,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from typing import Any
 
 from desk.bars_parts import NOTE
+from desk.bars_schema import Source
 
 HOLDING = (
     "SELECT at, open, high, low, close, volume, source FROM bar"
@@ -45,9 +46,14 @@ def restated(
     rows: list[tuple[Any, ...]],
 ) -> list[tuple[Any, ...]]:
     """The rows of a daily write that change something. A held day whose prices or volume differ
-    is copied into `correction`; one the same under the same source is not written at all."""
+    is copied into `correction`; one the same under the same source is not written at all. The
+    archive never replaces a day the broker holds (B3: IBKR first, the archive fills gaps only)."""
     ats = [at for at, _ in prices]
     now = {r[0]: r for r in held.execute(HOLDING, (*key, min(ats, default=0), max(ats, default=0)))}
+    if source == Source.ARCHIVE.value:
+        now_ibkr = {at for at, r in now.items() if r[6] == Source.IBKR.value}
+        prices = [(at, p) for at, p in prices if at not in now_ibkr]
+        rows = [r for r in rows if r[3] not in now_ibkr]
     moved = [(at, price) for at, price in prices if at in now and not same(now[at][1:6], price)]
     held.executemany(NOTE, ((source, *key, at, *price) for at, price in moved))
     return [
