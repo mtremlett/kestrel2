@@ -1,12 +1,15 @@
 """Known answer: the published RSI-2 rule fixes the entry and exit days of a made-up series."""
 
+import importlib
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from desk import eponymous_connors
 from desk.eponymous_connors import decide, decide_percent_b
 from desk.store import Bar
 from desk.strategy import Action
+from lab import rulebook
 
 
 def _bars(closes: list[int]) -> list[Bar]:
@@ -56,3 +59,23 @@ def test_declares_no_holding_period_and_says_why() -> None:
     assert "Holding period: none" in eponymous_connors.__doc__
     rules = eponymous_connors.EPONYMOUS.values()
     assert all(r.declared.hold is None for r in rules)
+
+
+def test_every_eponymous_module_declares_unique_runnable_rules() -> None:
+    names: list[str] = []
+    for path in sorted(Path(eponymous_connors.__file__).parent.glob("eponymous_*.py")):
+        mapping = getattr(importlib.import_module(f"desk.{path.stem}"), "EPONYMOUS", None)
+        assert mapping, f"{path.stem} declares no EPONYMOUS"
+        for name, rule in mapping.items():
+            assert hasattr(rule, "declared") and hasattr(rule, "step"), f"{path.stem}: {name}"
+            names.append(name)
+    assert len(names) == len(set(names)), "a rule name is used twice"
+
+
+def test_the_seven_rules_with_no_python_file_are_still_served_from_the_book() -> None:
+    gone = (
+        "weekly_reversal_jegadeesh weinstein_stage kell_breakout dan_zanger_breakout "
+        "minervini_breakout demark_sequential mansfield_rs_momentum"
+    ).split()
+    assert not set(gone) & set(rulebook.eponymous())
+    assert all(rulebook.rule(name).__name__ == "SpecRule" for name in gone)
