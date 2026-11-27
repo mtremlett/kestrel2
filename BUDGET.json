@@ -11,27 +11,22 @@
   "phases": {
     "0-foundations": {
       "product_lines": 1500,
-      "product_files": 20,
       "lab_lines": 20
     },
     "1-data": {
       "product_lines": 3500,
-      "product_files": 30,
       "lab_lines": 20
     },
     "2-money-sim": {
       "product_lines": 7000,
-      "product_files": 45,
       "lab_lines": 7000
     },
     "3-money-paper": {
       "product_lines": 30000,
-      "product_files": 100,
       "lab_lines": 20000
     },
     "4-ladder": {
       "product_lines": 15000,
-      "product_files": 100,
       "lab_lines": 20000
     }
   },

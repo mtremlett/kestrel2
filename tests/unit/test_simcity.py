@@ -9,15 +9,17 @@ import cProfile
 import csv
 import random
 import sys
+from collections import Counter
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import IO, Any
 
 import pytest
 
@@ -55,15 +57,37 @@ def busy(patch: pytest.MonkeyPatch, root: Path, worlds: tuple[int, ...]) -> simc
 def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night, list[object]]:
     """One world of the fourteen months, lived once for every test here that reads it; with
     it, its life and its round trips, counted while its book still stood. It is a
-    world that meets every scenario, before the send path cancelled what a dead desk left."""
+    world that meets every scenario, before the send path cancelled what a dead desk left. And
+    what each of its days read and wrote of the desk's own files, by file: each open counted as
+    a read, each file swapped in (book_parts.keep) as a write, under "+" and the file's name."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
+    run, swapped = simcity._Life.live, Path.replace
+    was: Callable[..., IO[Any]] = Path.open
+    reads = list[Counter[str]]()
 
     def watched(life: simcity._Life) -> None:
         live(life)
-        seen.extend((life, life.trips))
+        seen.extend((life, life.trips, reads))
+
+    def counted(life: simcity._Life, on: date) -> day.Record:
+        reads.append(Counter())
+        return run(life, on)
+
+    def opened(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
+        if reads:
+            reads[-1][path.name] += 1
+        return was(path, *args, **kwargs)
+
+    def replaced(path: Path, target: str | Path) -> Path:
+        if reads:
+            reads[-1]["+" + Path(target).name] += 1
+        return swapped(path, target)
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
+        patch.setattr(simcity._Life, "live", counted)
+        patch.setattr(Path, "open", opened)
+        patch.setattr(Path, "replace", replaced)
         return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (7,)), seen
 
 
@@ -77,7 +101,7 @@ def sound(tmp_path_factory: pytest.TempPathFactory) -> simcity.Night:
 def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_is_recorded(
     lived: tuple[Path, simcity.Night, list[object]],
 ) -> None:
-    root, night, (life, trips) = lived
+    root, night, (life, trips, _) = lived
     assert isinstance(life, simcity._Life) and trips, "no round trip in fourteen months"
     plain = [record for record in life.records if record.profit is not None]
     counts = (len(life.records), len(life.records) - len(plain), trips, life.deaths)
@@ -107,6 +131,25 @@ def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_
         **{"profit": str(night.profit), "market": str(night.market)},
         **{"idle": "; ".join(night.idle), "broken": "; ".join(night.broken)},
     }
+
+
+def test_a_day_reads_the_desks_files_no_more_often_however_many_days_lie_behind_it(
+    lived: tuple[Path, simcity.Night, list[object]],
+) -> None:
+    """THE DEEP RUN'S READS PER DAY ARE FLAT. Each simulated day read the rates whole some
+    seventeen times and the records five, files that grow a row a day, so a day's work grew
+    with the days behind it: 0.3 s at day 50 of a world of the saved lines, 1.3 s at day 1,700,
+    and the 20 worlds never ended in the deep run's 7200 s (27 Nov: 01:03, 10:37, 12:40,
+    14:41). Each of the desk's files is read once until it is written (book_parts.read_once),
+    so a day reads each no more often than it writes it, and once more."""
+    reads = lived[2][2]
+    assert isinstance(reads, list) and len(reads) > 300, "fewer days than the fourteen months"
+    for name in (book.RATES, day.RECORDS, book.LEDGER):
+        often = [
+            (n, r[name], r["+" + name]) for n, r in enumerate(reads) if r[name] > r["+" + name] + 1
+        ]
+        assert not often, f"{name}: (day, reads, writes) read twice for a write: {often[:5]}"
+    assert sum(r[book.RATES] for r in reads) > len(reads), "the rates were never read: no count"
 
 
 def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ran_it(

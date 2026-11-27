@@ -1,5 +1,9 @@
 """The known-answer kit: planted noise is refused and a planted edge heard through the whole ladder
-on fixture data (L15b); it goes forward only once `reproduce` is judged on a rule with no figure."""
+on fixture data (L15b). The edge does not yet go forward, and lengthening the walks will not do it
+(probed 27 Nov on the whole 6,200 days): about 60 trades a line clear the trade counts, but the
+planted rise follows any trend, so fit FAILS (moves 0.91 with supertrend_10_3), liquidity FAILS
+(the walk's volume is 1) and up days stay THIN; and the 16 lines then take over ten minutes. The
+edge to plant is one only its rule hears, on bars with a real volume, on few lines."""
 
 from __future__ import annotations
 
