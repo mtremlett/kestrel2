@@ -89,7 +89,14 @@ KIT = (
     Known(9, "drift", "shuffle", "FAIL", "random entries on a rising line", "share among them"),
     Known(6, "drift", "market", "FAIL", "they earn only their own line's rise", "its own line's"),
     Known(13, "clone", "liquidity", "PASS", "a deep line takes under 1% of its day", "capacity"),
-    Known(13, "paid", "liquidity", "FAIL", "one share a day cannot take its trades", "volume on"),
+    Known(
+        13,
+        "one-share paid",
+        "liquidity",
+        "FAIL",
+        "one share a day cannot take its trades",
+        "volume on",
+    ),
     Known(14, "clone", "fit", "FAIL", "a clone of the desk's breakout adds no new return", "FAIL:"),
     Known(14, "paid", "fit", "PASS", "the churner moves with none of the desk's five", "new:"),
     Known(15, "paid", "late", "FAIL", "paid only on the next open, gone a bar late", "a bar late"),
@@ -195,12 +202,14 @@ Clone = type(
 )
 
 
+def _deep_as(bars: Sequence[Bar]) -> tuple[Bar, ...]:
+    """The bars of a line trading a million shares a day, deep enough for any trade of the desk."""
+    return tuple(replace(bar, volume=1_000_000) for bar in bars)
+
+
 def _deep() -> Mapping[Line, Sequence[Bar]]:
     """The breakout's planted edge on the four US lines, each trading a million shares a day."""
-    return {
-        line: tuple(replace(bar, volume=1_000_000) for bar in _walk(n, 0.012, 0.012, days=3100))
-        for n, line in enumerate(US, 1)
-    }
+    return {line: _deep_as(_walk(n, 0.012, 0.012, days=3100)) for n, line in enumerate(US, 1)}
 
 
 def _lucky() -> Mapping[Line, Sequence[Bar]]:
@@ -223,13 +232,14 @@ def _noise() -> Mapping[Line, Sequence[Bar]]:
 
 
 CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
-    "paid": ("churner", lambda: {line: _paid(n) for n, line in enumerate(US, 1)}),
+    "paid": ("churner", lambda: {line: _deep_as(_paid(n)) for n, line in enumerate(US, 1)}),
     "churner": ("churner", lambda: {line: _drift(n) for n, line in enumerate(US, 1)}),
     "lucky": ("breakout_20_10", _lucky),
     "thin": ("breakout_20_10", _thin),
     "noise": ("breakout_20_10", _noise),
     "drift": ("dart", lambda: {line: _rising(n) for n, line in enumerate(US, 1)}),
     "clone": ("clone", _deep),
+    "one-share paid": ("churner", lambda: {line: _paid(n) for n, line in enumerate(US, 1)}),
     "crowd": (
         "crowd",
         lambda: {line: crowds._crowds(n, crowds.RISE) for n, line in enumerate(US, 1)},
@@ -349,15 +359,16 @@ def test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it(
     judged: Callable[[str], Rows],
 ) -> None:
     """L17's gate: with plateau and reproduce judged, no rung is unrun on the planted edge, and
-    a rule with no settings is NOT APPLICABLE for plateau, never blocked by it. Its rungs short
-    of going forward are liquidity (#2230), as the paid lines trade one share a day, and the
-    one-bar-late rung (E13), as it is paid only on the next open; the crowd goes forward
-    (`test_lab_ladder_known_answer.py`)."""
-    rows = judged("paid")
+    a rule with no settings is NOT APPLICABLE for plateau, never blocked by it. On a line deep
+    enough to take its trades its one rung short of going forward is the one-bar-late rung (E13),
+    as it is paid only on the next open; on a line of one share a day liquidity (#2230) holds it
+    too. The crowd goes forward (`test_lab_ladder_known_answer.py`)."""
+    deep, thin = judged("paid"), judged("one-share paid")
     held = [
         {k for k, (a, _) in row["rungs"].items() if a != "PASS" and k not in verdict.GRADED}
-        for row in rows
+        for row in [*deep, *thin]
     ]  #: a graded rung's mark is the scorecard's, never a hold
-    assert rows and all(row["unrun"] == {} and row["answer"] == "PASS" for row in rows)
-    assert held == [{"liquidity", "late"}] * len(rows) and not any(goes(row) for row in rows), held
-    assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in rows)
+    assert all(row["unrun"] == {} and row["answer"] == "PASS" for row in [*deep, *thin])
+    assert deep and thin and not any(goes(row) for row in [*deep, *thin])
+    assert held == [{"late"}] * len(deep) + [{"liquidity", "late"}] * len(thin), held
+    assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in [*deep, *thin])
