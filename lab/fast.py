@@ -87,6 +87,7 @@ def _turtle_soup(p: Prices, params: Params) -> Bools:
 FIRES: Mapping[str, Fire] = {
     **_PARTS,
     "ratio_over_average": _PARTS["close_over_average"],  #: on ratio bars
+    "every_close": _PARTS["no_filter"],  #: the entry that buys every close
     "trend_template": _trend_template,
     "turtle_soup": _turtle_soup,
     "td_buy_countdown": buy_countdown,
