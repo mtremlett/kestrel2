@@ -2838,6 +2838,18 @@ Driven again on main after #2388: `rungs-sets` given an existing passing test of
 (`test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected`), RED,
 "boxes opened already met on main"; given a test not yet written, green. Both reverted.
 
+## 27 Nov - the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
 ## 27 Nov - the known-answer kit's planted edge is a crowd (L15b, Builder R2)
 The breakout's planted rise cannot go forward (#2402): any trend rule hears it (fit 0.91), so it is
 no edge of its own. Options weighed: (a) deepen and lengthen the breakout walks: fit still FAILS by
@@ -2856,6 +2868,26 @@ costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
 `test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
 green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
 
+## 27 Nov - rung 15, one bar late (E13, R-RUNNER-572, Builder R2), before any EPON result
+A rule whose edge sits in the one open after its signal is paid on a fill the desk cannot rely on
+(a missed order, a restart, a slow broker), and is often a bar-timing fault in the test itself.
+`lab/rung_late.py` makes every trade the first rung judged one bar later, buy and sale alike, and
+prices them by the first rung's own pricing (`rung.judge`: the desk's sizing, the pretend broker's
+fills and stop, the broker's costs, each leg at its own day's rate), so no second pricing path.
+THE BAR, options weighed: (a) FAIL only when the late mean gain after costs is below nothing; (b)
+the first rung's own rule on the late trades (MIN_TRADES, T_PASS); (c) a share of the on-time
+mean kept. Chose (b): one rule, already calibrated, no new number; (a) passes an edge that is
+noise a bar late, (c) is a number with no home. Its answer is that rule's (PASS, FAIL, THIN or
+FAULT); it only lowers a PASS, as liquidity does, and it is a hard rung (not GRADED): its FAIL
+stops a cell going forward. The reason names both sides: trades, mean gain after costs, t.
+Known answers: the kit's churner on its paid line (the whole gain is the next open's jump) PASSES
+on time and FAILS a bar late; the kit's crowd PASSES a bar late and still goes forward through the
+whole ladder; the fixture breakout's trend edge keeps most of it (12.62% to 11.41% a trade, t 5.09
+to 4.70, golden row pinned); a cell the first rung did not pass is not priced again. The rung
+kit's paid edge is now held by liquidity and late (its L17 test names both). `tests/unit/test_lab_rung_late.py` was red first (no rung_late module), then green. Edges, from
+its blind review: a late trade is sized at its own close, so its stop is its own and may sell it
+on the on-time sale's day; a pass on exactly 30 trades whose last falls off the bars is THIN late
+and does not go forward (too few to say), recorded rather than special-cased.
 ## 27 Nov - every limit has one home (design item 7, Builder 3b)
 A limit copied out of `BUDGET.json` stays behind when the file changes, and the copy is what a
 session reads (pattern 8; the runner's own pin of its budget did this today). Options weighed: (a)

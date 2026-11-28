@@ -147,7 +147,7 @@ def test_the_rung_reads_the_cells_tape_and_is_keyed_by_the_tape_this_code_and_th
     keys = [key(one, {}) for one in parts] + [key(dollars, rate)]
     late = rate | {c.end + timedelta(1): Decimal("0.9")}  #: a day after the window prices nothing
     assert key(made, rate) == keys[0] and key(dollars, late) == keys[-1] and len(set(keys)) == 6
-    monkeypatch.setitem(cell.RUNGS, rung_ci.ME, "this module edited")
+    monkeypatch.setitem(cell.RUNGS, rung_ci.__name__, "this module edited")
     keys += [key(made, {})]
     monkeypatch.setattr(tape, "rule_code", lambda _: "the rule edited")
     keys += [key(made, {})]

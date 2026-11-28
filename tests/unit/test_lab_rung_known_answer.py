@@ -19,6 +19,7 @@ from functools import cache
 from typing import Any, ClassVar
 
 import pytest
+import test_lab_ladder_known_answer as crowds
 import test_lab_spec_blind as blind
 from test_lab_ladder import SPY, _door
 from test_lab_rung import _bars, _walk
@@ -91,6 +92,10 @@ KIT = (
     Known(13, "paid", "liquidity", "FAIL", "one share a day cannot take its trades", "volume on"),
     Known(14, "clone", "fit", "FAIL", "a clone of the desk's breakout adds no new return", "FAIL:"),
     Known(14, "paid", "fit", "PASS", "the churner moves with none of the desk's five", "new:"),
+    Known(15, "paid", "late", "FAIL", "paid only on the next open, gone a bar late", "a bar late"),
+    Known(
+        15, "crowd", "late", "PASS", "a crowd's spells last: still paid a bar late", "a bar late"
+    ),
 )
 
 
@@ -225,12 +230,16 @@ CASES: dict[str, tuple[str, Callable[[], Mapping[Line, Sequence[Bar]]]]] = {
     "noise": ("breakout_20_10", _noise),
     "drift": ("dart", lambda: {line: _rising(n) for n, line in enumerate(US, 1)}),
     "clone": ("clone", _deep),
+    "crowd": (
+        "crowd",
+        lambda: {line: crowds._crowds(n, crowds.RISE) for n, line in enumerate(US, 1)},
+    ),
 }
 
 
 def plant(patch: pytest.MonkeyPatch) -> None:
     """The kit's planted rules in the book, each with its own known answers, so the ladder's
-    door lets them in: the churner, the drift-rider and the clone."""
+    door lets them in: the churner, the drift-rider, the clone and the crowd."""
     book: dict[str, type[Rule]] = {
         **rulebook.rules(),
         "churner": Churner,
@@ -246,6 +255,7 @@ def plant(patch: pytest.MonkeyPatch) -> None:
     patch.setitem(EPONYMOUS_PUBLISHED, "clone", PUBLISHED["breakout_20_10"])
     named = {"churner": "planted", "clone": "planted", "dart": "dart"}
     patch.setattr(tape, "code_of_rule", lambda s: named.get(s) or real(s))
+    crowds._plant(patch)  #: the crowd (`test_lab_ladder_known_answer.py`), the edge that lasts
 
 
 @pytest.fixture(scope="module")
@@ -339,13 +349,15 @@ def test_the_paid_edge_goes_forward_on_every_line_and_no_settings_block_it(
     judged: Callable[[str], Rows],
 ) -> None:
     """L17's gate: with plateau and reproduce judged, no rung is unrun on the planted edge, and
-    a rule with no settings is NOT APPLICABLE for plateau, never blocked by it. Its one rung
-    short of going forward is liquidity (#2230): the paid lines trade one share a day."""
+    a rule with no settings is NOT APPLICABLE for plateau, never blocked by it. Its rungs short
+    of going forward are liquidity (#2230), as the paid lines trade one share a day, and the
+    one-bar-late rung (E13), as it is paid only on the next open; the crowd goes forward
+    (`test_lab_ladder_known_answer.py`)."""
     rows = judged("paid")
     held = [
         {k for k, (a, _) in row["rungs"].items() if a != "PASS" and k not in verdict.GRADED}
         for row in rows
     ]  #: a graded rung's mark is the scorecard's, never a hold
     assert rows and all(row["unrun"] == {} and row["answer"] == "PASS" for row in rows)
-    assert held == [{"liquidity"}] * len(rows) and not any(goes(row) for row in rows), held
+    assert held == [{"liquidity", "late"}] * len(rows) and not any(goes(row) for row in rows), held
     assert all(row["rungs"]["plateau"][1].startswith("NOT APPLICABLE") for row in rows)
