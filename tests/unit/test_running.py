@@ -50,13 +50,13 @@ SPAN = date(2026, 7, 1), date(2026, 11, 30)
 VOLUME = 10**7  #: shares a day, so the 1% liquidity cap never shrinks an order
 DAYS = [date(2026, 10, 16) + timedelta(days=n) for n in range(29)]
 ACCOUNT, FILLS, ASKED = tp.ACCOUNT, tp.FILLS, tp.ASKED
-#: Twenty-one sessions to Friday the 13th: flat, and with a last close Bollinger's rule buys.
+#: Twenty-one sessions to Friday the 13th: a pound up and down, the last close one Bollinger buys.
 FLAT_, DIP = (
     tuple(
         Bar(on, c, c + 1, c - 1, c, VOLUME)
         for on, c in zip([d for d in DAYS if d.weekday() < 5], map(Decimal, closes), strict=True)
     )
-    for closes in ([40] * 21, [*[40] * 20, 36])
+    for closes in ([40 + n % 2 for n in range(21)], [*[40 + n % 2 for n in range(20)], 36])
 )
 #: The buy of 26 at 36 and its stop a tenth under, in pence, as the gateway is sent them; the
 #: stop as the broker then lists it, the buy ended, and its fill of that morning.
