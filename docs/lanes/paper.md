@@ -647,3 +647,9 @@ Options: keep the lock design (the system's word, independent of the supervisor'
 
 ### 2026-11-28 — paper-side-stops ticked on its gate (coordinator 311)
 Options: keep the box open until the paper door also has per-side set, move and cancel, or tick it on its gate. Its gate is a gateway tape with two stops on one ticker where the zoo's is cancelled and the desk's still rests. `test_two_stops_on_one_ticker_rest_apart_by_side` passes on main (#2476, #2477). Ticked, because the door now reads each side's stops by its own client id (desk 222, zoo 223), and the interface's per-side cancel landed in money-side-stops (#2479, `cancel_stop(symbol, zoo=)`). Left open, the box was never handed out (the runner calls it met) and never ticked, and PAPER idled with nothing it could start. Per-side counts and holders stay in zoo-own-side.
+
+### 2026-11-28 — the rehearsal's wait for a fill is the account's own, 3 s on a shut market (#2469, #2489)
+Options: give the wait to the account's door (one send path, one home per wait), lengthen the job timeout, or skip the send. Chose the door; the other two were rejected by the card. 5 s and a 3300 s stop (300 s margin to the runner's 3600 s kill) came first; a whole Friday of 313 orders still overran at about 10-11 s each, so the wait is 3 s (2 s was refused: it is also the gateway handshake wait and a slow handshake would fail before any send). Live doors keep 120 s. His standing ruling: "please always go with recommended".
+
+### 2026-11-28 — a stop's side is the placing client id (#2476)
+Options: the order ref prefix (a hand list, pattern 18) or the client id the gateway tells apart (desk 222, zoo 223). Chose the client id. Setting, moving and cancelling per side go through desk/placing.py, outside the claim, so they wait as R-PAPER-45.
