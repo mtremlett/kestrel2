@@ -541,12 +541,12 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
-- [ ] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
+- [x] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
       fourth time after #1813, #2400, #2410): nobody can tell a hang from a slow night, because `within` keeps the
       last three frames of one thread, and the runner's own dump of every thread (15 s before its 6 h limit) never
       fires behind SimCity's 7,200 s. At the limit, every thread's whole stack is named, so the
       next fix is made from evidence. Gate, written first: a planted work that waits inside a
-      nested call times out naming its outermost and innermost frames. No new desk/ file
+      nested call times out naming its outermost and innermost frames. No new desk/ file (done, #2440)
       {id: money-deep-stack; files: desk/simcitycmd.py, tests/unit/test_simcitycmd.py; check: tests/unit/test_simcitycmd.py::test_a_stuck_phase_names_every_threads_whole_stack}
 - [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
@@ -576,6 +576,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
+      Remains (#2368, blocked 27 Nov): `tests/unit/test_lab_ladder_epon.py` (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
       {id: money-epon-room; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
 - [ ] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
@@ -590,6 +591,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Remains (#2137, #2152): the daily round's pounds-room and total on main; per-side share counts in desk/book.py, once the stops rest apart by side (paper-side-stops, then money-side-stops; coordinator 284, 28 Nov: stops are keyed by ticker alone, so the zoo's one share beside the desk's holding has no stop of its own)
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
+      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); intraday refusal in desk/running.py is PAPER's (R-MONEY-76). Waits: operator
       {id: zoo-own-side; after: money-side-stops; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every eponymous desk module, and RUNGS' published list
@@ -1201,10 +1203,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
         Done (27 Nov, Builder R2): the planted edge is a crowd (`Crowd`, in while the day's volume is crowded), the only edge its rule hears, on deep lines, over 17 years; it goes forward on all four lines, every rung run and passed; the same crowds on lines that do not move with them FAIL at the first rung. The breakout's rise stays heard, not forward (DECISIONS 27 Nov). The hold itself is the coordinator's (E21)
         {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py, tests/unit/test_lab_rung.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
-  - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
+  - [x] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
-        Remains (#2293): in-repository parts are on main (#2257, #2189, #2312); the runner's 24x7 catalogue job obeys job-ladder.hold until the known-answer kit passes on main (waits on R-RUNGS-46); stale-market crash at publish (lab/basket.py)
-        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; waits: R-RUNGS-46; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
+        Done (#2257, #2189, #2312, #2428): a stale or missing market under a basket FAULTs the retail rung with its gap named and the table is still published. Remains, runner ops' own: release job-ladder.hold (R-RUNGS-46 is met, #2226)
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
   - [x] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
@@ -1261,18 +1263,19 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: all 21 rows trade as their Python twins (#873, #1382, #1430, #1464); Zweig on breadth bars (#2425).
         Deleting the Python files is R-RUNNER-127, a builder's: the files are MONEY's and the zoo, the ladder,
         promotion and the rulebook read them (coordinator 281, `docs/DECISIONS.md`)
+        Remains (#2345, #2383, #2425): all 21 rows are pinned by a fixture-trades fingerprint and parity holds; MONEY deletes the 19 `desk/eponymous_*.py` twins (R-RUNGS-51), then `_twin` goes from the test and the box ticks.
         {id: rungs-rows-as-rules; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-spec; check: tests/unit/test_lab_catalogue.py::test_zweig_breadth_thrust_row_trades_as_its_python_twin}
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551), Clenow 3x3 (#1564), Weinstein ago 3x1 (#1570), Mansfield 3x3 (#1578), Faber and dual momentum 3x3 each (#1587, joined key `entry+exit` in #1574), Zweig's hold 115/230/345 (#1595), Darvas's box sessions 2/3/4 (#1604), DeMark's setup length 7/9/11 (#1615); a row's name may not carry `[` (#1591); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. `lab/variants.py` reads `lab.spec` alone (#1620), so R-RUNGS-33 is unblocked for GRID. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); entering the new rows' variants in the register from a caller; every row with a setting is ranged (Weinstein's shared 150-day lookback is deliberately not ranged); fast and desk engines disagree on `clenow_momentum[entry.n=60,exit.n=50]` (bar 830), so hold every variant to parity, quicker than 80 s, before judging through the fast grid
         {id: rungs-b5; files: lab/spec.py, lab/variants.py, lab/catalogue.toml, tests/unit/test_lab_variants.py; waits: R-RUNGS-33; check: tests/unit/test_lab_variants.py::test_every_variant_matches_the_desk_engine_before_it_is_judged}
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
-        {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules; check: tests/unit/test_lab_catalogue.py::test_quarry_rows_carry_hand_derived_cases}
+        {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; waits: 2026-11-29; check: tests/unit/test_lab_catalogue.py::test_quarry_rows_carry_hand_derived_cases}
   - [x] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
         {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py; after: rungs-blocks; check: tests/unit/test_lab_fast.py::test_the_fast_engine_matches_the_desk_on_the_golden_fixture}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
-        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate; check: tests/unit/test_lab_ladder_pool.py::test_a_set_sweeps_its_rows_ranges_and_reports_the_plateau_centre}
+        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; waits: 2026-11-29; check: tests/unit/test_lab_ladder_pool.py::test_a_set_sweeps_its_rows_ranges_and_reports_the_plateau_centre}
 - [x] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Retired (coordinator 100, 22 Nov 23:0x): Supertrend's carried band and a fresh-low table, for which no free printed worked example was found; no paid data before profit (his 22 Nov), not a hard line. Supertrend stays held to its reference script's carried bands (lab/published.py, supertrend_10_3)
@@ -1295,7 +1298,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       of the figures); each reproduced on its author's own market first, and only then judged
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); Step 2 built (#1804, #1829): Faber's printed figures word for word (compounded 10.18%, drawdown 42.24%, ~70% invested), and `lab/reproduce.py` takes an eponymous rule and measures CAGR, drawdown, time invested (R-RUNGS-37). Remains: Faber's figure on file in `reproduce.FIGURES` (tolerances, fixed before a run: CAGR within 0.5 points, drawdown 3, invested 5), which needs the S&P 500 total-return monthly series from 1901 held through the one writer (R-RUNGS-38, 39, DATA) and a monthly line with its own calendar (the desk's Faber rule judges a month-end on the next bar; desk files, outside this claim)
-      {id: rungs-epon-first; files: lab/reproduce.py, tests/unit/test_lab_reproduce.py, lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; after: rungs-trustworthy; waits: R-RUNGS-38; check: tests/unit/test_lab_reproduce.py::test_faber_reproduces_his_printed_figures_within_tolerance}
+      {id: rungs-epon-first; files: lab/reproduce.py, tests/unit/test_lab_reproduce.py, lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; waits: R-RUNGS-38; check: tests/unit/test_lab_reproduce.py::test_faber_reproduces_his_printed_figures_within_tolerance}
 - [x] **Published figures without buying books** (his ruling, 14 November): where an
       author's own table is not to be had free, the best published replication found on the
       internet stands in, labelled secondary, with its source, date, rules and period
@@ -1308,7 +1311,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       around any plateau found, each family named before it runs. After each set, one
       Telegram summary and a results file: every strategy, every rung's verdict with its
       reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
-      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
+      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; waits: R-RUNGS-34; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
 - [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
       set's full trial count (and its reproduction, if published); it is named in this plan,
       with its kill condition, before its first paper day; it then trades paper side by side
@@ -1316,7 +1319,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       signature (STR-17, LAD-11, MIG-07)
       Ruled by the desk (23 Nov, his 22 Nov 'nothing parks on him but hard lines'; DECISIONS): held by its after: links only; paper is the desk's; real money stays his alone (a hard line)
       Held again 23 Nov (#2141, second hand-out; R-RUNGS-42): 0 PASS in 804,450 EPON lines; its after: link rungs-trustworthy is open
-      {id: rungs-eponymous; files: *; after: rungs-trustworthy, rungs-indicators; check: tests/unit/test_lab_promotion.py::test_a_graduate_is_named_in_the_plan_with_its_kill_condition}
+      {id: rungs-eponymous; files: *; waits: 2026-11-29; check: tests/unit/test_lab_promotion.py::test_a_graduate_is_named_in_the_plan_with_its_kill_condition}
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV

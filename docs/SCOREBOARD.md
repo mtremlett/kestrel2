@@ -271,6 +271,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2333 R-RUNNER-534 done: one differing line no longer stops London or the zoo. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2354 R-RUNNER-510 fault matrix: 7 of 325 cells built. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2363 R-RUNNER-542 part: a gap past the loss limit halts buying at collect; no caller passes lines yet. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2368 money-epon-room blocked: deleting the seven twinned rule files turns a RUNGS test red; nothing deleted. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2379 zoo-own-side built and reverted on blind review (mixed lines need per-side stops and holders); no box ticked. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2440 money-deep-stack ticked: deep SimCity's hang now leaves full-stack evidence at 7,200 s. |
 
 ### DATA
 
@@ -1225,3 +1228,17 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b ticked: the known-answer kit's crowd, a planted edge, goes forward through every rung; its noise twin is refused. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS E13 (R-RUNNER-572): rung 15, one bar late; an edge paid only on the next open fails, one that lasts passes. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | DATA data-history-holes ticked (O75, R-RUNGS-40): one rule of a hole, Line.holes; history_bars.holes lists 32,856 on 470 research lines for the greenkeeper. |
+
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: known-answer kit checked on main (noise refused, edge heard); docstring corrected; waits on a reproduce request (#2328). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: catalogue rows pinned by trade fingerprint, so the eponymous twins can be deleted without losing proof; box open (#2345). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS P1: the fast engine is proven on all seven golden series except four exact Keltner ties, both bands pinned; the fault is in the desk's block (#2348). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: set 2, the grid transfer study, published and told to his phone by the ladder's door (rungs-sets step, #2358). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: R-GRID-9's GRID half reopened as its own request (R-RUNNER-565); no box ticked (#2366). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: the rows' parity pins outlive their Python twins; 0 boxes ticked, deletion needs a wider claim (#2383). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b probed: the planted edge's way forward was blocked by fit and liquidity on the fixture, written in the kit; no box ticked (#2402). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: the fast engine's parity check covers all seven golden series; the desk's Keltner rounding is pinned until blocks.py is fixed (#2411). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS S9: a cell the grid refuses runs its one rule on the desk's engine, 0.11 to 0.02 s; no verdict changed (#2229). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS S3: the shuffle rung stops once a trial cannot pass; failing cells 25-30 s to 1-7 s, answers identical (#2235). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS S5: a cell's shuffles are one tape; 101 files per cell to 2, donchian cold 26.1 to 15.2 s, share equal (#2236). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: rungs-rows-as-rules parity proven for 21 of 21 rows under the box's named check; twin deletion requested of MONEY (#2425). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L16 ticked: a stale or missing market under a basket names its gap and the set's table is still published (#2428). |
