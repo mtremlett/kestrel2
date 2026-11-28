@@ -51,6 +51,9 @@ def test_three_thin_lines_make_one_basket_of_36_trades_judged_on_the_pooled_gain
     assert "8.87 standard errors" in row["rungs"]["first"][1]
     assert row["unrun"] == basket.UNRUN  #: a basket's pass is no pass of the whole ladder
     assert not verdict.goes(row)
+    stale = Against(LINES[0], (), {})  #: a market holding no bars: the retail rung FAULTs
+    sour = basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, stale)
+    assert sour["rungs"]["retail"][0] == sour["answer"] == "FAULT"  #: never a PASS beside it
 
 
 def test_a_failing_basket_over_one_standard_error_is_incubate_listed_apart_and_never_goes(

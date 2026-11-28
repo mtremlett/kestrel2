@@ -15,10 +15,11 @@ What a step owes, in this order, and only of a gateway that says it is ready:
 - THE DAY'S CHECK (clearance.check), from the hour he wakes, and before each round and record.
   When it names anything, what a dead desk left at the broker is put right (`recover`) and
   the account checked again. Still not clean, no order goes, he is told.
-- THE DAY'S ORDERS, one round for each venue while it trades: the money path's own day
-  (day.trade), on the bars saved before today. The send path asks the broker of every order
-  first, so a round begun twice sends nothing twice; an order refused in it is not sent later.
-- THE INTRADAY ROUNDS (`_intraday`), after the day's own: each intraday rule at each whole
+- THE DAY'S ORDERS (desk/rounds.py), one round for each venue while it trades: the money
+  path's own day (day.trade), on the bars saved before today. The send path asks the broker
+  of every order first, so a round begun twice sends nothing twice; an order refused in it
+  is not sent later.
+- THE INTRADAY ROUNDS (desk/bar_rounds.py), after the day's own: each intraday rule at each whole
   bar of its span, through the same check, gate, stops and records (none trade yet); with the
   paper switch (ZOO_ON) the zoo's rules too, one share each, said to be a MACHINERY TEST,
   NOT EVIDENCE OF AN EDGE (CANON B6, his 22 Nov ruling).
@@ -31,51 +32,46 @@ record (`notes`). A step that fails raises to its asker; the next tries again.""
 
 from __future__ import annotations
 
-import csv
 import sys
-from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from collections.abc import Mapping
 from datetime import date, datetime, timedelta
-from decimal import Decimal
 from pathlib import Path
-from typing import NamedTuple
 
 from desk import (
+    bar_rounds,
     book,
     clearance,
-    conformance_tape,
     day,
     gateway,
     goflat,
     halt,
-    intraday,
     keeper,
     kill,
     listing,
     messenger,
-    paper,
     placing,
-    restop,
+    rounds,
     venues,
     watch,
 )
 from desk.book import Switch
 from desk.gateway import Known, State
-from desk.lines import LINES, YARDSTICK, Line
+from desk.lines import LINES
 from desk.listing import Listing, Unlisted
-from desk.messenger_parts import Mail
-from desk.orders import ZOO_DAY, Order, Refused, Sale, Settings, is_zoo, size, strategy_of
-from desk.rollup import Candle
+from desk.running_notes import (
+    DAY,
+    RECOVERED,
+    TROUBLE,
+    UNCLEAN,
+    VENUES,
+    ZOO_NOTE,
+    Desk,
+    _note,
+    notes,
+)
 from desk.running_parts import PUT_RIGHT
 from desk.running_parts import recover as recover
-from desk.store import Bar
-from desk.strategy import Action, Decision
 
-NOTES, HEAD = "running.csv", ("at", "what", "words")
-VENUES = {"LSE": "London", "US": "New York"}  #: each venue of the desk's lines, as he is told it
-DAY, HOUR = timedelta(days=1), timedelta(hours=1)
-ORDERS, RECOVERED, UNCLEAN, TROUBLE = "orders {}", "recovered", "unclean", "trouble"
-ONCE = (UNCLEAN, TROUBLE)  #: told once a day, the first: of a failure, the first of its kind
 NOT_THE_BOOK = "The paper account is not the desk's book, so no order goes. Its check named: {}."
 FAILED = (
     "A step of the desk failed; the next tries again: {}: {} (in {}). Its like today is not told."
@@ -87,71 +83,7 @@ UNDRILLED = (
 )
 ZOO_ON = "zoo-on-paper"  #: the one paper switch: this file in the desk's root turns the zoo on
 DOWN_MARK = "gateway_down"  #: the file at root holding when the Gateway was first found down
-ZOO_NOTE = "zoo"  #: the name the zoo's notes are kept under: told in the hourly message alone
-MACHINERY = "MACHINERY TEST, NOT EVIDENCE OF AN EDGE"  #: said of every zoo order, never a verdict
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
-Rules = Mapping[str, Callable[[], intraday.IntradayRule]]
-Saved = tuple[Mapping[Line, Sequence[Bar]], Collection[str]]  #: bars by line; who is parked
-
-
-@dataclass(frozen=True)
-class Desk:
-    """All a step is given beside the moment: the desk's records, and its doors out."""
-
-    root: Path  #: where the ledger, the checks, the switch, the records and the messages are
-    room: Settings
-    post: messenger.Post  #: the door to his phone
-    #: A day's pounds per unit of each currency: the same answer at every asking.
-    rates: Callable[[date], Mapping[str, Decimal]]
-    #: The fast store of five-minute bars for the crash watch, and the one door to the daily
-    #: bars, as last kept by the store's keeper (no archive is asked at a step).
-    hot: Path
-    held: Callable[[date], Saved]
-    door: paper.Door  #: who the desk is at the paper Gateway
-    mail: Mail | None = None  #: the email door, if his SMTP_ settings are set
-    #: The intraday rules the desk may trade, as `intraday.RULES`: none until one passes the ladder.
-    rules: Rules = field(default_factory=lambda: intraday.RULES)
-    zoo: bool = False  #: whether the zoo's rules trade on paper too (ZOO_ON): OFF unless set
-
-    def __post_init__(self) -> None:
-        """A day's rates are fixed at their first record: later steps price at the kept ones."""
-        fetch, root = self.rates, self.root
-
-        def first(day: date) -> Mapping[str, Decimal]:
-            kept = {c: r for (d, c), r in book.rates_kept(root).items() if d == day}
-            return kept or fetch(day)
-
-        object.__setattr__(self, "rates", first)
-
-
-class Note(NamedTuple):
-    """One thing the desk did unattended, as its record keeps it and as he is told it."""
-
-    at: datetime
-    what: str
-    words: str
-
-
-def notes(root: Path) -> tuple[Note, ...]:
-    """What the desk did unattended, oldest first. A file there that is not this record is
-    an error, never a day on which nothing was done."""
-    path = root / NOTES
-    if not path.exists():
-        return ()
-    with path.open(newline="", encoding="utf-8") as kept:
-        rows = list(csv.reader(kept))
-    if rows[:1] != [list(HEAD)]:
-        raise ValueError(f"{path}: not the record of what the desk did, so nothing is done")
-    return tuple(Note(datetime.fromisoformat(at), what, words) for at, what, words in rows[1:])
-
-
-def _note(root: Path, now: datetime, what: str, words: str) -> None:
-    """Keep one thing done; of those told once a day (ONCE), the first alone."""
-    kept = notes(root)
-    if what.split()[0] in ONCE and any((n.what, n.at.date()) == (what, now.date()) for n in kept):
-        return
-    rows = ((n.at.isoformat(), n.what, n.words) for n in (*kept, Note(now, what, words)))
-    book._write(root / NOTES, [HEAD, *rows])
 
 
 def _clean(
@@ -168,200 +100,6 @@ def _clean(
     return not found
 
 
-def _pending(root: Path, now: datetime, seen: watch.Look | None, once: bool = True) -> list[str]:
-    """The venues whose round is owed now: in continuous trading, with no round of today's on
-    the record (not once: the intraday rounds, whatever is), and, of the market's own venue,
-    once the look has read a bar of the session (watch.EARLY). A failed look holds every round."""
-    if seen is None:
-        return []
-    done = {note.what for note in notes(root) if note.at.date() == now.date()}
-    trading = {venue: venues.open_at(venue, now) for venue in VENUES}
-    return [
-        venue
-        for venue, hours in trading.items()
-        if hours and now < hours.close and not (once and ORDERS.format(venue) in done)
-        if venues.uk_time(now).time() >= conformance_tape.STARTS[venue]
-        if not (venue == YARDSTICK.venue and seen.unread.get(YARDSTICK) == watch.EARLY)
-    ]
-
-
-def _again(root: Path, now: datetime, seen: watch.Look | None) -> dict[str, set[str]]:
-    """THE ROUND OWED ONCE MORE (R-RUNNER-395): of a venue still trading whose round is on the
-    record and not yet made again, the symbols of today's orders the desk ITSELF cancelled,
-    or the round cap carried (the morning's list), with nothing filled under the id or its -r1;
-    only those go again, as <id>-r1."""
-    path = root / book.CANCELS
-    if seen is None:
-        return {}
-    mine = set[str]()
-    if path.exists():
-        with path.open(newline="", encoding="utf-8") as rows:
-            mine = {row[0] for row in csv.reader(rows) if row[1:] == [now.date().isoformat()]}
-    if (root / halt.BLOCKED / f"{now.date()}.csv").exists():  #: R-RUNNER-473: the round cap's own
-        mine |= {b.order_id for b in halt.morning(root, now.date())[halt.Blocker.CARRIED]}
-    done = {note.what for note in notes(root) if note.at.date() == now.date()}
-    filled = {fill.order_id for fill in book.fills(root) if fill.day == now.date()}
-    out = dict[str, set[str]]()
-    for venue in VENUES:
-        hours = venues.open_at(venue, now)
-        if not hours or now >= hours.close or ORDERS.format(venue) not in done:
-            continue
-        if f"{ORDERS.format(venue)} again" in done:
-            continue
-        stamp = f"{now:%Y%m%d}-"
-        cut = {
-            line.symbol
-            for line in LINES
-            if line.venue == venue
-            for oid in mine
-            if oid.startswith(stamp) and oid.endswith(f"-{line.symbol}")
-            if not {oid, f"{oid}-r1"} & filled
-        }
-        if cut:
-            out[venue] = cut
-    return out
-
-
-def _fit(
-    saved: Saved, venue: str, today: date
-) -> tuple[dict[Line, Sequence[Bar]], list[str], date]:
-    """Of the bars saved before today, a venue's lines fit to decide on; the lines left out,
-    by name (parked, or no bar of the session before today); and that session."""
-    bars, parked = saved
-    last = venues.sessions(venue, today - 9 * DAY, today)[-2]
-    mine = {line: series for line, series in bars.items() if line.venue == venue}
-    stale = {line for line, series in mine.items() if [bar.day for bar in series][-1:] != [last]}
-    out = sorted(line.symbol for line in mine if line in stale or line.symbol in parked)
-    return {line: series for line, series in mine.items() if line.symbol not in out}, out, last
-
-
-def _round(
-    desk: Desk, broker: placing.Paper, venue: str, now: datetime, only: Collection[str] = ()
-) -> None:
-    """A venue's orders for today, by the money path's own day, on the bars saved before today;
-    the round goes on the record with the answer to each order. A line parked by the store, or
-    with no bar of the session before, is left out and named. Then each held line's stop is
-    moved to 10% under its fill once (restop). A desk that dies in it runs it again."""
-    today = now.date()
-    kept = desk.held(today)
-    saved, out, last = _fit(kept, venue, today)
-    if only:  #: the round again: just the lines whose orders the desk cancelled
-        saved, out = {ln: s for ln, s in saved.items() if ln.symbol in only}, []
-
-    def tell(
-        name: str, words: str
-    ) -> None:  #: kept as a note: told at his next step until delivered
-        _note(desk.root, now, name, words)
-
-    rates = desk.rates(today)
-    sent = day.trade(desk.root, saved, broker, desk.room, today, rates, tell, zoo=desk.zoo)
-    restop.move(desk.root, broker, LINES)  #: each held line's stop, under its fill (R-RUNNER-220)
-    said, zoo = [
-        [
-            f"{s.order_id}, {s.filled} shares done" + f" ({s.reason})" * bool(s.reason)
-            for s in sent
-            if is_zoo(s.order_id) == machine
-        ]
-        for machine in (False, True)
-    ]
-    _bar_notes(desk.root, now, venue, {True: [f"{w} ({MACHINERY})" for w in zoo]})  #: hourly alone
-    words = f"{VENUES[venue]}, today's orders: {'; '.join(said) or 'none sent in this round'}."
-    held = _held_out(desk.root, out, kept[1], last)
-    out = [symbol for symbol in out if symbol not in held]
-    left = f" Left out, parked or with no bar of {last:%a %d %b}: {', '.join(out)}."
-    name = ORDERS.format(venue) + " again" * bool(only)
-    _note(desk.root, now, name, words + left * bool(out) + "".join(held.values()))
-
-
-def _latest(
-    desk: Desk, lines: Mapping[str, Line], span: intraday.Span, now: datetime
-) -> dict[str, list[Candle]]:
-    """The venue's lines whose latest whole bar of the span just closed, with the session's bars."""
-    length, bars = timedelta(minutes=span.value), dict[str, list[Candle]]()
-    for symbol, line in lines.items():
-        try:
-            whole = intraday.session(desk.hot, line, span, now.date())
-            made = [c for c in whole if c.start + length <= now]
-        except LookupError:  # the store never held this span for the line: not decided on
-            continue
-        if made and made[-1].start + 2 * length > now:
-            bars[symbol] = made
-    return bars
-
-
-def _rules(desk: Desk) -> Rules:
-    """The intraday rules a step trades: the desk's, and the zoo's behind its switch."""
-    return {**desk.rules, **(intraday.ZOO_RULES if desk.zoo else {})}
-
-
-def _intraday(
-    desk: Desk, broker: placing.Paper, venue: str, now: datetime, placed: list[book.Sent]
-) -> None:
-    """THE INTRADAY ROUND (R-RUNNER-202): each rule decides on each line of the venue at its
-    latest whole bar (a zoo rule, on the zoo's lines); its orders go by the one send path, each
-    id dated with its bar's start, so a bar seen twice sends once. A buy is refused as the
-    daily one is (day.refusal). The day's rates are kept first, so every fill can be priced.
-    Stops are then moved; a round sending nothing is unkept. `placed` is the step's orders put to
-    the broker, shared by its venues: capped at MAX_ORDERS."""
-    book.record_rates(desk.root, now.date(), desk.rates(now.date()))
-    said: dict[bool, list[str]] = {False: [], True: []}  #: the desk's rules' words; the zoo's
-    for name, make in _rules(desk).items():
-        machine = name in intraday.ZOO_RULES
-        said[machine] += _rule_round(desk, broker, venue, now, name, make, placed)
-    if said[False] or said[True]:
-        restop.move(desk.root, broker, LINES)
-    _bar_notes(desk.root, now, venue, said)
-
-
-def _rule_round(
-    desk: Desk,
-    broker: placing.Paper,
-    venue: str,
-    now: datetime,
-    name: str,
-    make: Callable[[], intraday.IntradayRule],
-    placed: list[book.Sent],
-) -> list[str]:
-    """One rule's orders at the bar, each said, the book read afresh. A zoo rule decides on the
-    zoo's lines and buys one share on ZOO_DAY, its total within day._zoo_full's pounds. An order
-    the broker has not seen counts in `placed`; past MAX_ORDERS it is carried to the next round."""
-    root, today, said = desk.root, now.date(), list[str]()
-    machine, held = name in intraday.ZOO_RULES, book.positions(desk.root)
-    owner = {f.symbol: strategy_of(f.order_id) for f in book.fills(root) if f.quantity > 0}
-    pool = intraday.zoo_lines() if machine else LINES
-    lines = {ln.symbol: ln for ln in pool if ln.venue == venue}
-    room = ZOO_DAY if machine else desk.room
-    bars = _latest(desk, lines, make().span, now)
-    mine = {s: owner[s] for s in held if s in owner}
-    for d in intraday.today(venue, bars, mine, {name: make}):
-        if d.action is Action.HOLD:
-            continue
-        oid = f"{today:%Y%m%d}-{name}-{d.symbol}-{d.at:%H%M}{d.action.name[0]}"
-        order = _order(desk, room, d, lines[d.symbol], oid, bars[d.symbol][-1].close, held)
-        if machine and isinstance(order, Order):  #: tiny: one share, never the room
-            order = replace(order, quantity=1)
-            order = day._zoo_full(root, order, desk.rates(today)) or order
-        if isinstance(order, str):
-            said.append(order)
-            continue
-        new = broker.report(order.order_id) is None
-        stand = day.standing(root, today, machine)
-        sent = day._send(root, broker, order, room, None, stand, round_=placed)
-        placed += [sent] * new
-        tag = f" ({MACHINERY})" * machine
-        said.append(f"{sent.order_id}, {sent.filled} shares done ({sent.reason or 'sent'}){tag}")
-    return said
-
-
-def _bar_notes(root: Path, now: datetime, venue: str, said: Mapping[bool, list[str]]) -> None:
-    """A bar's orders on the record: the desk's rules' under `intraday`, the zoo's under its own
-    name (ZOO_NOTE), told in his hourly message, never at each bar."""
-    for machine, words in said.items():
-        if words:
-            name = f"{ZOO_NOTE if machine else 'intraday'} {venue} {now:%H%M}"
-            _note(root, now, name, f"{VENUES[venue]}, this bar's orders: {'; '.join(words)}.")
-
-
 def down_since(root: Path, known: Known, now: datetime) -> datetime | None:
     """When the paper Gateway went down, if it is down (not ready, not its daily restart): the
     first moment it was found so, kept in a mark at root until it answers again."""
@@ -372,62 +110,6 @@ def down_since(root: Path, known: Known, now: datetime) -> datetime | None:
     if not mark.exists():
         mark.write_text(now.isoformat())
     return datetime.fromisoformat(mark.read_text())  # bounded: one timestamp, never grows
-
-
-def zoo_hour(root: Path, now: datetime, down: bool = False) -> str:
-    """The zoo's last hour for his hourly message, in one line (none: no words): its orders
-    filled and those not, never a message of its own at each bar. With the Gateway down its
-    orders are not sent, never 'not filled'."""
-    if down:
-        return f"\nZoo ({MACHINERY}): its orders are not sent while the Gateway is down."
-    words = [n.words for n in notes(root) if n.what.split()[0] == ZOO_NOTE and now - n.at < HOUR]
-    if not words:
-        return ""
-    done = sum(w.count(" shares done") - w.count(", 0 shares done") for w in words)
-    told = sum(w.count("; ") + 1 for w in words)
-    return f"\nZoo ({MACHINERY}): {done} of {told} orders filled in the last hour."
-
-
-def _order(
-    desk: Desk,
-    room: Settings,
-    d: intraday.IntradayDecision,
-    line: Line,
-    oid: str,
-    close: Decimal,
-    held: Mapping[str, int],
-) -> Order | Sale | str:
-    """An intraday decision's order, under its bar's id; or, of a buy refused, why."""
-    today = d.at.date()
-    if d.action is Action.SELL:
-        return Sale(oid, line, held[d.symbol], session=today)
-    if no := day.refusal(desk.root, oid, line, held):  #: the daily buy's own refusals
-        return no[0]
-    buy, mine = Decision(d.strategy, d.symbol, today, d.action), book.side(desk.root, held, oid)
-    try:
-        return replace(
-            size(buy, line, close, desk.rates(today)[line.currency], room, mine), order_id=oid
-        )
-    except Refused as refused:
-        return str(refused)
-
-
-def _held_out(
-    root: Path, out: Sequence[str], parked: Collection[str], last: date
-) -> dict[str, str]:
-    """Of the lines left out, those the desk HOLDS, each with why its sell rule was not
-    checked today and the level its stop rests at (R-RUNNER-312)."""
-    held, levels, buys = book.positions(root), book.levels(root), dict[str, str]()
-    for fill in book.fills(root):
-        if fill.quantity > 0:
-            buys[fill.symbol] = fill.order_id
-    why = {s: "parked by the store" if s in parked else f"no bar of {last:%a %d %b}" for s in out}
-    return {
-        s: f" {s} held, not judged today: {why[s]}; its stop rests at "
-        f"{levels.get(f'{buys[s]}-stop', 'a level the desk has not kept')}."
-        for s in out
-        if held.get(s)
-    }
 
 
 def _owed(root: Path, now: datetime) -> list[date]:
@@ -474,12 +156,16 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     """What a step owes of a ready gateway, in the module's order; the paper account is asked
     only when something is owed. Each round and record has the check before it, the drill first."""
     root = desk.root
-    rounds, owed, last = _pending(root, now, seen), _owed(root, now), clearance.checks(root)[-1:]
+    due, owed, last = (
+        rounds._pending(root, now, seen),
+        _owed(root, now),
+        clearance.checks(root)[-1:],
+    )
     checked = bool(last) and last[0].at.date() == now.date() and last[0].found is not None
     awake = gateway._uk(now).time() >= gateway.WAKES
-    live = _pending(root, now, seen, False) if _rules(desk) else []
-    again = _again(root, now, seen)
-    check = bool(rounds or owed or live or again) or (awake and not checked)
+    live = rounds._pending(root, now, seen, False) if bar_rounds._rules(desk) else []
+    again = rounds._again(root, now, seen)
+    check = bool(due or owed or live or again) or (awake and not checked)
     if not (check or owed or any(venues.open_at(venue, now) for venue in VENUES)):
         return
     broker = _paper(desk, listings := listing.kept(root, now, LINES, desk.door), now)
@@ -489,14 +175,14 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
     if sold := goflat.step(root, broker, desk.room, now):
         _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
     if check and not _clean(desk, broker, listings, now):
-        rounds, live, again = [], [], {}
-    for venue in rounds:
-        _round(desk, broker, venue, now)
+        due, live, again = [], [], {}
+    for venue in due:
+        rounds._round(desk, broker, venue, now)
     for venue, symbols in again.items():  #: once more, the same check, gate and send
-        _round(desk, broker, venue, now, symbols)
+        rounds._round(desk, broker, venue, now, symbols)
     placed: list[book.Sent] = []
     for venue in live:  #: the intraday rounds, after the day's own, their orders due today
-        _intraday(desk, bar, venue, now, placed)
+        bar_rounds._intraday(desk, bar, venue, now, placed)
     for on in owed:  #: a missed session's rates are kept first, as its own day would have
         book.record_rates(root, on, desk.rates(on))
         day.publish(root, desk.held(on + DAY)[0], broker, desk.room, on)

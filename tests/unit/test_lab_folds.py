@@ -125,7 +125,7 @@ def test_a_dollar_line_with_a_day_unrated_is_a_gap_before_the_folds_start() -> N
     (unrated,) = folds.gaps([usd], rated | {bars[1].day: Decimal(0)})
     assert unrated == f"AAPL: no rate of pounds per USD to price {bars[1].day} by: 0"
     folds.preflight([usd], rated)  #: whole: the set starts
-    with pytest.raises(ValueError, match=f"^1 gap in the set's inputs.* {bars[1].day}"):
+    with pytest.raises(folds.Gaps, match=f"^1 gap in the set's inputs.* {bars[1].day}"):
         folds.preflight([usd], rated | {bars[1].day: Decimal(0)})
     #: 1% FAULT is published; over 1% is not
     assert folds.published(1, 100) and not folds.published(1, 99) and folds.published(0, 0)

@@ -39,6 +39,7 @@ from http.client import HTTPException
 from pathlib import Path
 
 from desk import (
+    bar_rounds,
     book,
     clearance,
     gateway,
@@ -51,7 +52,9 @@ from desk import (
     paper,
     placing,
     pnl,
+    rounds,
     running,
+    running_notes,
     venues,
 )
 from desk import day as days
@@ -63,7 +66,8 @@ from desk.keeper import Broker
 from desk.lines import LINES
 from desk.messenger_parts import SMTP, Mail
 from desk.orders import Settings
-from desk.running import DAY, VENUES, ZOO_ON, Desk
+from desk.running import ZOO_ON
+from desk.running_notes import DAY, VENUES, Desk
 from desk.trading_hours import trading
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
@@ -155,7 +159,7 @@ def _account(root: Path, now: datetime, door: paper.Door) -> str:
 def _prices(desk: Desk, today: date) -> str:
     """The lines with a bar of the session before today, on each venue that trades today."""
     saved = desk.held(today)
-    fits = [running._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
+    fits = [rounds._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
     fit, out = sum(len(lines) for lines, _, _ in fits), [s for _, left, _ in fits for s in left]
     if not fits:
         return "no market trades today"
@@ -213,14 +217,14 @@ def _moments(on: date) -> list[datetime]:
 
 def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) -> list[str]:
     """What a rehearsed day left that a good day does not, each thing in words."""
-    root, kept = desk.root, running.notes(desk.root)
+    root, kept = desk.root, running_notes.notes(desk.root)
     done, told = {note.what for note in kept}, {d.name for d in messenger.deliveries(desk.root)}
     wrong = [
         f"{VENUES[venue]}'s round of orders was not made"
         for venue in VENUES
-        if venues.sessions(venue, on, on) and running.ORDERS.format(venue) not in done
+        if venues.sessions(venue, on, on) and running_notes.ORDERS.format(venue) not in done
     ]
-    wrong += [note.words for note in kept if note.what == running.UNCLEAN]
+    wrong += [note.words for note in kept if note.what == running_notes.UNCLEAN]
     daily = (messenger.MORNING.name, messenger.EVENING.name)
     wrong += [f"the {name} message was not written" for name in daily if f"{name} {on}" not in told]
     if [record.day for record in days.records(root)] != [on]:
@@ -292,7 +296,7 @@ def rehearse(
     if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"
-    words = " ".join(note.words for note in running.notes(desk.root))
+    words = " ".join(note.words for note in running_notes.notes(desk.root))
     orders, sent = words.count(" shares done"), words.count(": the broker says ")
     counts = (on, len(moments), len(failed), orders, sent, len(said), UNSENT * (not sent))
     return True, GO.format(*counts)
@@ -305,10 +309,10 @@ def hourly(desk: Desk, now: datetime) -> None:
     def words() -> str:
         known = gateway.known(now, door=desk.door)  #: the Gateway's state is read first
         if since := running.down_since(desk.root, known, now):
-            return pnl.down(now, since) + running.zoo_hour(desk.root, now, down=True)
+            return pnl.down(now, since) + bar_rounds.zoo_hour(desk.root, now, down=True)
         daily = desk.held(today)[0]
         told = pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
-        return told + running.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
+        return told + bar_rounds.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
 
     messenger.hourly(desk.root, now, words, desk.post)
 

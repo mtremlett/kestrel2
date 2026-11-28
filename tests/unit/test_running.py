@@ -17,7 +17,18 @@ import test_placing as tp
 from test_paper import FLAT, Said, _account, _but, _gateway, _order
 from test_reports import AAPL, BOUGHT, DONE, END, IITU, LISTED, SMGB
 
-from desk import book, clearance, day, kill, listing, messenger, paper, running, venues
+from desk import (
+    book,
+    clearance,
+    day,
+    kill,
+    listing,
+    messenger,
+    paper,
+    running,
+    running_notes,
+    venues,
+)
 from desk.bars import Five, writing
 from desk.book import Switch
 from desk.book_parts import keep
@@ -25,7 +36,7 @@ from desk.broker import Fill, Pretend
 from desk.clearance import Check
 from desk.lines import YARDSTICK
 from desk.orders import Settings
-from desk.running import Desk, Note
+from desk.running_notes import Desk, Note
 from desk.store import Bar
 
 MON, ID, OLD = (
@@ -136,7 +147,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     assert sent[-4:-2] == [ACCOUNT] * 2 and b"3379.00" in sent[-2] and sent[-1] == tp.CANCEL_42
     assert book.fills(tmp_path) == (FILL,) and clearance.checks(tmp_path) == (Check(MON, ()),)
     words = f"London, today's orders: {ID}, 26 shares done. {OUT.format('Fri 13', 'SMGB')}"
-    assert running.notes(tmp_path) == (Note(MON, "orders LSE", words),)
+    assert running_notes.notes(tmp_path) == (Note(MON, "orders LSE", words),)
     morning, orders = _told(post)  # he is told, each thing once
     assert morning.startswith("🌅 Morning Mon 16 Nov 09:05 UK\n✅ Ready for today (paper)")
     assert "📒 Held: IITU 26" in morning and orders == words
@@ -148,7 +159,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     book.turn(tmp_path, Switch.ON, later, "his word")
     answers: list[Said] = [[MADE, END], UNDER, [MADE, END], UNDER, [("102",)], [MADE, END]]
     assert _step(monkeypatch, desk, OPEN, *answers) == [FILLS, ACCOUNT, FILLS, *ASKED]
-    said = running.notes(tmp_path)[-1]
+    said = running_notes.notes(tmp_path)[-1]
     assert said[:2] == (OPEN, "orders US") and len(clearance.checks(tmp_path)) == 2
     assert "bollinger_pullback-AAPL, 0 shares done" in said.words and "his word" in said.words
     assert _step(monkeypatch, desk, OPEN, [MADE, END]) == [FILLS] and _told(post)[2:] == [said[2]]
@@ -159,14 +170,14 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
     quiet, _ = _desk(tmp_path / "quiet", IITU=FLAT_)
     for now in (MON, MON + DAY):
         assert _step(monkeypatch, quiet, now, none, tp.EMPTY, none) == [FILLS, ACCOUNT, FILLS]
-    first, second = running.notes(quiet.root)
+    first, second = running_notes.notes(quiet.root)
     assert first[::2] == (MON, "London, today's orders: none sent in this round.")
     assert second[::2] == (MON + DAY, f"{first.words} {OUT.format('Mon 16', 'IITU, VUAG')}")
     # a round is owed only while its venue trades: in London's closing auction none is begun
     # (Thanksgiving: New York is shut all day)
     auction = MON.replace(day=26, hour=16, minute=31)
     assert _step(monkeypatch, quiet, auction, none, tp.EMPTY) == [FILLS, ACCOUNT]
-    assert len(running.notes(quiet.root)) == 2
+    assert len(running_notes.notes(quiet.root)) == 2
     days = [MON, MON + DAY, auction]  # the drill is each day's own, made once
     assert [turn[:2] for turn in book.switch(quiet.root)] == [(at, Switch.DRILLED) for at in days]
     # the hour he wakes is on a UK clock: 07:00 UTC in summer (a Saturday: the check alone)
@@ -175,7 +186,7 @@ def test_at_each_open_the_step_checks_the_account_and_sends_the_days_orders_once
         datetime(2026, 7, 4, 6, 59, tzinfo=UTC),
     )
     for seconds, news in enumerate(("news kept for the hour he wakes", "and more, a second on")):
-        running._note(summer.root, july + timedelta(seconds=seconds), "recovered", news)
+        running_notes._note(summer.root, july + timedelta(seconds=seconds), "recovered", news)
     assert _step(monkeypatch, summer, july) == [] and not door.called
     with pytest.raises(ConnectionError):  # and a check that did not come back is run again
         _step(monkeypatch, summer, july + timedelta(minutes=1), none, [])
@@ -268,14 +279,14 @@ def test_a_check_that_names_what_a_dead_desk_left_is_run_again_once_it_is_put_ri
         book._write(root / day.RECORDS, [day.HEADER, (BEFORE.day, *[0] * 7, 936, 1)])
     assert _step(monkeypatch, desk, MON, *put) == wire
     assert clearance.checks(tmp_path) == (Check(MON, (NAMED,)), Check(MON, ()))
-    what = [note.what for note in running.notes(tmp_path)]
+    what = [note.what for note in running_notes.notes(tmp_path)]
     assert what == ["recovered", "orders LSE"] and book.positions(tmp_path) == {}
     assert "IITU left under no stop, none of it held" in _told(post)[1]
     assert _told(post)[2] == "London, today's orders: none sent in this round."
     # started again only once the markets are shut, it is put right before the day's record,
     # which then carries a profit: the book is the broker's
     assert _step(monkeypatch, late, SHUT, *put, tp.EMPTY, tp.EMPTY) == [*wire, ACCOUNT, ACCOUNT]
-    (_, record), (note,) = day.records(late.root), running.notes(late.root)
+    (_, record), (note,) = day.records(late.root), running_notes.notes(late.root)
     assert record.day == MON.date() and record.profit is not None and not record.mismatches
     assert note.what == "recovered" and _told(door)[-1] == note.words
     # someone else's order is nothing the desk can put right: no order goes, he is told once
@@ -285,7 +296,7 @@ def test_a_check_that_names_what_a_dead_desk_left_is_run_again_once_it_is_put_ri
     for now in (MON, MON + timedelta(minutes=5)):
         sent = _step(monkeypatch, other, now, [END], theirs, theirs, theirs, [END], theirs)
         assert sent == [FILLS, ACCOUNT, ACCOUNT, ACCOUNT, FILLS, ACCOUNT]
-    (unclean,) = running.notes(other.root)
+    (unclean,) = running_notes.notes(other.root)
     assert unclean[:2] == (MON, "unclean") and "not the desk's own" in unclean.words
     assert len(clearance.checks(other.root)) == 2
     morning, told = _told(bell)
@@ -341,7 +352,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
             _step(monkeypatch, desk, now, [END], [])
     with pytest.raises(ValueError, match="does not read"):  # then it fails another way
         _step(monkeypatch, desk, MON + timedelta(minutes=10), [END], [("99", "1")])
-    trouble, another = running.notes(tmp_path)  # the first of each kind, that day
+    trouble, another = running_notes.notes(tmp_path)  # the first of each kind, that day
     assert trouble[:2] == (MON, "trouble ConnectionError") and another.what == "trouble ValueError"
     assert "ConnectionError: the gateway hung up" in trouble.words
     assert "(in desk.paper.receive)" in trouble.words  # a failure names the call it came from
@@ -351,7 +362,9 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     # one in his night is kept for the hour he wakes, and told then with the new day's first;
     # news a day old by then is not told
     night, door = _desk(tmp_path / "night", VUAG=WEEK)
-    running._note(night.root, MON - timedelta(hours=15), "recovered", "news a day old by then")
+    running_notes._note(
+        night.root, MON - timedelta(hours=15), "recovered", "news a day old by then"
+    )
     for now, told_by_then in ((MON.replace(hour=22, minute=30), 0), (MON + DAY, 3)):
         with pytest.raises(ConnectionError, match="hung up"):
             _step(monkeypatch, night, now, [END], [])
@@ -376,7 +389,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     his, again, morning = _told(door)
     assert his.startswith("The paper Gateway does not answer: its port is closed.")
     assert again == his and dial.call_count == 3
-    assert "would send NO order today" in morning and running.notes(silent.root) == ()
+    assert "would send NO order today" in morning and running_notes.notes(silent.root) == ()
     running.step(silent, MON.replace(hour=9, minute=30))  # no fill by 09:30 UK: he is told so
     assert _told(door)[-1] == messenger.NOT_TRADING
     sunday, bell = _desk(tmp_path / "sunday")  # his login's reminder waits for his waking hours
@@ -386,7 +399,7 @@ def test_a_step_that_fails_tells_him_once_and_is_an_error_and_a_silent_gateway_i
     assert _told(bell)[1].startswith("Sunday: the paper Gateway's weekly login is yours")
     with pytest.raises(ValueError, match="the desk's day is kept in UTC"):  # before any asking
         running.step(silent, MON.astimezone(timezone(timedelta(hours=1))))
-    (tmp_path / "silent" / running.NOTES).write_text("not,the,record\n", "utf-8")
+    (tmp_path / "silent" / running_notes.NOTES).write_text("not,the,record\n", "utf-8")
     with pytest.raises(ValueError, match="not the record of what the desk did"):
         running.step(silent, MON)
     # a drill of the kill switch that broke a promise is such a failure, and nothing but the
