@@ -296,6 +296,18 @@ def gather(
     return answers
 
 
+def five_pull(now: datetime) -> Callable[[Line, str], Sequence[Five] | Refused]:
+    """The archive as a gap-filling pull: it keeps five-minute bars only, so any other span is
+    refused, with the reason."""
+
+    def pull(line: Line, span: str) -> Sequence[Five] | Refused:
+        if span != "5m":
+            return Refused(f"the archive keeps no {span} bars")
+        return gather([line], now, fetch_five)[line]
+
+    return pull
+
+
 def _held(live: Path, line: Line, only_new: bool) -> set[date]:
     """The days the store holds for a line, if only the new are wanted."""
     try:
