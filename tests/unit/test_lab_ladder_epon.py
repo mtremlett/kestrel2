@@ -113,22 +113,30 @@ def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_o
         ladder.eponymous(tmp_path, bare)
 
 
-def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_python_rules(
+def test_the_set_from_the_specs_matches_the_python_rules_beside_rows_whose_file_is_gone(
     tmp_path: Path,
 ) -> None:
-    """The specs are read beside the Python rules: same names, so the same cells and rows."""
+    """The specs are read beside the Python rules: the same names give the same rows (the family's
+    size aside), and a catalogue row whose Python file is gone is still judged, through its spec."""
     empty = tmp_path / "empty.toml"
     empty.write_text("")
     python, both = ladder.eponymous(book=empty), ladder.eponymous()
-    assert both == python  #: the one spec left out takes a breadth, run on ratio bars by a caller
+    assert both[: len(python)] == python  #: the one spec left out takes a breadth, run by a caller
     assert set(rulebook.specs()) - set(both) == {"zweig_breadth_thrust"}
+    assert set(both) - set(python) == set(rulebook.specs()) - set(python) - {"zweig_breadth_thrust"}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
     rows = []
     for home, rules in ((tmp_path / "a", python), (tmp_path / "b", both)):
         todo = [Cell(rule, VUSA, ladder.START, ladder.END) for rule in rules]
         ladder.run(home, _door({VUSA: EDGE}), {}, todo, clock, ladder_sets.EPON)
-        rows.append((home / "ladder" / "EPON.jsonl").read_text())
-    assert rows[0] == rows[1]
+        rows.append(
+            [json.loads(x) for x in (home / "ladder" / "EPON.jsonl").read_text().splitlines()]
+        )
+    assert [r["cell"][0] for r in rows[1]] == list(both) and {r["trials"] for r in rows[1]} == {
+        len(both)
+    }
+    kept = [r | {"trials": 0} for r in rows[1] if r["cell"][0] in python]
+    assert kept == [r | {"trials": 0} for r in rows[0]]
 
 
 def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_rung_answer(
