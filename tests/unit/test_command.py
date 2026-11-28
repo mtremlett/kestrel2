@@ -262,6 +262,21 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
 
 
+def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ticks, steps = iter(range(0, 10_000_000, 600)), list[datetime]()
+    monkeypatch.setattr(running, "step", lambda _desk, at: steps.append(at))
+    moments = command._moments(FRI)
+    desk = command._desk(tmp_path, Mock(), tmp_path)
+    clock = lambda: SUNDAY + timedelta(seconds=next(ticks))  # noqa: E731 - ten minutes a call
+    failed = command._live(desk, moments, clock)
+    spent = f"the rehearsal's {command.RUN_SECONDS} s were spent"
+    assert 0 < len(steps) < len(moments) and failed == [
+        f"{moments[len(steps)]:%H:%M} UTC stopped, {spent}"
+    ]
+
+
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
