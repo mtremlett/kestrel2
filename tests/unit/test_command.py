@@ -34,6 +34,7 @@ from desk import (
     listing,
     messenger,
     paper,
+    placing,
     pnl,
     running,
     venues,
@@ -275,6 +276,19 @@ def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
     assert 0 < len(steps) < len(moments) and failed == [
         f"{moments[len(steps)]:%H:%M} UTC stopped, {spent}"
     ]
+
+
+def test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A Friday: 313 orders, each its wait and 6 s more (5 s ran out at 17:50), three 30 s dials;
+    every step runs, so the run ends by itself and the cancel after it (rehearse) finds none."""
+    moments = command._moments(FRI)
+    cost = (313 * (placing.SHUT_SECONDS + 6) + 3 * 30) / len(moments)
+    now = [SUNDAY]
+    monkeypatch.setattr(running, "step", lambda *_: now.append(now[-1] + timedelta(seconds=cost)))
+    desk = command._desk(tmp_path, Mock(), tmp_path)
+    assert command._live(desk, moments, lambda: now[-1]) == []
 
 
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
