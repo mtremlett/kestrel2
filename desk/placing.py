@@ -37,7 +37,7 @@ from desk.placing_parts import OVER
 from desk.placing_parts import Stop as Stop
 
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
-SHUT_SECONDS = 2  #: the fill wait of a rehearsal's account: the market is shut, nothing can fill
+SHUT_SECONDS = 3  #: the fill wait of a rehearsal's account: the market is shut, nothing can fill
 
 
 @dataclass(frozen=True)
