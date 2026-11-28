@@ -1073,8 +1073,10 @@ his PC with the desk's own client id (222), never 4001.
       or last account read stalls still ends REHEARSAL NO-GO, never a bare TimeoutError: the line names that read
       ('the account read before the run stalled: <message>', or after it) and the step tally ('199 of 199 steps
       passed'); a failed step is told by its first fault's message, not its class alone. The account left as
-      found stays unproven, so it stays NO-GO
-      {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally}
+      found stays unproven, so it stays NO-GO. The tally counts only the steps that ran: a rehearsal stopped early
+      at step 10 of 199 reads '9 of 199 steps passed, 190 not run', never '198 of 199' (O105/O109, coordinator 318,
+      28 Nov: #2496 landed with its blind review BLOCKED on this, so the box stays open)
+      {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_an_early_stopped_rehearsal_counts_only_the_steps_it_ran}
 
 ## Phase 4 — the ladder
 
