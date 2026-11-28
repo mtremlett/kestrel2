@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import os
+import subprocess
 import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
@@ -233,3 +234,18 @@ def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
         was = held[-1] if held else False
         held.append({strategy.Action.BUY: True, strategy.Action.SELL: False}.get(d.action, was))
     assert any(held) and cell._held(cell.Cell(name, BOEING, START, DAY), bars) == held
+
+
+def test_the_week_clone_runs_mains_code(tmp_path: Path) -> None:
+    def git(where: Path, *words: str) -> None:
+        who = ["-c", "user.name=t", "-c", "user.email=t@t"]
+        subprocess.run(["git", "-C", str(where), *who, *words], check=True)  # noqa: S603, S607
+
+    main = tmp_path / "main"
+    git(tmp_path, "init", "-q", "-b", "main", str(main))
+    git(main, "commit", "-q", "--allow-empty", "-m", "one")
+    git(tmp_path, "clone", "-q", str(main), str(tmp_path / "clone"))
+    assert sweep.behind(tmp_path / "clone") is None  # up to date: a pass may run
+    git(main, "commit", "-q", "--allow-empty", "-m", "two")  # main moves on
+    refusal = sweep.behind(tmp_path / "clone")
+    assert refusal and refusal["error"].startswith("StaleClone: ") and "clone" in refusal["error"]
