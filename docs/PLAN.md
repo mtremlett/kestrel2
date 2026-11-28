@@ -1020,7 +1020,7 @@ his PC with the desk's own client id (222), never 4001.
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
       zoo's cancelled, the desk's still resting. Edits only, no new desk/ file
       {id: paper-side-stops; files: desk/paper.py, tests/unit/test_paper.py; check: tests/unit/test_paper.py::test_two_stops_on_one_ticker_rest_apart_by_side}
-- [ ] The rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov): Saturday's zoo-on
+- [ ] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
       rehearsal sent 28 one-share orders, each given the fill wait (120 s) on a shut market, and the runner ended
       it at 3600 s at Friday's 09:40 bar, before its own cancel ran: a buy and its stop were left resting at the
       paper broker (failure pattern 24). On a shut market no order can fill, so the rehearsal's account waits a few
