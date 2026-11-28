@@ -16,6 +16,7 @@ from lab import (
     history_bars,
     intraday,
     ladder,
+    ladder_kept,
     ladder_pool,
     ladder_sets,
     members,
@@ -303,7 +304,7 @@ def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_unc
         tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
     )
     assert said == stopped and not (tmp_path / "ladder").exists()  #: no register
-    monkeypatch.setattr(ladder.Kept, "get", lambda *_: {})  #: every cell kept from before
+    monkeypatch.setattr(ladder_kept.Kept, "get", lambda *_: {})  #: every cell kept from before
     said = ladder_sets.epon(
         tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
     )  #: a pass stopped after an earlier whole one: its old rows are not this pass's table
