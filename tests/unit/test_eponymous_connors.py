@@ -1,12 +1,16 @@
 """Known answer: the published RSI-2 rule fixes the entry and exit days of a made-up series."""
 
+import importlib
 from datetime import date, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from desk import eponymous_connors
 from desk.eponymous_connors import decide, decide_percent_b
 from desk.store import Bar
 from desk.strategy import Action
+
+MODULES = sorted(p.stem for p in (Path(__file__).parents[2] / "desk").glob("eponymous_*.py"))
 
 
 def _bars(closes: list[int]) -> list[Bar]:
@@ -56,3 +60,14 @@ def test_declares_no_holding_period_and_says_why() -> None:
     assert "Holding period: none" in eponymous_connors.__doc__
     rules = eponymous_connors.EPONYMOUS.values()
     assert all(r.declared.hold is None for r in rules)
+
+
+def test_every_eponymous_module_declares_unique_runnable_rules() -> None:
+    names: list[str] = []
+    for module in MODULES:
+        mapping = getattr(importlib.import_module(f"desk.{module}"), "EPONYMOUS", None)
+        assert mapping, f"desk.{module} declares no EPONYMOUS"
+        for name, rule in mapping.items():
+            assert hasattr(rule, "declared") and hasattr(rule, "step"), f"{module}: {name}"
+            names.append(name)
+    assert len(names) == len(set(names)), "a rule name is used twice"
