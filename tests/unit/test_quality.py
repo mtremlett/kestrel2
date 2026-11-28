@@ -73,6 +73,18 @@ def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:
     )
 
 
+def test_a_hole_is_one_rule_a_session_with_no_bar_and_no_suspension(tmp_path: Path) -> None:
+    """The hover, the greenkeeper and the ladder's pre-flight read one rule of a hole: a session
+    of the line's venue between two days, with no bar and no suspension (R-RUNGS-40)."""
+    held = {DAYS[0], DAYS[2], DAYS[5]}
+    assert SPY.holes(held, DAYS[0], DAYS[5]) == [DAYS[1], DAYS[3], DAYS[4]]
+    shut = replace(SPY, suspended=frozenset({DAYS[3]}))
+    assert shut.holes(held, DAYS[0], DAYS[5]) == [DAYS[1], DAYS[4]]
+    path = seeded(tmp_path, {DAYS[3]})
+    assert quality.gaps(path, [SPY], TODAY) == [(SPY, DAYS[3])]
+    assert quality.gaps(path, [shut], TODAY) == []
+
+
 def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     start = datetime(2026, 11, 16, 15, 0, tzinfo=UTC)
