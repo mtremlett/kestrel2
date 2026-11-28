@@ -644,3 +644,9 @@ Options: keep a private lower-of price rule (the duplicate the audit named) or p
 
 ### 2026-11-28 — the watcher reads the supervisor's lock, not its receipts (#2434)
 Options: keep the lock design (the system's word, independent of the supervisor's own files) or judge by receipts (the supervisor's own health already does that). Lock chosen, since the point is independence; the test takes the box's check name though. His standing ruling: "please always go with recommended".
+
+### 2026-11-28 — the rehearsal's fill wait belongs to its account's door (#2469)
+Options: a longer job timeout, or skipping the send (both rejected by the card), or giving the wait to the account's door. Chose the door (`placing.Shut`, built in `desk/command.py`): one send path, one home per wait; live doors keep 120 s. 5 s because the market is shut and nothing can fill; the step loop stops at 3300 s, 300 s inside the runner's 3600 s kill, and names the stop. His standing ruling: "please always go with recommended".
+
+### 2026-11-28 — a stop's "side" is the placing client id (#2476)
+Options: the order ref prefix, or the client id (the desk's 222 vs the zoo's). Chose the client id: the only thing the gateway tells apart; a prefix would be a hand list (pattern 18). Per his 13 Nov "always go with recommended".

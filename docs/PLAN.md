@@ -1047,13 +1047,14 @@ his PC with the desk's own client id (222), never 4001.
       check: tests/unit/test_running.py::test_carried_orders_are_resent_once_at_the_next_step}
       (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
       (moved from MONEY's book, Builder 3b 27 Nov: what remains, running's resend of CARRIED ids, and its check are desk/running.py's, PAPER's; the lane wall refuses it to MONEY)
-- [ ] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
+- [x] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
       MONEY's 01:58 ending on zoo-own-side: 'desk/paper.py (per-side stops)'): read, set, move and cancel a
       resting stop by ticker and side, as methods beside today's, so the Broker interface and its one contract
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
       zoo's cancelled, the desk's still resting. Edits only, no new desk/ file
+      Remains (#2476): set, move and cancel by ticker and side in desk/placing.py (R-PAPER-45), needs a claim naming it
       {id: paper-side-stops; files: desk/paper.py, tests/unit/test_paper.py; check: tests/unit/test_paper.py::test_two_stops_on_one_ticker_rest_apart_by_side}
-- [ ] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
+- [x] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
       rehearsal sent 28 one-share orders, each given the fill wait (120 s) on a shut market, and the runner ended
       it at 3600 s at Friday's 09:40 bar, before its own cancel ran: a buy and its stop were left resting at the
       paper broker (failure pattern 24). On a shut market no order can fill, so the rehearsal's account waits a few

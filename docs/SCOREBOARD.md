@@ -772,6 +772,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2369 R-RUNNER-569 built: conformance settles its own earlier orders before it sends. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2381 R-RUNNER-564 built: conformance sizes through orders.size's live price. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2434 paper-watcher built: independent supervisor watcher, 3 tests. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2469 paper-rehearsal-wait built: a rehearsal waits 5 s a fill and stops inside its time; Monday's should end inside it. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2476 paper-side-stops: stops read by ticker and side landed; set/move/cancel remain. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2477 paper-side-stops ticked: its check resolves to a passing test. |
 
 ### GRID
 
