@@ -130,6 +130,16 @@ def soak(data: Path, now: datetime) -> range:
     return range(start, start + BLOCK)
 
 
+def every_stack() -> str:
+    """THE DUMP: every live thread by name, its whole stack, the outermost frame first."""
+    names = {each.ident: each.name for each in threading.enumerate()}
+    return "\n".join(
+        f"--- {names.get(ident, '?')} ({ident}) ---\n"
+        + "".join(traceback.format_stack(frame)).strip()
+        for ident, frame in sys._current_frames().items()
+    )
+
+
 def within(limit: float, phase: str, work: Callable[[], T]) -> T:
     """THE FAST FAIL: work run in a thread; if it has not ended within limit seconds the night
     ends with an error naming the phase and the line where the thread waits."""
@@ -146,9 +156,10 @@ def within(limit: float, phase: str, work: Callable[[], T]) -> T:
     thread.start()
     thread.join(limit)
     if thread.is_alive():
-        frame = sys._current_frames()[thread.ident or 0]
-        where = "".join(traceback.format_stack(frame)[-3:]).strip()
-        raise TimeoutError(f"SimCity stuck in {phase}: no end in {limit:g} s, waiting at: {where}")
+        raise TimeoutError(
+            f"SimCity stuck in {phase}: no end in {limit:g} s; every thread's stack, "
+            f"outermost call first, the work's own thread {thread.ident}:\n{every_stack()}"
+        )
     if failed:
         raise failed[0]
     return done[0]

@@ -19,6 +19,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 from desk import archive, backfill, bars, coverage, history_write, keeper, venues
 from desk.bars import Source
@@ -258,7 +259,9 @@ def write_rolloff_rows(folder: Path, home: Path, lines: Iterable[Line]) -> Path:
     return path
 
 
-Pull = Callable[[Line, str], Sequence[Timed] | Refused]  #: a source's bars of one line's span
+Pull = Callable[
+    [Line, str], Sequence[Timed | Five] | Refused
+]  #: a source's bars of one line's span
 Pulls = Sequence[tuple[Source, Pull]]  #: the sources in the order they are tried
 
 
@@ -284,7 +287,9 @@ def fill_cells(path: Path, lines: Iterable[Line], pulls: Pulls, now: datetime) -
                             [Five(t.start, t.open, t.high, t.low, t.close, t.volume) for t in got],
                         )
                     else:
-                        opened.timed(line, span, got)
+                        opened.timed(
+                            line, span, cast(Sequence[Timed], got)
+                        )  # only 5m comes as Five
                 wrote.append(f"{line.symbol}/{span}: {source.value}")
                 break
     return wrote
@@ -576,6 +581,13 @@ if __name__ == "__main__":
     if sys.argv[1:2] == ["rolloff-rows"]:
         sys.stdout.write(f"rolloff-rows: {write_rolloff_rows(Path(sys.argv[2]), home, LINES)}\n")
         sys.exit(0)
-    said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
+    said = monitor(
+        home / keeper.HOT,
+        LINES,
+        backfill._broker(home, now),
+        backfill._archive,
+        now,
+        ((Source.BACKFILL, archive.five_pull(now)),),
+    )
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)

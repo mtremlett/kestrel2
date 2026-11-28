@@ -141,6 +141,23 @@ def test_a_night_ends_inside_its_time_and_a_world_blocked_on_its_store_names_it(
     gate = threading.Event()
     monkeypatch.setattr(keeper, "saved", lambda *_: gate.wait())
     monkeypatch.setattr(simcitycmd, "LIMIT", 0.2)
-    with pytest.raises(TimeoutError, match="stuck in reading the price store.*wait"):
+    with pytest.raises(TimeoutError, match="(?s)stuck in reading the price store.*wait"):
         simcitycmd.main([], {"KESTREL2_DATA": str(tmp_path)}, lambda: NOW)
     gate.set()
+
+
+def test_a_timeout_names_the_outermost_and_innermost_frames_of_every_thread() -> None:
+    """A work waiting deep inside nested calls: the error names where it began and waits."""
+    gate = threading.Event()
+
+    def innermost_wait() -> None:
+        gate.wait()
+
+    def outermost_work() -> None:
+        innermost_wait()
+
+    with pytest.raises(TimeoutError) as stuck:
+        simcitycmd.within(0.2, "nested", outermost_work)
+    gate.set()
+    words = str(stuck.value)
+    assert "outermost_work" in words and "innermost_wait" in words and "MainThread" in words
