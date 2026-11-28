@@ -1249,7 +1249,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py, tests/unit/test_lab_rung.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
   - [x] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
-        Done (#2257, #2189, #2312, #2428): a stale or missing market under a basket FAULTs the retail rung with its gap named and the table is still published. Remains, runner ops' own: release job-ladder.hold (R-RUNGS-46 is met, #2226)
+        Done (#2257, #2189, #2312, #2428): a stale or missing market under a basket FAULTs the retail rung with its gap named and the table is still published. job-ladder.hold released (runner ops 292, 28 Nov; R-RUNGS-52 met). O95: a gap refusal exits `ladder_sets.WAITS` (3); the runner's halves (the greenkeeper's fill kicks the ladder, exit 3 is a wait not a miss, the ticked RUNGS checks in item 10's gate) are queued with the B builder (O89)
         {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
   - [x] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
@@ -1350,12 +1350,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       land inside it. RSI-2 goes first this way; variants of each rule are tested later on
       the ladder, never chosen by eye (BT-15)
       {id: rungs-secondary-figures; files: lab/published_epon.py, tests/unit/test_lab_published_epon.py}
-- [ ] **The ladder in sets, each published as it finishes:** set 1, the eponymous strategies;
+- [x] **The ladder in sets, each published as it finishes:** set 1, the eponymous strategies;
       set 2, the grid's transfer study over the research universe; then sets of variants
       around any plateau found, each family named before it runs. After each set, one
       Telegram summary and a results file: every strategy, every rung's verdict with its
       reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
-      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; waits: R-RUNGS-34; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
+      Done (O95, 28 Nov): R-RUNGS-34 met on main (`rulebook.rule` resolves `row[settings]`, #1700; `lab/transfer.py` passes `history_bars.pounds`, #1683); set 2 told (#2358), set VAR named before any run (#1535); the check drives a set to its table, cells and one summary told once (driven red by a summary told twice). Variant sets around a plateau run when one is found (GC, rungs-grid-chain). A set refused for input gaps exits `ladder_sets.WAITS` (3), never a traceback
+      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
 - [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
       set's full trial count (and its reproduction, if published); it is named in this plan,
       with its kill condition, before its first paper day; it then trades paper side by side
