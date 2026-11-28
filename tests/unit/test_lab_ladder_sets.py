@@ -13,6 +13,7 @@ import pytest
 from desk import messenger
 from desk.lines import LINES, Line
 from lab import (
+    folds,
     history_bars,
     intraday,
     ladder,
@@ -220,7 +221,7 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
     rule = ["trend_50_200"]
     holed = _door({VUSA: EDGE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
-    with pytest.raises(ValueError, match="refuses to start, first ISF has no bar on 2010-01-05"):
+    with pytest.raises(folds.Gaps, match="refuses to start, first ISF has no bar on 2010-01-05"):
         ladder_sets.epon(
             tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
         )
@@ -281,6 +282,29 @@ def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a
     assert said.err.startswith("ladder: the set waits for the store's next fill: ")
     assert "refuses to start, first ISF has no bar on 2010-01-05" in said.err
     assert not phone and not said.out and not (tmp_path / "ladder").exists()  #: no register
+
+
+def test_only_a_gap_refusal_waits_and_no_cell_takes_it_for_its_own_fault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    from lab.cell import Cell
+
+    def planted(*_: object) -> str:
+        raise ValueError("a planted fault")
+
+    monkeypatch.setattr(ladder_sets, "_judged", planted)
+    with pytest.raises(ValueError, match="a planted fault"):  #: a fault ends the command as one
+        ladder_sets.main({"KESTREL2_DATA": str(tmp_path)}, [], lambda _: len)
+
+    def holed(*_: object) -> dict[str, Any]:
+        raise folds.Gaps("a planted gap")
+
+    monkeypatch.setattr(verdict, "judge", holed)  #: a gap met inside a cell's rungs
+    todo, whole = [Cell("breakout_20_10", VUSA, START, END)], _door({VUSA: EDGE, ISF: NOISE})
+    with pytest.raises(folds.Gaps, match="a planted gap"):  #: the set waits, never judged around it
+        ladder.run(tmp_path, whole, {}, todo)
 
 
 def test_each_finished_set_writes_its_results_file_and_summary(tmp_path: Path) -> None:
