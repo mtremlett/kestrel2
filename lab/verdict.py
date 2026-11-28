@@ -94,9 +94,10 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
-#: The rungs graded soft: SOFT, the declared regime and fit-with-the-book rungs, added after
-#: (`ladder_parts`; "fit" is `rung_fit.RUNG.name`, #2233), and a basket's retail rung.
-GRADED = (*SOFT, rung_regimes.RUNG.name, "fit", "retail")
+SCORED = (*SOFT, "retail")  #: the rungs the scorecard reads: SOFT, and a basket's retail rung
+#: The rungs graded soft: SCORED, and the declared regime and fit-with-the-book rungs, added
+#: after (`ladder_parts`); "fit" is `rung_fit.RUNG.name` (#2233), named here until it lands.
+GRADED = (*SCORED, rung_regimes.RUNG.name, "fit")
 #: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
 BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
@@ -127,11 +128,19 @@ def one_answer(rungs: Mapping[str, Answer], yearly_sharpe: float | None) -> str 
     fault in the test, said as one), else the SOFT rungs' `scorecard`; None while unanswered."""
     if not set(HARD + SOFT) <= set(rungs):
         return None
+    return answered(rungs, yearly_sharpe)
+
+
+def answered(rungs: Mapping[str, Answer], yearly_sharpe: float | None, stop: bool = False) -> str:
+    """THE ONE RULE on any row's rungs (a cell, a line stopped at a hard fail, a basket): the
+    least HARD gate short of PASS; else a SCORED rung's FAULT (a fault in the test, said as one);
+    else the `scorecard` of the SCORED rungs present; a row `stop`ped at a hard fail its scorecard
+    would pass is FAIL."""
     if (least := _short(rungs)) is not None:
         return least.name
-    if any(rungs[name] is Answer.FAULT for name in SOFT):
-        return Answer.FAULT.name
-    return scorecard([rungs[name] for name in SOFT], yearly_sharpe or 0.0)
+    scored = [said for name, said in rungs.items() if name in SCORED]
+    card = Answer.FAULT.name if Answer.FAULT in scored else scorecard(scored, yearly_sharpe or 0.0)
+    return Answer.FAIL.name if stop and card == Answer.PASS.name else card
 
 
 def _short(rungs: Mapping[str, Answer]) -> Answer | None:
@@ -167,17 +176,17 @@ def judge(
     (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
-        return _stopped(len(verdict.trades), {"first": rungs["first"]}, {})  #: a hard fail
+        return _stopped(verdict, {"first": rungs["first"]}, {}, one)  #: a hard fail
     said = _reproduced(c, own, pounds, verdict, made)  #: None: its author's figure is owed
     unrun, rungs = ({}, rungs | {"reproduce": said}) if said else ({"reproduce": NO_FIGURE}, rungs)
     if said and said[0] is Answer.FAIL:  #: a hard fail: a verdict unlike its own re-run
-        return _stopped(len(verdict.trades), rungs, unrun)
+        return _stopped(verdict, rungs, unrun, one)
     rungs["folds"] = _folded(pooled)
     rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
     rungs["regime"] = _weathered(own, verdict, made)
     rungs["stress"] = _stressed(c, own, settings, pounds)
     if EASED and rungs["stress"][0] is Answer.FAIL:  #: a hard fail: the shuffle is not run
-        return _stopped(len(verdict.trades), rungs, unrun)
+        return _stopped(verdict, rungs, unrun, one)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
     rungs["plateau"] = _plateaued(c, own, pounds, verdict, surface)
@@ -231,15 +240,13 @@ def basket_answer(
     retail rung among them when read) and the stress it stands on: the least HARD gate short of
     PASS; else a soft rung's FAULT; else the `scorecard`, a yearly Sharpe over SHARPE_STOP a stop.
     EASED: a basket the ladder fails on enough trades, whose after-cost mean is T_INCUBATE
-    standard errors above nothing and whose stress passed, is INCUBATE, then read the same way."""
+    standard errors above nothing and whose stress passed, is INCUBATE: its hard gates set aside
+    (it never goes forward), its soft rungs and the yearly stop read the same way."""
     pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
     incubates = EASED and pending and stressed is Answer.PASS
-    if not incubates and (least := _short(rungs)) is not None:
-        return least.name
-    said = INCUBATE if incubates else Answer.PASS.name
-    soft = [stressed, *([rungs["retail"]] if "retail" in rungs else [])]
-    card = Answer.FAULT.name if Answer.FAULT in soft else scorecard(soft, yearly or 0.0)
-    return said if card == Answer.PASS.name else card
+    read = {n: a for n, a in rungs.items() if not incubates or n not in HARD}
+    said = answered(read | {"stress": stressed}, yearly)
+    return INCUBATE if incubates and said == Answer.PASS.name else said
 
 
 def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:
@@ -270,12 +277,13 @@ def _marketed(against: market.Against, beside: Line, rungs: Judged) -> Pair:
     )
 
 
-def _stopped(trades: int, rungs: Judged, unrun: Mapping[str, str]) -> dict[str, Any]:
+def _stopped(first: Verdict, rungs: Judged, unrun: Mapping[str, str], one: Deflated) -> Row:
     """A line stopped at a hard fail: the rungs judged so far, no shuffle, and the verdict the
-    one rule's: the least hard gate short of PASS (a THIN first rung stays THIN), else FAIL."""
-    least = _short({name: said for name, (said, _) in rungs.items()})
-    return {"trades": trades, "rungs": reported(rungs), "unrun": unrun, "every": False} | {
-        "answer": (Answer.FAIL if least is None else least).name
+    one rule's (`answered`) on them, never a PASS."""
+    said = answered({name: a for name, (a, _) in rungs.items()}, one.yearly, stop=True)
+    return {"trades": len(first.trades), "rungs": reported(rungs), "unrun": unrun} | {
+        "every": False,
+        "answer": said,
     }
 
 

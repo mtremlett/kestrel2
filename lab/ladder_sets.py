@@ -282,7 +282,7 @@ def baskets(
             except FAILED:
                 continue
         firsts = [first for first in firsts if not first.refused]
-        stressed = next((a for a in stresses if a is not Answer.PASS), Answer.PASS)
+        stressed = min(stresses, default=Answer.PASS)  #: the least of its lines' stress
         pooled += [(rule, firsts, stressed)] if firsts else []
     return [  #: charged the baskets the set judges, never a rule that gave none
         basket.row(plan.tag, rule, firsts, len(pooled), stressed, _against(firsts[0], bars, pounds))

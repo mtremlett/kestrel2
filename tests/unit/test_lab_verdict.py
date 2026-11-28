@@ -5,7 +5,7 @@ forward while a rung is unrun."""
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -269,6 +269,11 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     assert said("1.5", Answer.THIN) == "THIN"  #: too few trades says nothing
 
 
+def _said(rungs: Mapping[str, tuple[Answer, str]]) -> dict[str, Answer]:
+    """Each rung's answer, its reason dropped: the one rule's input."""
+    return {name: said for name, (said, _) in rungs.items()}
+
+
 @OFF
 def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_always_does(
     monkeypatch: pytest.MonkeyPatch,
@@ -300,6 +305,14 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
     )
     assert ran is not None and ran[0] is Answer.PASS, "no lowest of NAMED before the shuffle"
     stopped = weak | {"folds": (Answer.FAULT, ""), "stress": (Answer.FAIL, "")}
-    assert verdict._stopped(0, stopped, {})["answer"] == "FAULT", "a FAULT is no FAIL"
+    assert verdict.answered(_said(stopped), 1.0, stop=True) == "FAULT", "a FAULT is no FAIL"
+    #: I7: a line stopped at stress answers by the one rule: a soft FAULT first, then the
+    #: scorecard with its yearly stop, never PASS; a hard gate short of PASS before all
+    at_stress = _said(weak | {"stress": (Answer.FAIL, "")})
+    assert verdict.answered(at_stress | {"market": Answer.FAULT}, 1.0, stop=True) == "FAULT"
+    assert verdict.answered(at_stress, 2.5, stop=True) == "STOP"
+    assert verdict.answered(at_stress, 1.0, stop=True) == "FAIL"
+    assert verdict.answered({"first": Answer.PASS}, 1.0, stop=True) == "FAIL", "reproduce failed"
+    assert verdict.answered({"first": Answer.THIN}, 2.5, stop=True) == "THIN"
     monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
     assert _judge()["answer"] == "WIRED", "judge answers by the one rule"

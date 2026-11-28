@@ -28,6 +28,7 @@ from lab import (
 )
 from lab.ladder import END, START
 from lab.members import Change, Record
+from lab.rung import Answer
 
 STAYS, LEFT, JOINED = (Line(s, "US", "USD", 1) for s in ("STAY", "LEFT", "NEW"))
 RECORD = Record(
@@ -106,6 +107,28 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
     (against,) = seen
     assert against is not None
     assert (against.line, against.bars, against.rates) == (ISF, EDGE, {})
+
+
+def test_a_basket_stands_on_its_lines_least_stress_never_the_first_short_of_a_pass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from test_lab_ladder import EDGE, ISF, VUSA, _door
+
+    from lab import basket
+    from lab.cell import Cell
+
+    seen: list[Answer] = []
+    row, said = basket.row, iter((Answer.THIN, Answer.FAIL))
+
+    def spy(*a: Any) -> Any:
+        seen.append(a[4])
+        return row(*a)
+
+    monkeypatch.setattr(basket, "row", spy)
+    monkeypatch.setattr(verdict, "stress_answer", lambda *_: next(said))  #: THIN, then FAIL
+    todo = [Cell("breakout_20_10", line, START, END) for line in (VUSA, ISF)]
+    ladder_sets.baskets(_door({VUSA: EDGE, ISF: EDGE}), {}, todo, [todo[0].strategy], ladder.FIRST)
+    assert seen == [Answer.FAIL]  #: a soft rung of the basket's one rule: its worst line's
 
 
 def test_a_set_of_three_rules_writes_three_rows_and_the_cells_file(tmp_path: Path) -> None:

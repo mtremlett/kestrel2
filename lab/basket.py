@@ -191,7 +191,7 @@ def row(
 ) -> dict[str, Any]:
     """The basket's line of the results file: its answer, the rungs read from its pooled trades
     and its reasons, charged `looks` trials, the set's baskets. `stressed` is the
-    stress answer the basket stands on: the first line's that is not a pass, else PASS. `against`
+    stress answer the basket stands on: the least of its lines'. `against`
     is the market it is set beside: while EASED the retail rung (`grade`) is read."""
     basket = pool(lines)
     (one,) = deflated.judge([basket], looks - 1)  #: every other basket of the set
@@ -199,6 +199,7 @@ def row(
     if against is not None and (retail := grade(basket, against)) is not None:
         rungs["retail"] = retail
     answers = {name: said for name, (said, _) in rungs.items()}
+    answer = verdict.basket_answer(basket, answers, stressed, one.yearly)
     return {
         "set": tag,
         "cell": [rule, *NAME],
@@ -206,6 +207,6 @@ def row(
         "trades": len(basket.trades),
         "rungs": verdict.reported(rungs),
         "unrun": UNRUN,
-        "every": verdict.gates(rungs),
-        "answer": verdict.basket_answer(basket, answers, stressed, one.yearly),
+        "every": answer == Answer.PASS.name and verdict.gates(rungs),  #: as a cell's
+        "answer": answer,
     }
