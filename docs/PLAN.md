@@ -463,12 +463,12 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] Disk watched; old research files roll off by rule (OPS-07)
       Built (#1098, #1107, #2122): `python -m desk.quality` goes red under 10% free on the store's drive; `quality.rolloff(old, kept)` / `python -m desk.quality rolloff <folder>` deletes only a file whose same-named copy in the store matches byte for byte; every other file is listed for his yes. The rest was carved out (coordinator 173): the job calling rolloff on red is runner work; the row-check is the box below.
       {id: data-disk-rolloff; files: desk/quality.py, tests/unit/test_quality*.py}
-- [ ] Old research files with no byte twin in the store are checked row by row against market.db before any
+- [x] Old research files with no byte twin in the store are checked row by row against market.db before any
       roll-off (carved from data-disk-rolloff, coordinator 173): a file whose every row the store holds is listed
       as safe to roll; any other is kept and named. Deletion beyond byte twins keeps his wait. Gate, written
       first: a file with no byte twin whose rows the store holds is listed safe; one with a row the store lacks
       is kept and named
-      Built (#2297, R-RUNNER-523): `quality.rolloff_rows` lists a CSV of daily bars whose rows the store holds as safe to roll, any other file kept; parquet stores always kept. Remains: the runner job calling it.
+      Built (#2297, R-RUNNER-523): `quality.rolloff_rows` lists a CSV of daily bars whose rows the store holds as safe to roll, any other file kept; parquet stores always kept. `quality rolloff-rows <folder>` writes the list to `rolloff_rows.json` in the data home (#2409); its check verified on main bbe8c837 by coordinator 281. The runner job that reads it is runner work, outside this repository.
       {id: data-rolloff-rows; files: desk/quality.py, tests/unit/test_quality*.py; after: data-disk-rolloff; check: tests/unit/test_quality.py::test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it}
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
