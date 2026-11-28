@@ -572,7 +572,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
 - [ ] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
       cancelling the zoo's stop never touches the desk's. The paper door has them first (paper-side-stops); its
-      contract case in tests/unit/test_paper_contract.py is PAPER's, after this box. Edits only, no new desk/ file
+      contract case in the paper door's contract test is PAPER's, after this box. Edits only, no new desk/ file
       {id: money-side-stops; after: paper-side-stops; files: desk/broker.py, tests/unit/test_broker*.py; check: tests/unit/test_broker.py::test_the_zoos_stop_and_the_desks_stop_on_one_ticker_rest_apart}
 - [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
       'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
@@ -584,11 +584,11 @@ day's trading and reconciliation are built, and any broker can stand behind them
       test pass, written first with their refusal words; an A6 blind review before the train
       {id: zoo-own-side; after: money-side-stops; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
-      MONEY file, but the ladder finds every `desk/eponymous_*.py` and `lab/published_epon.py` (RUNGS)
-      must name it and `test_lab_published_epon.py` count 21, so neither lane's pull request is green
+      MONEY file, but the ladder finds every eponymous desk module, and RUNGS' published list
+      must name it and its test count 21, so neither lane's pull request is green
       alone. Needs one session claiming both lanes' files (the runner's to grant; coordinator 54, 22 Nov: not his)
       {id: money-connors7; waits: R-RUNGS-10; files: desk/eponymous_connors.py, tests/unit/test_eponymous_connors.py, desk/eponymous_connors_double_7.py, tests/unit/test_eponymous_connors_double_7.py; check: tests/unit/test_eponymous_connors.py::test_double_sevens_decisions_match_the_published_rule}
-      (desk/ holds 100 of its 100 allowed files and the box adds a new desk file; lab/published_epon.py and its test are RUNGS files that the lane-ownership guard refuses on a MONEY branch. Re-card it in the RUNGS book with Double 7's folded into desk/eponymous_connors.py (131 lines, already holds %B and RSI-2), reusing commit 35158bb6, and drop R-MONEY-67 rather than raise the ceiling.) (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (lab/published_epon.py and its test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
+      (desk/ holds 100 of its 100 allowed files and the box adds a new desk file; RUNGS' published list and its test are RUNGS files that the lane-ownership guard refuses on a MONEY branch. Re-card it in the RUNGS book with Double 7's folded into desk/eponymous_connors.py (131 lines, already holds %B and RSI-2), reusing commit 35158bb6, and drop R-MONEY-67 rather than raise the ceiling.) (Its files span MONEY (desk/eponymous_connors_double_7.py) and RUNGS (its published list and that list's test); the lane-ownership guard refuses that on a MONEY branch. It needs the coordinator to move the box to the RUNGS lane's book, with the rule file registered under RUNGS in manifest.toml. That loosens no guard. PR 588's branch holds working code to reuse.)
       (Coordinator 121, 23 Nov 08:0x: ConnorsRsi2 in desk/eponymous_connors.py is the zoo's _Rsi2 at below=10, line for line. Keep the name connors_rsi2 for the zoo and the ladder but drop its body: build it from _Rsi2 with below=10. A tests/unit/test_eponymous_connors.py case pins identical decisions on the fixture before and after; blind review, trading path.)
 - [x] The pretend broker: fills at the day's prices, rejects, partial fills, disconnection,
       a crash, resting stops, positions, and a position injected behind the desk's back
@@ -754,7 +754,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (desk/day.py:201, 241, 274; day_money.py:23; book.py:318; simcitycmd.py:176; simcity_fills.py:111);
       `rates.csv` stays an audit record and is never read as a source; wire: the trading day and SimCity;
       gate: a test where `rates.csv` disagrees with the database and the database wins
-      (#2149 step 1: currency maths takes its rate source, SimCity off rates.csv. Remains: the trading day, day_money.worth/heat, day._gap, book._priced, book.rate and fills pricing, with `home` threaded through day.run, desk/command*.py, desk/running.py and their tests (re-card to claim them); then the gate test)
+      (#2149 step 1: currency maths takes its rate source, SimCity off rates.csv. Remains: the trading day, day_money.worth/heat, day._gap, book._priced, book.rate and fills pricing, with `home` threaded through day.run, then the command and the paper round (PAPER's files: a PAPER box after this one); then the gate test)
       (runner ops 108, 23 Nov, stall watch 01:31: claim adds desk/book_parts.py, where the rates record is read, and desk/simcity.py, which reads it through `book.pounds_per`; two sessions stopped at that wall)
       {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day.py, tests/unit/test_book.py, tests/unit/test_simcity.py, tests/unit/test_simcity_fills.py, desk/book_parts.py, desk/simcity.py; check: tests/unit/test_day.py::test_rates_csv_disagreeing_with_the_database_loses}
       (plan steward, 27 Nov, builders lead's order: test globs narrowed to the tests of the modules it names)
