@@ -77,7 +77,7 @@ def files(live: Path) -> dict[str, Path]:
 
 #: A roll-up's bar takes the place of a bar held from its own roll-up source alone: derived
 #: data follows its source bars (B3), and a pulled bar of any other source stays.
-ROLLED = ADD + (" ON CONFLICT (venue, symbol, span, at) DO UPDATE SET open = excluded.open,"
+RESTATE = ADD + (" ON CONFLICT (venue, symbol, span, at) DO UPDATE SET open = excluded.open,"
                 " high = excluded.high, low = excluded.low, close = excluded.close,"
                 " volume = excluded.volume WHERE bar.source = excluded.source AND"
                 " (bar.open, bar.high, bar.low, bar.close, bar.volume) IS NOT"
@@ -100,7 +100,7 @@ class Round:
     def _put(self) -> str:
         """How this round's source writes a bar for a moment already held."""
         if self._source.value.startswith("rollup:"):
-            return ROLLED
+            return RESTATE
         return PUT if self._source.fresh else FILL
 
     def _write(
