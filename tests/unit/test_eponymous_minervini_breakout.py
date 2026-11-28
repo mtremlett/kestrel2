@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_minervini_breakout
 from desk.eponymous_minervini_breakout import MinerviniBreakout, decide
 from desk.lines import LINES
 from desk.store import Bar
@@ -45,3 +46,8 @@ def test_does_not_buy_a_breakout_in_a_market_going_nowhere() -> None:
 def test_declares_a_daily_rule_on_every_line() -> None:
     declared = MinerviniBreakout.declared
     assert (declared.bar, declared.hold, declared.universe) == (Timeframe.DAILY, None, LINES)
+
+
+def test_says_why_it_has_no_holding_period() -> None:
+    # his ruling 21 Nov: each rule's hold limit is its own sell logic's; the 50-day sell alone
+    assert "Holding period: none" in eponymous_minervini_breakout.__doc__

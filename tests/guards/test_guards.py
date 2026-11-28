@@ -82,9 +82,55 @@ def _budget() -> dict[str, Any]:
     return data
 
 
-def _manifest() -> dict[str, Any]:
-    data: dict[str, Any] = tomllib.loads((ROOT / "manifest.toml").read_text(encoding="utf-8"))
-    return data
+def _read(path: str, at: str) -> str:
+    """A file of the tree: from the commit `at` when given, else from the working tree."""
+    if not at:
+        return (ROOT / path).read_text(encoding="utf-8")
+    return subprocess.run(  # noqa: S603
+        ["git", "show", f"{at}:{path}"],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def _fragments(at: str) -> list[str]:
+    """Every file in manifest/, at the commit `at` when given, untracked ones too if not."""
+    if not at:
+        return sorted(p.name for p in (ROOT / "manifest").iterdir())
+    names = subprocess.run(  # noqa: S603
+        ["git", "ls-tree", "--name-only", f"{at}:manifest"],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sorted(names.split())
+
+
+def manifest(at: str = "") -> dict[str, Any]:
+    """THE ONE LOADER of the manifest: manifest.toml (packages, lanes, the package markers)
+    and one manifest/<lane>.toml per lane holding only that lane's [modules]. It returns them
+    merged, with `owner`, each lane module's lane: the file it sits in. It fails loudly on a
+    file in manifest/ not named for a lane, a lane without its file, a fragment holding more
+    than [modules], a lane module in manifest.toml, and a module listed twice."""
+    data: dict[str, Any] = tomllib.loads(_read("manifest.toml", at))
+    lanes, modules = data["lanes"], dict(data["modules"])
+    owner: dict[str, str] = {}
+    loose = sorted(m for m in modules if Path(m).name != "__init__.py")
+    assert not loose, f"manifest.toml lists lane modules {loose}: move each to its lane's file"
+    names = _fragments(at)
+    want = sorted(f"{lane}.toml" for lane in lanes)
+    assert names == want, f"manifest/ holds {names}; exactly one file per lane: {want}"
+    for name in names:
+        lane, part = name.removesuffix(".toml"), tomllib.loads(_read(f"manifest/{name}", at))
+        assert set(part) == {"modules"}, f"manifest/{name} holds {sorted(part)}; only [modules]"
+        twice = sorted(set(part["modules"]) & set(modules))
+        assert not twice, f"manifest/{name} lists {twice}, listed already: one home each"
+        modules |= part["modules"]
+        owner |= dict.fromkeys(part["modules"], lane)
+    return {**data, "modules": modules, "owner": owner}
 
 
 # ---------------------------------------------------------------- bloat
@@ -106,9 +152,6 @@ def test_the_tree_is_inside_this_phases_ceiling() -> None:
         f"desk/ is {_lines(core)} lines, ceiling {ceiling['product_lines']} for {phase}. "
         "Delete something or ask the operator to raise the ceiling on the pull request."
     )
-    assert (
-        len(core) <= ceiling["product_files"]
-    ), f"desk/ has {len(core)} files, ceiling {ceiling['product_files']} for {phase}."
     assert (
         _lines(lab) <= ceiling["lab_lines"]
     ), f"lab/ is {_lines(lab)} lines, ceiling {ceiling['lab_lines']} for {phase}."
@@ -146,7 +189,7 @@ def test_tests_never_outgrow_the_product() -> None:
     and change only with the operator's approval. Counting them too turned this guard
     red the moment the scenes were written before their code, as the canon requires.
     Ruled by the operator, 13 November 2026 (docs/DECISIONS.md)."""
-    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: 1.5, his ruling, 13 Nov
+    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: his ruling, 13 Nov
     product, unit = _lines(_product()), _lines(sorted((ROOT / "tests" / "unit").rglob("*.py")))
     assert unit <= ratio * product, f"unit tests {unit} lines > {ratio} x product {product}"
 
@@ -172,19 +215,100 @@ def test_the_rulebooks_stay_short() -> None:
     )
 
 
+#: a number as written, thousands split by commas or underscores, or a fraction; never in a word
+NUMBER = re.compile(r"(?<![\w.])\d+(?:[,_]\d{3})*(?:\.\d+)?(?![\w]|\.\d)")
+#: where a limit is restated: the guards that enforce limits, and the rulebooks
+RESTATED = ("tests/guards/*.py", "CLAUDE.md", "CANON.md", "docs/FAILURE_PATTERNS.md")
+
+
+def _limits(value: Any) -> set[float]:
+    """Every number in BUDGET.json past a day of the month (a date is none), and any fraction."""
+    if isinstance(value, dict):
+        return {n for v in value.values() for n in _limits(v)}
+    if isinstance(value, list):
+        return {n for v in value for n in _limits(v)}
+    number = isinstance(value, int | float) and not isinstance(value, bool)
+    return {float(value)} if number and (value > 31 or value != int(value)) else set()
+
+
+def test_each_limit_has_one_home() -> None:
+    """TWO HOMES FOR ONE LIMIT (failure pattern 8; design item 7, 'every limit has one home that
+    pre-flight reads'). A ceiling copied into a guard or a rulebook stays behind when BUDGET.json
+    changes, and the copy is what a session reads (the runner's 8914 pin did this, 27 Nov). A guard
+    reads the number from BUDGET.json; a rulebook names the file, never the figure."""
+    limits = _limits(_budget())
+    copies = [
+        f"{path.relative_to(ROOT).as_posix()}:{row}: {token}"
+        for path in sorted({p for pattern in RESTATED for p in ROOT.glob(pattern)})
+        for row, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        for token in NUMBER.findall(line)
+        if float(token.replace(",", "").replace("_", "")) in limits
+    ]
+    assert not copies, f"BUDGET.json's limits written again outside it: {copies}"
+
+
 # ---------------------------------------------------------------- sprawl
 
 
 def test_every_module_is_registered_in_the__manifest() -> None:
     """SPRAWL. Register the module, then write it. 'No new file without a search and a
     removal' was prose on the first desk; here the check refuses the file."""
-    listed = set(_manifest()["modules"])
+    listed = set(manifest()["modules"])
     actual = {str(p.relative_to(ROOT)).replace("\\", "/") for p in _product()}
     assert actual - listed == set(), (
-        f"not in manifest.toml: {sorted(actual - listed)}. "
-        "Add the module and the one thing it owns, in the same change."
+        f"not in the manifest: {sorted(actual - listed)}. "
+        "Add it and the one thing it owns to manifest/<lane>.toml, in the same change."
     )
-    assert listed - actual == set(), f"in manifest.toml but absent: {sorted(listed - actual)}"
+    assert listed - actual == set(), f"in the manifest but absent: {sorted(listed - actual)}"
+
+
+#: a fragment's name: a module cut by size, not by what it owns (failure pattern 6)
+FRAGMENT = re.compile(r"_(?:parts?|more|extra|rest|bits|helpers?|misc|aux)\d*$|[a-z]\d$")
+
+
+def _git_out(*args: str) -> str:
+    return subprocess.run(  # noqa: S603
+        ["git", *args],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def test_every_desk_module_has_one_owner_and_one_job() -> None:
+    """SPRAWL, held by ownership, not a file count (his 'Yes, all of it', 27 Nov). Each desk/
+    module is a row of one lane's manifest file, saying the one thing it owns; a module two
+    lanes list fails the loader."""
+    spec = manifest()
+    unowned = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if name.startswith("desk/")
+        and Path(name).name != "__init__.py"
+        and not (spec["owner"].get(name) and str(spec["modules"].get(name, "")).strip())
+    )
+    assert not unowned, (
+        f"desk/ modules with no lane or no stated job: {unowned}. Each is a row of "
+        'manifest/<lane>.toml: "desk/x.py" = "the one thing it owns".'
+    )
+
+
+def test_no_fragment_names_are_added() -> None:
+    """SPRAWL, by name. A module split off because its parent is full (`book_parts.py`,
+    `orders_parts2.py`) owns no concept of its own. Those on main may only fall; a change may
+    add none: name the new module for what it owns."""
+    base = _git_out("merge-base", "HEAD", "origin/main").strip()
+    was = set(_git_out("ls-tree", "-r", "--name-only", base, "--", *PRODUCT_DIRS).split())
+    added = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if FRAGMENT.search(Path(name).stem) and name not in was
+    )
+    assert not added, (
+        f"fragment names added: {added}. Name a module for the one thing it owns, never its "
+        "parent's name plus a suffix (failure pattern 6)."
+    )
 
 
 def _imports(path: Path) -> set[str]:
@@ -201,7 +325,7 @@ def test_the_wall_holds() -> None:
     """SPRAWL. desk/ sees the standard library and nothing else; it may never import
     lab/. This is the exact leak that absorbed the first desk's clean core back into
     352,000 lines: its day runner was put OUTSIDE the walled folder."""
-    packages = _manifest()["packages"]
+    packages = manifest()["packages"]
     assert isinstance(packages, dict)
     breaches: dict[str, set[str]] = {}
     for path in _product():
@@ -237,7 +361,7 @@ def test_no_versioned_copies_and_no_session_named_files() -> None:
 
 def _lane_docs() -> set[str]:
     """One document per lane the manifest knows, for its own decisions: docs/lanes/<lane>.md."""
-    return {f"docs/lanes/{lane}.md" for lane in _manifest()["lanes"]}
+    return {f"docs/lanes/{lane}.md" for lane in manifest()["lanes"]}
 
 
 def test_the_document_set_is_fixed() -> None:

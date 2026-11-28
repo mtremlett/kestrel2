@@ -41,7 +41,7 @@ def test_the_gate_refuses_past_a_loss_limit_or_a_fifth_new_line_and_buys_under_a
     orders.gate(
         _buy("A"), TEN_K, {"A": 5}, _standing(lines=4)
     )  #: more of a held line is no new line
-    with pytest.raises(Refused, match="day-loss limit"):
+    with pytest.raises(Refused, match="200 pounds lost in the last session"):
         orders.gate(_buy("A"), TEN_K, {"A": 5}, _standing(day=200))
     with pytest.raises(ValueError, match="never below"):
         _standing(day=-1)

@@ -133,19 +133,37 @@ def test_prices_too_close_for_floating_point_are_refused() -> None:
         fast.held(ROWS[3], fast.Shared(bars))
 
 
-def test_every_row_of_the_spec_book_trades_on_the_fast_engine_as_the_desk_trades() -> None:
+#: Bars where the desk's `lab/blocks.py` `_Keltner.see`, dividing by 3, rounds a close exactly on
+#: the band to beyond it (the ties below): the desk's fault, owed in lab/blocks.py; may only shrink.
+DESK_ROUNDS = {"walk 5": [85, 86, 87], "walk 9": [374]}
+
+
+def test_the_fast_engine_matches_the_desk_on_the_golden_fixture() -> None:
     book = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
-    bars = tuple(  # a swinging volume, so the volume rows trade
-        replace(b, volume=1000 + 900 * (n * 7 % 5 - 2) // 2)
-        for n, b in enumerate(next(iter(_series().values())))
-    )
-    for name, row in book.items():
-        spec = Spec.parse({"name": name, **row})
-        if name == "zweig_breadth_thrust":  # judged on ratio bars, which this price series is not
-            continue
-        made = variants.variants(spec) if spec.ranges else ()  # the settings the grid sweeps too
-        for each in (spec, *(variant.spec for variant in made)):
-            assert fast.held(each, fast.Shared(bars)).tolist() == _desk(each, bars), each.name
+    for n, (label, raw) in enumerate(_series().items()):
+        bars = tuple(  # a swinging volume, so the volume rows trade
+            replace(b, volume=1000 + 900 * (k * 7 % 5 - 2) // 2) for k, b in enumerate(raw)
+        )
+        shared = fast.Shared(bars)  # one working of each block for every row on the line
+        for name, row in book.items():
+            spec = Spec.parse({"name": name, **row})
+            if name == "zweig_breadth_thrust":  # judged on ratio bars, not this price series
+                continue
+            made = variants.variants(spec) if spec.ranges and not n else ()  # the grid's too
+            for each in (spec, *(variant.spec for variant in made)):
+                found, desk = fast.held(each, shared).tolist(), _desk(each, bars)
+                apart = [k for k, (a, b) in enumerate(zip(found, desk, strict=True)) if a != b]
+                rounds = DESK_ROUNDS.get(label, []) if name == "keltner_channel_trend" else []
+                assert apart == rounds, f"{each.name} on {label}"
     demark = {"name": "demark_sequential", **book["demark_sequential"]}
     with pytest.raises(ValueError, match="case 0 gives"):  # a setting, not the book's constant
         Spec.parse({**demark, "params": {"entry": {"n": 7}, "exit": {"n": 7}}})
+
+
+def test_a_close_exactly_on_a_keltner_band_is_not_beyond_it() -> None:
+    over, under = "close_over_keltner_band", "close_under_keltner_band"
+    # each last close is the band to the penny (exact margin 0); the desk's block, dividing by 3,
+    # buys on the first two (55.5 and 148.75) and sells on the last two
+    ties = ((9, 375, over, 10), (5, 86, over, 10), (36, 861, under, 5), (36, 1095, under, 5))
+    for seed, cut, block, n in ties:
+        assert not fast.Shared(_walk(seed, 1200)[:cut]).fires(block, {"n": n})[-1], (seed, cut)

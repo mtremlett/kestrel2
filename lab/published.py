@@ -136,7 +136,9 @@ PUBLISHED: Mapping[str, Published] = {
 def proven(name: str) -> Published:
     """The rule's publication, once the indicators give their published tables and the desk's
     engine and the ladder's cell have both given its known answers on every series; refused,
-    and not remembered, when any does not."""
+    and not remembered, when any does not. A variant (`rule[settings]`) is its base rule's."""
+    if (base := name.partition("[")[0]) != name:
+        return proven(base)
     indicators()
     rule = PUBLISHED.get(name) or EPONYMOUS_PUBLISHED.get(name)
     if rule is None:

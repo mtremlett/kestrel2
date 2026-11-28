@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import os
+import subprocess
 import sys
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
@@ -17,7 +18,7 @@ import pytest
 from test_lab_tune import Pc
 
 from desk import bars as database
-from desk import store, strategy, venues
+from desk import strategy, venues
 from desk.bars import Source
 from desk.lines import STAMP_DUTY, Line
 from desk.store import Bar
@@ -34,14 +35,15 @@ EACH = len(strategy.STRATEGIES)
 
 
 def _keep(root: Path, line: Line, lift: int = 0, split: int = 0, path: Path | None = None) -> None:
-    """A line's bars cleaned into the store at root, and all but the last into the history
-    database beside it (or at path): a slow wave, so rules trade on it, its first `split`
-    bars at ten times the price, as before a split nobody adjusted."""
+    """A line's file listed in the store folder at root (`held` lists it), and its bars but
+    the last in the history database beside it (or at path): a slow wave, so rules trade on it,
+    its first `split` bars at ten times the price, as before a split nobody adjusted."""
     days = venues.sessions(line.venue, START, DAY - timedelta(1))
     up = [n % 40 if n % 80 < 40 else 40 - n % 40 for n in range(len(days))]
     wave = [Decimal(100 + lift + step) * (10 if n < split else 1) for n, step in enumerate(up)]
     bars = [Bar(d, p, p + 1, p - 1, p, 9) for d, p in zip(days, wave, strict=True)]
-    assert bool(store.prepare(root / line.venue, {line: bars}, DAY)) == bool(split)
+    (root / line.venue).mkdir(parents=True, exist_ok=True)
+    (root / line.venue / f"{line.symbol}.csv").touch()
     with database.writing(path or root.parent / database.LIVE, Source.ARCHIVE) as opened:
         opened.daily(line, bars[:-1])
 
@@ -82,8 +84,8 @@ def test_every_strategy_on_every_ticker_is_kept_and_only_what_changed_is_run_aga
     assert (first.kept, first.undone, first.report.died) == (0, 0, ())
     for line in (BOEING, BAE):  # the two companies called BA, each from its own venue's bars
         bars = universe.read(tmp_path / database.LIVE, line).bars  # none before a split
-        csv = len(store.read(root / line.venue, "BA"))  # its last bar is held only there
-        assert len(bars) == csv - 1 - 30 * (line == BAE)
+        days = len(venues.sessions(line.venue, START, DAY - timedelta(1)))
+        assert len(bars) == days - 1 - 30 * (line == BAE)  # its last bar is held back
         cells = sweep.cells(line, START, DAY, transfer=True)
         assert [c.strategy for c in cells] == list(strategy.STRATEGIES)
         held = batch.run(cells, {line: bars}.__getitem__, sweep.journal(kept, line))
@@ -199,7 +201,7 @@ def test_held_is_every_ticker_the_store_has_bars_for_the_list_or_not(tmp_path: P
     root = tmp_path / "store"
     for line in (BOEING, BAE, other):
         _keep(root, line)
-    (root / "US" / "ZZZ.faults.csv").write_text("fault\n")  # an old note, not a ticker
+    (root / "US" / "BA.faults.csv").touch()  # a line's faults note is never a ticker
     assert sweep.held(root) == (BAE, other, BOEING)
     assert sweep.held(root)[0] is next(x for x in universe.UNIVERSE if x == BAE)
 
@@ -232,3 +234,18 @@ def test_a_variants_held_positions_are_the_desks_decisions_at_its_settings(
         was = held[-1] if held else False
         held.append({strategy.Action.BUY: True, strategy.Action.SELL: False}.get(d.action, was))
     assert any(held) and cell._held(cell.Cell(name, BOEING, START, DAY), bars) == held
+
+
+def test_the_week_clone_runs_mains_code(tmp_path: Path) -> None:
+    def git(where: Path, *words: str) -> None:
+        who = ["-c", "user.name=t", "-c", "user.email=t@t"]
+        subprocess.run(["git", "-C", str(where), *who, *words], check=True)  # noqa: S603, S607
+
+    main = tmp_path / "main"
+    git(tmp_path, "init", "-q", "-b", "main", str(main))
+    git(main, "commit", "-q", "--allow-empty", "-m", "one")
+    git(tmp_path, "clone", "-q", str(main), str(tmp_path / "clone"))
+    assert sweep.behind(tmp_path / "clone") is None  # up to date: a pass may run
+    git(main, "commit", "-q", "--allow-empty", "-m", "two")  # main moves on
+    refusal = sweep.behind(tmp_path / "clone")
+    assert refusal and refusal["error"].startswith("StaleClone: ") and "clone" in refusal["error"]

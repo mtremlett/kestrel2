@@ -12,7 +12,6 @@ from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import BinaryIO
 
 from desk import bars, listing, paper, venues
 from desk.bars import Five
@@ -20,6 +19,8 @@ from desk.lines import LINES, Line
 from desk.spans import Timed
 
 CLIENT = 226  #: the live reader's own client id at the gateway
+#: a polled round's own client id by its minutes: two conversations as one id are refused
+POLLED_CLIENTS = {5: 227, 15: 228, 60: 229}
 PACING = (
     3.0  #: seconds between asks: 20 lines a round, 40 asks in ten minutes, inside the limit of 60
 )
@@ -32,6 +33,10 @@ NewestMinutes = Callable[[Line, str, str, int, paper.Door], tuple[Timed, ...]]
 MINUTES = "1m"  #: the span of the one-minute bars
 FIRST = 3600  #: seconds of one-minute bars asked of a line with none held
 MOST = 86400  #: the most one question of one-minute bars may reach back
+
+
+class Untradeable(ValueError):
+    """The broker has no definition for the line: it cannot be traded, which is no miss."""
 
 
 def ibkr(
@@ -90,7 +95,7 @@ def _door(
         if (one := known.get(line.symbol)) is None:
             raise ValueError(f"{line.symbol} is not a line of the desk: the broker was not asked")
         if isinstance(one, listing.Unlisted):
-            raise ValueError(f"no IBKR real-time data on paper for {line.symbol}: {one.reason}")
+            raise Untradeable(f"no IBKR real-time data on paper for {line.symbol}: {one.reason}")
         if asked:
             wait(PACING)
         asked.append(line.symbol)
@@ -114,23 +119,8 @@ def newest_minutes(
     line: Line, contract: str, route: str, seconds: int, mine: paper.Door
 ) -> tuple[Timed, ...]:
     """The line's one-minute bars of the last `seconds` (the last may still be forming) from the
-    paper gateway, oldest first, trades only: `paper.newest`'s question at a minute's size."""
-    asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
-    ask = paper.message(
-        paper.ASK_BARS, 1, *asked, "", "1 min", f"{seconds} S", 0, "TRADES", 2, 0, ""
-    )
-
-    def talk(wire: BinaryIO, send: paper.Send) -> tuple[Timed, ...]:
-        paper.start(wire, send, mine)
-        send(ask)
-        while (fields := paper.receive(wire))[:2] != [paper.BARS, "1"]:
-            paper.other(fields)
-        count = fields[4] if len(fields) > 4 else ""
-        if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
-            raise ValueError(f"bars of a shape the desk does not read: {fields}")
-        return tuple(_minute(fields[n : n + 6]) for n in range(5, len(fields), 8))
-
-    return paper.dial(talk)
+    paper gateway, oldest first, trades only: `paper.bars` at a minute's size."""
+    return paper.bars(line, contract, route, "1 min", seconds, _minute, mine)
 
 
 def minutes(
@@ -139,10 +129,11 @@ def minutes(
     wait: Wait = time.sleep,
     newest: NewestMinutes = newest_minutes,
     listed: Callable[..., dict[str, listing.Listing | listing.Unlisted]] = listing.kept,
+    client: int = CLIENT,
 ) -> Callable[[Line, datetime], tuple[Timed, ...]]:
     """The question of a line's ended one-minute bars since the last held in hot (an hour's if
     none), in the line's own currency. Refusals are worded as the five-minute question's."""
-    door = _door(home, wait, listed, mine := paper.Door(CLIENT))
+    door = _door(home, wait, listed, mine := paper.Door(client))
 
     def ask(line: Line, now: datetime) -> tuple[Timed, ...]:
         one = door(line, now)

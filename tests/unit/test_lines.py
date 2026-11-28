@@ -123,7 +123,7 @@ def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() 
 def test_every_traded_line_has_an_isin_with_a_good_check_digit() -> None:
     traded = [ln for ln in LINES if ln not in REFERENCE]
     assert all(ln.isin and len(ln.isin) == 12 and valid_isin(ln.isin) for ln in traded)
-    assert {ln.symbol: ln.isin for ln in LINES}["IDTL"] == "IE00BSKRJX20"
+    assert {ln.symbol: ln.isin for ln in LINES}["IDTL"] == "IE00BSKRJZ44"
     assert len({ln.isin for ln in LINES}) == len(LINES)
     assert not valid_isin("IE00BSKRJX21") and not valid_isin("IE00BSKRJX2")
     with pytest.raises(ValueError, match="check digit"):

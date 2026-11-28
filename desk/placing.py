@@ -20,7 +20,7 @@ and of a line's stop before a sale; by `settle`, of a stop only once its replace
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -37,6 +37,13 @@ from desk.placing_parts import OVER
 from desk.placing_parts import Stop as Stop
 
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
+SHUT_SECONDS = 5  #: the fill wait of a rehearsal's account: the market is shut, nothing can fill
+
+
+@dataclass(frozen=True)
+class Shut(paper.Door):
+    """The door of a rehearsal, the markets shut: an order sent through it is given SHUT_SECONDS
+    to fill, not paper.FILL_SECONDS (the one wait for each door, here)."""
 
 
 class NotCancelled(Exception):
@@ -99,14 +106,19 @@ def _place(
     return number, None, tuple(notices)
 
 
-def _withdrawn(report: Report) -> Report:
+def _wait(door: paper.Door) -> int:
+    """How long an order sent through this door is given to fill."""
+    return SHUT_SECONDS if isinstance(door, Shut) else paper.FILL_SECONDS
+
+
+def _withdrawn(report: Report, wait: int) -> Report:
     """An order the desk cancelled after its wait, told as the desk's own act: it went at the
     market (MARKET) and was not filled within the door's wait. What the broker then says of it
     follows; an order the broker ends itself keeps the broker's own words (Paper.report)."""
     if report.reason is None:
         return report
     why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
-    why += f"{paper.FILL_SECONDS} seconds"
+    why += f"{wait} seconds"
     broker = report.reason.removeprefix(f"{report.order_id}: ")
     if broker.startswith("the broker says "):
         why += f"; {broker}"
@@ -153,15 +165,15 @@ class Paper:
         clock: Callable[[], datetime],
         door: paper.Door,
         stamp: Callable[[], datetime] = lambda: datetime.now(UTC),
+        within: bool = False,
     ) -> None:
-        """listings is each of the desk's lines as the broker lists it now (listing.read): by
-        them a fill, an order and a holding are known as a line's. root holds the desk's record,
-        the day's checks among it; clock gives the moment, in UTC: read only before a send;
-        stamp is the real moment, taken on each event of an order for its trail;
-        door is who the paper broker is spoken to as, and what of the account is its own."""
+        """listings is each of the desk's lines as the broker lists it now (listing.read): by them
+        a fill, an order and a holding are known as a line's. root holds the desk's record, the
+        day's checks among it; clock gives the moment, in UTC: read only before a send; stamp is
+        the real moment, taken on each event of an order for its trail; door is who the broker
+        is spoken to as, and what of the account is its own; within, a bar's round's broker."""
         self._listings, self._root, self._clock = dict(listings), root, clock
-        self._stamp = stamp
-        self._door = door
+        self._stamp, self._door, self._within = stamp, door, within
 
     def _orders(self) -> reports.Orders:
         return reports.orders(paper.read(self._door).orders, self._listings, self._door)
@@ -205,7 +217,7 @@ class Paper:
         try:
             number, last, notices = paper.dial(
                 lambda wire, send: _place(wire, send, listed, order, self._door, times),
-                paper.FILL_SECONDS,
+                _wait(self._door),
             )
             silent = last is None
             if silent:
@@ -215,7 +227,7 @@ class Paper:
             if (
                 silent and last in GONE
             ):  #: the broker found it working, and cancelled it for the desk
-                report = _withdrawn(report)
+                report = _withdrawn(report, _wait(self._door))
             moved = sum(fill.quantity for fill in report.fills)
             held, stops = on(paper.read(self._door), listed, self._door)
             if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):
@@ -237,10 +249,10 @@ class Paper:
 
     def _cleared(self, order: Order | Sale) -> tuple[Listing, Stop | None]:
         """The line as the broker lists it, and the stop a buy goes with (_with), for an order
-        cleared to go: the broker lists the line and its price is above the buy's stop (an
-        error raised), the order is dated (its session) the venue's session before today's, the kill
-        switch was drilled within its month and today's check came back clean (Refused, all),
-        and the gateway says it is ready: Disconnected, the order never received."""
+        cleared to go: the broker lists the line and its price is above the buy's stop (an error
+        raised), the order is DUE today (dated the venue's session before today's; within a bar's
+        round, today's), the kill switch was drilled within its month and today's check came back
+        clean (Refused, all), and the gateway says it is ready: Disconnected."""
         symbol, now = order.line.symbol, self._clock()
         listed = self._listings.get(symbol)
         if not isinstance(listed, Listing):
@@ -250,9 +262,9 @@ class Paper:
         if order.session is None:
             raise ValueError(f"{order.order_id}: not sent, the order is dated no session")
         last = venues.sessions(order.line.venue, now.date() - timedelta(days=9), now.date())[-2:]
-        if last != (order.session, now.date()):
-            why = f"{now:%Y-%m-%d} is not the session of {order.line.venue}'s next after"
-            raise Refused(f"{order.order_id}: not sent, {why} the one it is dated")
+        if last[1:] != (now.date(),) or order.session != last[-1 if self._within else 0]:
+            why = "is not the session of" + f" {order.line.venue}'s next after" * (not self._within)
+            raise Refused(f"{order.order_id}: not sent, {now:%Y-%m-%d} {why} the one it is dated")
         if not kill.drilled(self._root, now.date()):
             why = f"the kill switch was not drilled in the last {kill.DRILL_DAYS} days"
             raise Refused(f"{order.order_id}: not sent, {why}")
@@ -264,7 +276,7 @@ class Paper:
     def _before(self, listed: Listing, order: Order | Sale) -> tuple[Decimal, Stop | None]:
         """A line before an order goes: the shares the account holds of it and the one stop of
         the desk's own it is under, or None. Refused: two stops open on it, or one the broker
-        is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's.
+        is not holding; and while another order is open at the broker ON THIS LINE, anyone's.
         A SALE GOES ONLY WHEN NO STOP RESTS UNDER THE SAME SHARES (R-MONEY-17): the line's stop
         is cancelled first (not tied at the broker, both could sell); if it ended another way
         meanwhile, the stop is put back for the shares held, Refused; if it sold, Unprotected."""
@@ -279,9 +291,17 @@ class Paper:
             said = [f"{o.ref} ({o.state})" for o in stops]
             where = f"the desk's own stops on {listed.line.symbol} are not settled: {said}"
             raise Refused(f"{order_id}: not sent, {where}")
-        idle = [f"{o.ref} ({o.state})" for o in told.unsettled + told.others if o.state not in OVER]
-        if idle:
-            raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
+        apart = {x.contract for x in self._listings.values() if isinstance(x, Listing)}
+        apart.discard(listed.contract)  # another line of the desk's: its orders refuse it alone
+        shut = [
+            o
+            for o in told.unsettled + told.others
+            if o.state not in OVER and o.contract not in apart
+        ]
+        if idle := [f"{o.ref} ({o.state})" for o in shut]:
+            raise Refused(
+                f"{order_id}: not sent, open at the broker on {listed.line.symbol}: {idle}"
+            )
         if isinstance(order, Sale) and kept:
             ours = rests[0]
             try:

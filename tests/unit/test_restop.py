@@ -51,3 +51,24 @@ def test_a_fills_stop_rests_ten_percent_under_the_fill_and_is_moved_once(
     broker.restop = lambda *a: sends.append(a)  # type: ignore[method-assign]
     restop.move(tmp_path, broker, before)  #: the step run again
     assert sends == [], "a stop already under its fill is not moved again"
+
+
+def test_a_thin_line_is_bought_to_one_percent_of_its_traded_pounds(tmp_path: Path) -> None:
+    """SIZ-10 through the day: bars trading 100 shares a day cap the buy at 1% of ~20,000 pounds."""
+    thin = tuple(Bar(b.day, b.open, b.high, b.low, b.close, 100) for b in _bars("9"))
+    broker = Pretend({LINE: thin}, {})
+    broker.open(DAYS[21])
+    day.trade(tmp_path, {LINE: thin[:21]}, broker, ROOM, DAYS[21], POUNDS)
+    assert 0 < book.positions(tmp_path)["A"] * 9 <= Decimal("0.01") * 20_000
+
+
+def test_a_stops_row_for_a_line_sold_to_nothing_is_history_and_never_sent(tmp_path: Path) -> None:
+    """R-RUNNER-512: stops.csv is a history of levels by buy, not a register of live stops; a
+    row whose line the broker holds at 0 is never placed or moved (a stop on nothing is a short)."""
+    (tmp_path / book.STOPS).write_text("stop,level\n1-stop,8.1\n", encoding="utf-8")
+    broker = Pretend({LINE: _bars("9")}, {})
+    sends: list[object] = []
+    broker.restop = lambda *a: sends.append(a)  # type: ignore[method-assign]
+    assert restop.move(tmp_path, broker, [LINE]) == {} and sends == []
+    assert broker.resting_stops() == {}, "no stop was rested on a line held at 0"
+    assert book.levels(tmp_path) == {"1-stop": Decimal("8.1")}, "the history is left as it was"

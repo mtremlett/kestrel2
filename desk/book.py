@@ -6,12 +6,15 @@ left working. Conformance trades are a cost of their own (conformance_cost)."""
 from __future__ import annotations
 
 import csv
+import operator
 from collections import Counter, deque
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import astuple, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from itertools import pairwise
 from pathlib import Path
+from typing import TypeVar, cast
 
 from desk import halt
 from desk.book_parts import (
@@ -57,9 +60,11 @@ from desk.orders import (
     Sale,
     Settings,
     charges,
+    gapped,
     gate,
     is_zoo,
     leg_of,
+    stop_under,
     strategy_of,
 )
 from desk.risk import Standing
@@ -89,6 +94,7 @@ __all__ = (
     "record_rates",
     "switch",
 )
+T = TypeVar("T")
 GOING = "going.csv"  #: the order at the broker's door, until the desk has its answer
 
 
@@ -159,13 +165,14 @@ def send(
 ) -> Sent:
     """Ask the broker what it did with the order's id, so a desk that restarts never sends it
     twice; if it never received it, gate it and send it. Fills are recorded, a buy's stop rests
-    at the broker. Where the book is not the broker's nothing is bought, and a line sells only if
-    its shares agree. Kill switch on: nothing is sent; a halt: no buy. Every refusal names its
-    blocker (Stopped), as does a short answer. A place that fails unknown pulls the kill switch
-    (Alarm); one that disagrees halts buying and is told (tell). Given the book's standing the gate
-    also refuses a buy past a loss limit or the day's new lines, and, given the pounds controlled
-    per underlying (exposure), one past its market's cap, and given the daily returns of the line
-    and the lines held (moves), one correlated with a held line past the cap (orders.gate)."""
+    at the broker. A line the book is not the broker's on is not bought, and sells only if
+    its shares agree; every other line trades. Kill switch on: nothing is sent; a halt: no buy.
+    Every refusal names its blocker (Stopped), as does a short answer. A place that fails
+    unknown pulls the kill switch (Alarm); one that disagrees halts buying and is told (tell).
+    Given the book's standing the gate also refuses a buy past a loss limit or the day's new
+    lines, and, given the pounds controlled per underlying (exposure), one past its market's cap,
+    and given the daily returns of the line and the lines held (moves), one correlated with a
+    held line past the cap (orders.gate)."""
     _settle(root, broker)
     report = broker.report(order.order_id)
     if again := retry_id(root, order.order_id, report, datetime.now(UTC).date()):
@@ -173,7 +180,8 @@ def send(
     if report is None:
         _unless_stopped(root, order)
         held, differ, unsure, _ = _compare(root, broker)
-        if differ and (isinstance(order, Order) or order.line.symbol in unsure):
+        sale = isinstance(order, Sale)
+        if order.line.symbol in (unsure if sale else differ):  #: one line never stops the others
             words = f"{order.order_id}: not sent, the book is not the broker's on {list(differ)}"
             raise Stopped(Blocker.BOOK, words)
         try:
@@ -254,14 +262,46 @@ _write = keep  # old name, for other lanes' callers until they move
 
 def strangers(root: Path, broker: Broker) -> tuple[tuple[str, int], ...]:
     """THE POSITIONS THE DESK DID NOT MAKE: each name the broker holds more shares of than
-    the book, and those shares (whole ones; a part share is for a hand to look at)."""
+    the book, and those shares (whole ones; a part share is for a hand to look at). Shares the
+    desk's own stop rests under at the broker are not listed: selling them too sells twice."""
+    covered = Counter[str]()
+    for name, shares in broker.stops():
+        covered[name] += int(shares)
     more = differences(positions(root), broker.holdings())
-    return tuple((d.name, int(d.broker) - d.book) for d in more if d.broker > d.book)
+    left = ((d.name, int(d.broker) - max(d.book, covered[d.name])) for d in more)
+    return tuple((name, shares) for name, shares in left if shares > 0)
 
 
-def collect(root: Path, broker: Broker) -> None:
-    """Write in the ledger every fill the broker gives that it lacks."""
+def collect(
+    root: Path,
+    broker: Broker,
+    lines: Iterable[Line] = (),
+    settings: Settings | None = None,
+    tell: Tell | None = None,
+) -> None:
+    """Write in the ledger every fill the broker gives that it lacks. Given the lines and the
+    settings, a stop's sale newly read that lost past the gap limit (STP-10, orders.gapped) halts
+    buying, once for each, until he lifts it: a gap is held against the limit as it is collected."""
+    before = {f.execution_id for f in fills(root)}
     _record(root, broker.fills())
+    known, buys = {line.symbol: line for line in lines}, {f.order_id: f for f in fills(root)}
+    for sale in (f for f in fills(root) if f.execution_id not in before and f.quantity < 0):
+        buy, line = buys.get(sale.order_id.removesuffix("-stop")), known.get(sale.symbol)
+        if settings is None or buy is None or line is None or buy.quantity < 0:
+            continue
+        priced = Order(
+            buy.order_id,
+            line,
+            -sale.quantity,
+            buy.price,
+            rate(root, line.currency, buy.day),
+            stop_under(line, buy.price),
+        )
+        if gapped(priced, sale.price, settings):
+            why = f"{sale.order_id}: the stop sold at {sale.price}, a gap past the loss limit"
+            halt.stop(root, broker, datetime.now(UTC), why, by="gap")
+            if tell:
+                tell(f"gap {sale.order_id}", f"{why}. Buying is halted until he lifts it.")
 
 
 def reconcile(root: Path, broker: Broker) -> tuple[str, ...]:
@@ -347,10 +387,14 @@ def _moved(
     return cash, costs
 
 
-def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[Decimal, Charges]]:
-    """How the ledger's fills are priced in pounds: at the day's kept rate, by the cost model."""
+def _priced(
+    root: Path, lines: Iterable[Line], ledger: Iterable[Fill] | None = None
+) -> Callable[[Fill, int], tuple[Decimal, Charges]]:
+    """How the ledger's fills are priced in pounds: at the day's kept rate, by the cost model;
+    a fill of a line the desk was not given, of the ledger's or of those named, is refused."""
     known, rates = {line.symbol: line for line in lines}, rates_kept(root)
-    if unknown := sorted({fill.symbol for fill in fills(root)} - set(known)):
+    asked = fills(root) if ledger is None else ledger
+    if unknown := sorted({fill.symbol for fill in asked} - set(known)):
         raise ValueError(f"the ledger trades lines the desk was not given: {unknown}")
 
     def pounds(fill: Fill, shares: int) -> tuple[Decimal, Charges]:
@@ -366,40 +410,85 @@ def _priced(root: Path, lines: Iterable[Line]) -> Callable[[Fill, int], tuple[De
     return pounds
 
 
+#: EACH SUM OVER THE LEDGER as it was last asked, by its kind and terms, for the asking desk alone
+#: (27 Nov: a SimCity day priced every fill again for the round trips and the interest, so its
+#: work grew with the fills behind it). A ledger that begins with the very fills of the last
+#: (read_once grows it by its new fills alone) is summed on from there; any other afresh.
+_SUMS: dict[tuple[object, ...], tuple[tuple[Fill, ...], object]] = {}
+
+
+def _summed(
+    key: tuple[object, ...],
+    ledger: tuple[Fill, ...],
+    fresh: Callable[[tuple[Fill, ...]], T],
+    more: Callable[[T, Sequence[Fill]], T | None],
+) -> T:
+    """The sum under key (its kind, the desk, its terms) carried on over the fills since its last
+    asking by more, or afresh where more cannot (None) or the ledger is not the last one grown.
+    None is kept while it sums, so one that raises leaves none half-done; another desk's go."""
+    for other in [k for k in _SUMS if k[1] != key[1]]:
+        del _SUMS[other]
+    seen, total = _SUMS.pop(key, None), None
+    if seen and len(seen[0]) <= len(ledger) and all(map(operator.is_, seen[0], ledger)):
+        total = more(cast(T, seen[1]), ledger[len(seen[0]) :])
+    total = fresh(ledger) if total is None else total
+    _SUMS[key] = (ledger, total)
+    return total
+
+
 def conformance_cost(root: Path, lines: Iterable[Line]) -> Decimal:
     """THE CONFORMANCE COST, apart from the desk's profit: the ledger's money moved, less costs."""
     moved, costs = dealt(root, lines, date.max, date.min, 0)
     return moved - costs.total
 
 
+Lots = dict[str, deque[tuple[Fill, int]]]
+
+
 def round_trips(root: Path, lines: Iterable[Line]) -> tuple[RoundTrip, ...]:
-    """Each sale matched with the buys it closes, oldest first, in pounds after every cost."""
-    pounds = _priced(root, lines)
-    opened: dict[str, deque[tuple[Fill, int]]] = {}
-    trips: list[RoundTrip] = []
-    for fill in fills(root):
-        lots = opened.setdefault(fill.symbol, deque())
-        if fill.quantity > 0:
-            lots.append((fill, fill.quantity))
-        left = -fill.quantity
-        while left > 0:
-            buy, open_shares = lots.popleft()
-            shares = min(open_shares, left)
-            if open_shares > shares:
-                lots.appendleft((buy, open_shares - shares))
-            left -= shares
-            (paid, bought), (got, sold) = pounds(buy, shares), pounds(fill, shares)
-            gross, costs = got - paid, bought + sold
-            bought_leg, sold_leg = replace(buy, quantity=shares), replace(fill, quantity=-shares)
-            trips.append(RoundTrip(bought_leg, sold_leg, gross, costs, gross - costs.total))
-    return tuple(trips)
+    """Each sale matched with the buys it closes, oldest first, in pounds after every cost; the
+    matching carried on from the last asking over the fills since (_summed)."""
+    known = tuple(lines)
+
+    def more(
+        made: tuple[Lots, list[RoundTrip]], ledger: Sequence[Fill]
+    ) -> tuple[Lots, list[RoundTrip]]:
+        opened, trips = made
+        pounds = _priced(root, known, ledger)
+        for fill in ledger:
+            lots = opened.setdefault(fill.symbol, deque())
+            if fill.quantity > 0:
+                lots.append((fill, fill.quantity))
+            left = -fill.quantity
+            while left > 0:
+                buy, open_shares = lots.popleft()
+                shares = min(open_shares, left)
+                if open_shares > shares:
+                    lots.appendleft((buy, open_shares - shares))
+                left -= shares
+                (paid, bought), (got, sold) = pounds(buy, shares), pounds(fill, shares)
+                gross, costs = got - paid, bought + sold
+                bought_leg, sold_leg = (
+                    replace(buy, quantity=shares),
+                    replace(fill, quantity=-shares),
+                )
+                trips.append(RoundTrip(bought_leg, sold_leg, gross, costs, gross - costs.total))
+        return opened, trips
+
+    def fresh(ledger: tuple[Fill, ...]) -> tuple[Lots, list[RoundTrip]]:
+        return more((Lots(), list[RoundTrip]()), ledger)
+
+    return tuple(_summed(("trips", root, known), fills(root), fresh, more)[1])
 
 
-def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip]) -> Decimal:
+Rate = Callable[[str, date], Decimal]
+
+
+def currency_gain(lines: Iterable[Line], trips: Iterable[RoundTrip], rate: Rate) -> Decimal:
     """CURRENCY APART FROM TRADING (BIC-04): the pounds the trips gained or lost because the
-    currency moved between the buy's day and the sale's, the shares sold at the sale's price
-    times the change in the day's rate. A trip's gross less this is its trading profit."""
-    currency, rate = {line.symbol: line.currency for line in lines}, pounds_per(root)
+    currency moved between the buy's day and the sale's: shares sold times the sale's price
+    times the change in the caller's rate. A trip's gross less this is its trading profit."""
+    currency = {line.symbol: line.currency for line in lines}
     return sum(
         (
             -t.sell.quantity
@@ -412,17 +501,12 @@ def currency_gain(root: Path, lines: Iterable[Line], trips: Iterable[RoundTrip])
 
 
 def open_currency_gain(
-    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date
+    root: Path, lines: Iterable[Line], prices: Mapping[str, Decimal], day: date, rate: Rate
 ) -> Decimal:
     """CURRENCY ON OPEN HOLDINGS (BIC-04): what the shares still held, the newest buys (sales
     close the oldest), have gained or lost at today's price from the currency's move since the
     buy's day, apart from the price's own."""
-    money, total, rate, ledger = (
-        {x.symbol: x.currency for x in lines},
-        Decimal(0),
-        pounds_per(root),
-        fills(root),
-    )
+    money, total, ledger = {x.symbol: x.currency for x in lines}, Decimal(0), fills(root)
     for symbol, held in positions(root, day).items():
         for buy in (f for f in reversed(ledger) if f.symbol == symbol and f.quantity > 0):
             shares, held = min(held, buy.quantity), held - min(held, buy.quantity)
@@ -431,23 +515,65 @@ def open_currency_gain(
     return total
 
 
+@dataclass(frozen=True)
+class _Earned:
+    """The interest summed to a day's end (last), the cash and costs the day ended with, and the
+    fills dated after it, by day, still to be taken in."""
+
+    last: date
+    cash: Decimal
+    costs: Charges
+    total: Decimal
+    due: Mapping[date, tuple[Fill, ...]]
+
+
 def interest(
     root: Path, lines: Iterable[Line], capital: Decimal, annual: Decimal, first: date, last: date
 ) -> Decimal:
     """INTEREST ON IDLE CASH (BIC-03): each day from first to last, the capital less what the
-    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself. The ledger
-    is read once and its fills added up as the days pass them (#1628: SimCity asks every day)."""
-    pounds, dated = _priced(root, lines), dict[date, list[Fill]]()
-    for fill in fills(root):
-        dated.setdefault(fill.day, []).append(fill)
-    before = (fill for d in sorted(dated) if d < first for fill in dated[d])
-    cash, costs = _moved(pounds, before, Decimal(0), Charges(*(Decimal(0),) * 5))
-    total, day = Decimal(0), first
-    while day <= last:
-        cash, costs = _moved(pounds, dated.get(day, ()), cash, costs)
-        total += max(capital + cash - costs.total, Decimal(0)) * annual / 365
-        day += timedelta(days=1)
-    return total
+    ledger has spent by its end (costs too), if positive, earns annual / 365 of itself. The days
+    from one fill's day to the next hold the same cash, so their day's earning is found once and
+    added for each, the very sum a day at a time gives. Asked again for a later last, the sum is
+    carried on from the last asking (_summed), the same earnings added in the same order, while
+    the fills since are dated after the days summed (27 Nov: SimCity asks every day)."""
+    known = tuple(lines)
+
+    def more(was: _Earned, ledger: Sequence[Fill]) -> _Earned | None:
+        if last < was.last or any(fill.day <= was.last for fill in ledger):
+            return None  #: an earlier day asked, or a fill dated in the days summed: afresh
+        due = {day: list(dated) for day, dated in was.due.items()}
+        for fill in ledger:
+            due.setdefault(fill.day, []).append(fill)
+        pounds, start, end = (
+            _priced(root, known, ledger),
+            was.last + timedelta(days=1),
+            last + timedelta(days=1),
+        )
+        cash, costs, total = was.cash, was.costs, was.total
+        turns = [start, *sorted(d for d in due if start < d <= last), end] if start < end else []
+        for day, until in pairwise(turns):
+            cash, costs = _moved(pounds, due.pop(day, ()), cash, costs)
+            earned = max(capital + cash - costs.total, Decimal(0)) * annual / 365
+            for _ in range((until - day).days):
+                total += earned
+        kept = {day: tuple(dated) for day, dated in due.items()}
+        return _Earned(max(last, was.last), cash, costs, total, kept)
+
+    def fresh(ledger: tuple[Fill, ...]) -> _Earned:
+        """From the day before first, with the cash the fills before it left, by their days."""
+        before = sorted((f for f in ledger if f.day < first), key=lambda f: f.day)
+        cash, costs = _moved(_priced(root, known, before), before, Decimal(0), _NONE)
+        begun = _Earned(first - timedelta(days=1), cash, costs, Decimal(0), {})
+        due = [f for f in ledger if f.day >= first]
+        if (summed := more(begun, due)) is not None:
+            return summed
+        return replace(begun, due={f.day: tuple(g for g in due if g.day == f.day) for f in due})
+
+    key = ("interest", root, known, capital, annual, first)
+    return _summed(key, fills(root), fresh, more).total
+
+
+_NONE = Charges(*(Decimal(0),) * 5)
 
 
 def attributed(

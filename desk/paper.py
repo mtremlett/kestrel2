@@ -41,6 +41,9 @@ SECONDS = 30
 #: the cancel, the same buy filled within a second at 09:36). The gateway keeps no API log of
 #: IBKR's own status times, so the fill time is not measured; 120 s is two minutes within one
 #: five-minute step, the cancel and the reads after it still inside it. Tune it from the tapes.
+#: 23 Nov 08:37: VHYG again unfilled in 120 s (broker Cancelled, 0 filled; tape
+#: trades-london-20261123-0835.csv), filled in a second at 09:06: the real side's wait and
+#: withdrawal are true; the pretend broker, filling at once, is the side that differs.
 FILL_SECONDS = 120
 #: The desk step's time (the runner kills it after this) and the margin kept beside the fills.
 STEP_SECONDS, STEP_MARGIN = 900, 60
@@ -325,19 +328,24 @@ def _five(fields: list[str]) -> Five:
     return Five(at, opened, high, low, close, int(volume))
 
 
-def newest(
-    line: Line, contract: str, route: str, count: int, door: Door | None = None
-) -> tuple[Five, ...]:
-    """THE READ-ONLY QUESTION OF BARS: the line's newest `count` five-minute bars (the last
-    may still be forming) as the paper gateway gives them, oldest first, trades only, outside
-    regular hours too. contract is the broker's number for the line (desk/listing.py), route
+def bars(
+    line: Line,
+    contract: str,
+    route: str,
+    size: str,
+    seconds: int,
+    read: Callable[[list[str]], T],
+    door: Door | None = None,
+) -> tuple[T, ...]:
+    """THE READ-ONLY QUESTION OF BARS AT ANY SIZE: the line's bars of the last `seconds`, each
+    `size` long ("1 min", "5 mins"; the last may still be forming) as the paper gateway gives
+    them, oldest first, trades only, outside regular hours too, each read from its first six
+    fields by `read`. contract is the broker's number for the line (desk/listing.py), route
     where it is priced. It places nothing, and it dials the paper port alone (`dial`)."""
-    if not 0 < count <= 288:
-        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
     asked = (contract, line.symbol, "STK", "", "0.0", "", "", route, "", line.currency, "", "", 0)
-    ask = message(ASK_BARS, 1, *asked, "", "5 mins", f"{count * 300} S", 0, "TRADES", 2, 0, "")
+    ask = message(ASK_BARS, 1, *asked, "", size, f"{seconds} S", 0, "TRADES", 2, 0, "")
 
-    def talk(wire: BinaryIO, send: Send) -> tuple[Five, ...]:
+    def talk(wire: BinaryIO, send: Send) -> tuple[T, ...]:
         start(wire, send, door)
         send(ask)
         while (fields := receive(wire))[:2] != [BARS, "1"]:
@@ -345,9 +353,18 @@ def newest(
         count = fields[4] if len(fields) > 4 else ""  # after the request's number and its span
         if not (count.isascii() and count.isdigit()) or len(fields) != 5 + 8 * int(count):
             raise ValueError(f"bars of a shape the desk does not read: {fields}")
-        return tuple(_five(fields[n : n + 6]) for n in range(5, len(fields), 8))
+        return tuple(read(fields[n : n + 6]) for n in range(5, len(fields), 8))
 
     return dial(talk)
+
+
+def newest(
+    line: Line, contract: str, route: str, count: int, door: Door | None = None
+) -> tuple[Five, ...]:
+    """The line's newest `count` five-minute bars: `bars` at that size."""
+    if not 0 < count <= 288:
+        raise ValueError(f"{line.symbol}: {count} bars is not a day of five-minute bars or less")
+    return bars(line, contract, route, "5 mins", count * 300, _five, door)
 
 
 def named(
@@ -379,6 +396,17 @@ def differences(
         raise ValueError(f"the book holds lines the desk was not given: {unknown}")
     ours = {own(known[symbol]): shares for symbol, shares in held.items()}
     return named(ours, [(h.name, h.shares) for h in account.holdings], "the broker holds")
+
+
+def stops_of(account: Account, symbol: str, client: int) -> tuple[Resting, ...]:
+    """THE STOPS ONE SIDE RESTS ON A TICKER: the account's resting stops on symbol that the
+    client id placed (the desk's own, or the zoo's), so two sides' stops on one ticker are told
+    apart and one side's is never read, moved or cancelled as the other's."""
+    return tuple(
+        o
+        for o in account.orders
+        if o.symbol == symbol and o.kind == "STP" and o.client == str(client)
+    )
 
 
 def own(line: Line) -> str:

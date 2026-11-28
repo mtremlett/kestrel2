@@ -355,12 +355,14 @@ def nightly(
     ask: Callable[[Line, date], tuple[Bar, ...]] = archive.fetch,
     second: Callable[[Line, date], tuple[Bar, ...]] | None = None,
     noon: Callable[[Path], str] | None = None,
+    listed: Callable[[date], str] | None = None,
 ) -> str:
     """The night's work: refresh every line's daily bars into the history database
     (market_history.db: `bars.files` puts dailies beside the live path, the door), and write
     REFLECTS.txt in data/grid/store: the day, each list's size and a fingerprint of the
     tickers, so a reader knows which day and which list the database reflects. Given `noon`, the
-    pound's noon rates are let in last, and its one line is said."""
+    pound's noon rates are let in last, and its one line is said; given `listed`, so is its
+    line of the members by date, read last."""
     home = data / "grid" / "store"
     said = refresh(data / bars.LIVE, day, lines, ask, second)
     names = sorted(f"{line.venue}:{line.symbol}" for line in lines)
@@ -369,15 +371,14 @@ def nightly(
     held = (f"day {day}", f"lines {len(names)} {sizes}", f"fingerprint {finger}")
     home.mkdir(parents=True, exist_ok=True)
     (home / "REFLECTS.txt").write_text(chr(10).join((*held, "")), encoding="utf-8")
-    return f"{said}; {noon(data / bars.LIVE)}{pound_gaps(data / bars.LIVE, day)}" if noon else said
+    said = f"{said}; {noon(data / bars.LIVE)}{pound_gaps(data / bars.LIVE, day)}" if noon else said
+    return f"{said}; {listed(day)}" if listed else said
 
 
 def import_history(data: Path, day: date) -> str:
-    """The ladder's pound table under data, let into the history database there; the
-    yardsticks' missing sessions are named."""
+    """The yardsticks' and reference lines' sessions missing from the history database, named."""
     return universe_history.run(
         data / bars.LIVE,
-        data / "ladder" / "pound.jsonl",
         (*YARDSTICKS, *REFERENCE),
         day,
     )
@@ -390,7 +391,12 @@ if __name__ == "__main__":
         sys.stdout.write(import_history(DATA, TODAY) + chr(10))
     elif sys.argv[1:2] == ["nightly"]:
         other = matrix(Path(sys.argv[2])) if len(sys.argv) > 2 else None
-        sys.stdout.write(nightly(DATA, TODAY, second=other, noon=universe_history.noon) + chr(10))
+        from lab import members_feed  # after the module is built: members_feed imports this one
+
+        said = nightly(
+            DATA, TODAY, second=other, noon=universe_history.noon, listed=members_feed.drift
+        )
+        sys.stdout.write(said + chr(10))
     elif sys.argv[1:] == ["noon"]:
         sys.stdout.write(universe_history.noon(DATA / bars.LIVE) + chr(10))
     else:

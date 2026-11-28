@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import bars, history
+from desk import bars, conformance_tape, history
+from desk import keeper as rounds
 from desk.history_write import clashes, held, keeper, main, roll
-from desk.lines import LINES
+from desk.lines import LINES, Line
 from desk.rollup import Candle
+from desk.spans import EPOCH
 from desk.store import Bar, Refused
 
 LINE = next(line for line in LINES if line.symbol == "VUAG")
@@ -45,7 +48,8 @@ def test_what_the_database_holds_from_the_broker_is_done_and_the_command_stops_i
     )
     assert held(tmp_path / bars.LIVE, [LINE]) == {(LINE, "1d")}
     assert (LINE, "1d") not in history.plan([LINE], held(tmp_path / bars.LIVE, [LINE]))
-    assert main(tmp_path, datetime(2026, 11, 16, 8, 10, tzinfo=UTC), ["3"]) == 1
+    first = datetime.combine(date(2026, 11, 16), conformance_tape.ROUNDS[0][0], UTC)
+    assert main(tmp_path, first + timedelta(minutes=10), ["3"]) == 1
     assert "desk round" in capsys.readouterr().err
 
 
@@ -127,3 +131,65 @@ def test_five_minute_bars_are_rolled_from_whole_one_minute_runs_and_a_held_one_s
     roll(live, LINE, open_ + timedelta(days=1))
     fives = bars.five(live, LINE, open_, open_ + timedelta(hours=1))
     assert [(b.start, b.volume) for b in fives] == [(open_, 5)]
+
+
+def test_the_keepers_round_reads_and_tells_only_its_recent_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    live, keep = tmp_path / bars.LIVE, keeper(tmp_path / bars.LIVE, {"VUAG": 1})
+    old, now = datetime(2025, 11, 12, 8, tzinfo=UTC), datetime(2026, 11, 12, 18, tzinfo=UTC)
+    for day in (old, now.replace(hour=8)):
+        keep(LINE, "5m", tuple(Candle(day + timedelta(minutes=5 * n), PRICE, PRICE, PRICE, PRICE,
+                                      1, "ibkr") for n in range(24)))  # fmt: skip
+    keep(LINE, "1d", (Bar(now.date(), PRICE, PRICE, PRICE, PRICE, 5),))
+    keep(LINE, "15m", (Candle(old, PRICE, PRICE, PRICE, PRICE + 1, 9, "ibkr"),))  # an old clash
+    firsts: list[int] = []
+    reading = bars._read
+
+    def counted(path: Path, line: Line, span: str, first: int, *rest: int | str) -> list[object]:
+        firsts.extend([first] * (span != bars.DAILY))
+        return list(reading(path, line, span, first, *rest))  # type: ignore[arg-type]
+
+    monkeypatch.setattr(bars, "_read", counted)
+    told = rounds.rolled(live, [LINE], now)  # the 5-minute round, as the keeper takes it
+    assert firsts and min(firsts) >= (now - timedelta(weeks=3) - EPOCH).total_seconds()
+    assert not [t for t in told if t.startswith("FAULT")]  # the year-old clash is not told again
+    assert rounds.rolled(live, [LINE], now) == []  # the window rolled again: nothing new lands
+    assert clashes(live, LINE, now) == ["VUAG 15m 2025-11-12 08:00: rolled and held differ"]
+
+
+def test_the_archive_never_replaces_a_day_the_broker_holds_but_fills_the_day_it_lacks(
+    tmp_path: Path,
+) -> None:
+    live, other = tmp_path / bars.LIVE, PRICE + 3
+    keeper(live, {"VUAG": 1})(LINE, "1d", (Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE, 7),))
+    with bars.writing(live, bars.Source.ARCHIVE) as round_:
+        round_.daily(LINE, [Bar(date(2026, 11, 19), other, other, other, other, 9),
+                            Bar(date(2026, 11, 20), other, other, other, other, 90)])  # fmt: skip
+    assert [(b.day.day, b.close, b.volume) for b in bars.daily(live, LINE)] == [
+        (19, other, 9), (20, PRICE, 7)]  # fmt: skip
+    assert bars.sources(live, LINE, bars.DAILY) == {bars.Source.IBKR: 1, bars.Source.ARCHIVE: 1}
+    with sqlite3.connect(bars.files(live)[bars.DAILY]) as raw:
+        assert raw.execute("SELECT count(*) FROM correction").fetchone() == (0,)
+
+
+def test_a_weekly_follows_its_restated_days_but_a_pulled_weekly_stays(tmp_path: Path) -> None:
+    live, keep, at = (
+        tmp_path / bars.LIVE,
+        keeper(tmp_path / bars.LIVE, {"VUAG": 1}),
+        datetime(2026, 11, 20, 18, tzinfo=UTC),
+    )
+    days = [Bar(date(2026, 11, d), PRICE, PRICE, PRICE, PRICE, 5) for d in range(16, 21)]
+    keep(LINE, "1d", tuple(days))
+    assert roll(live, LINE, at) == 1
+    days[4] = Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE + 1, 5)  # a fresh source restates
+    keep(LINE, "1d", (days[4],))
+    assert clashes(live, LINE, at) == ["VUAG 1wk 2026-11-16 00:00: rolled and held differ"]
+    assert roll(live, LINE, at) == 1 and clashes(live, LINE, at) == []
+    assert bars.timed(live, LINE, "1wk", at - timedelta(days=9), at)[0].close == PRICE + 1
+    pulled = Candle(datetime(2026, 11, 23, tzinfo=UTC), PRICE, PRICE, PRICE, PRICE, 9, "ibkr")
+    keep(LINE, "1wk", (pulled,))
+    days[4] = Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE + 2, 5)
+    keep(LINE, "1d", (days[4],))
+    roll(live, LINE, at + timedelta(days=4))
+    assert bars.sources(live, LINE, "1wk")[bars.Source.IBKR] == 1

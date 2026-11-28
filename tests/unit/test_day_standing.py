@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, day_money, intraday, orders, strategy
-from desk.broker import Pretend, Report
+from desk import book, day, day_money, halt, intraday, orders, paper, strategy
+from desk.broker import Fault, Pretend, Report
 from desk.halt import Blocker, Stopped
 from desk.lines import LINES, YARDSTICK, Line
 from desk.orders import Charges, Order, Settings
@@ -189,7 +189,7 @@ def test_currency_and_interest_are_read_back_unchanged_and_older_files_still_rea
     )
     book._write(tmp_path / day.RECORDS, [day.HEADER, *(day._row(r) for r in (kept, both))])
     assert day.records(tmp_path) == (kept, both)
-    old = [n for n in day.HEADER if n not in ("currency", "interest")]
+    old = [*day.HEADER[:11], *day.HEADER[13:]]  #: the header written before FX, by place
     rows: list[Sequence[object]] = [old, [*day._row(kept)[:11], *day._row(kept)[13:]]]
     book._write(tmp_path / day.RECORDS, rows)
     assert day.records(tmp_path) == (kept,)
@@ -241,6 +241,13 @@ class _In:
         return True
 
 
+class _Out:
+    """Never in the market: what it holds, it sells."""
+
+    def step(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002  # a double: it reads nothing
+        return False
+
+
 def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_lines(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -287,24 +294,149 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         "zoo_in",
         "desk_in",
     ]
+    yielded = next(f.order_id for f in book.fills(tmp_path) if f.day == wed and f.quantity < 0)
+    story = (tmp_path / book.STORY).read_text(encoding="utf-8")  # bounded: one test's few lines
+    assert story.count(yielded) == 4  # the yield intended and chained, then the zoo's own buy
+
+
+def test_the_days_zoo_buys_are_sized_on_their_own_sides_holdings_with_the_desk_holding_five(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pins #2105: the desk already holds 5 lines (its limit), yet each zoo buy of the day's
+    round fills one share, as the zoo is sized on the zoo's holdings alone (book.side)."""
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:8]
+    bars = {ln: BARS[A] for ln in lines}
+    broker = Pretend(bars, {})
+    broker.open(MON)
+    for ln in lines[:5]:
+        sent = book.send(
+            tmp_path,
+            broker,
+            Order(f"20251110-desk-{ln.symbol}", ln, 1, *map(Decimal, (50, 1, 45))),
+            ROOM,
+        )
+        assert sent.filled == 1
+    assert len(book.positions(tmp_path)) == orders.HOLDINGS
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines[5:]))
+    first, rates = {ln: (BARS[A][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
+    broker.open(TUE)
+    answers = day.trade(tmp_path, first, broker, ROOM, TUE, rates, zoo=True)
+    assert {(a.order_id.split("-")[-1], a.filled, a.blocker) for a in answers} == {
+        (ln.symbol, 1, None) for ln in lines[5:]
+    }
+    assert len(book.positions(tmp_path)) == 8  # five of the desk's and three of the zoo's
+
+
+def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_fits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """23 Nov: 36 zoo buys (AAPL, TSLA, NVDA) refused 'one share costs more than the room of 200
+    pounds'; a share costing 300 is bought now, and the fourth would take the zoo past 1,000."""
+    lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:4]
+    dear = tuple(
+        Bar(d, Decimal(300), Decimal(301), Decimal(299), Decimal(300), 10**7) for d in (MON, TUE)
+    )
+    broker = Pretend({ln: dear for ln in lines}, {})
+    broker.open(TUE)
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
+    rates = {ln.currency: Decimal(1) for ln in lines}
+    answers = day.trade(
+        tmp_path, {ln: dear[:1] for ln in lines}, broker, ROOM, TUE, rates, zoo=True
+    )
+    assert sorted(a.filled for a in answers) == [0, 1, 1, 1]
+    over = next(a for a in answers if a.filled == 0)
+    assert "the zoo would hold 12" in str(over.reason) and over.blocker is Blocker.GATE
+
+
+def test_a_zoo_buy_of_a_line_the_desk_holds_stays_refused_until_shares_have_owners(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A line's owner is its last buyer (book.side), not per share: a zoo buy of the desk's line
+    would hand it the whole line, and the zoo's sale would sell the desk's shares (blind review,
+    23 Nov; again 27 Nov: the broker keeps one stop per line under the newest buy's id, and
+    day._holders is the last buyer, so a mixed line moves the desk's stop and lets the zoo's
+    yield sell its shares). It stays refused until stops and holders are per side (zoo-own-side)."""
+    line = next(ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa)
+    broker = Pretend({line: BARS[A]}, {})
+    broker.open(MON)
+    desk = Order(f"20251110-desk-{line.symbol}", line, 1, *map(Decimal, (50, 1, 45)))
+    assert book.send(tmp_path, broker, desk, ROOM).filled == 1
+    monkeypatch.setattr(strategy, "STRATEGIES", {})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(intraday, "zoo_lines", lambda: (line,))
+    broker.open(TUE)
+    (answer,) = day.trade(
+        tmp_path, {line: BARS[A][:1]}, broker, ROOM, TUE, {"GBP": Decimal(1)}, zoo=True
+    )
+    assert (answer.filled, answer.blocker) == (0, Blocker.HELD) and "held already" in str(
+        answer.reason
+    )
 
 
 def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """One cap over the whole round (R-RUNNER-456): strangers, the desk's sales, the zoo's yields,
+    the desk's buys, then the zoo's, ask the broker for paper.MAX_ORDERS in all; an order the
+    broker refused or part-filled takes a slot; a buy refused before the send (a killed rule) or
+    inside book.send (the day's new lines) takes none; every order past the cap is decided,
+    chained in the story and on the morning's list as CARRIED."""
     lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:20]
     cheap = replace(BARS[A][0], open=Decimal(5), high=Decimal(5), low=Decimal(5), close=Decimal(5))
     bars = {ln: tuple(replace(cheap, day=d) for d in (MON, TUE)) for ln in lines}
-    broker = Pretend(bars, {})
-    monkeypatch.setattr(strategy, "STRATEGIES", {})
-    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In})
+    monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In, "desk_out": _Out})
+    monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In, "zoo_out": _Out})
     monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
     monkeypatch.setattr(orders, "HOLDINGS", 20)
-    broker.open(TUE)
-    first = {ln: (bars[ln][0],) for ln in lines}
-    answers = day.trade(
-        tmp_path, first, broker, ROOM, TUE, {ln.currency: Decimal(1) for ln in lines}, zoo=True
+    first, rates = {ln: (bars[ln][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
+    full, one = paper.MAX_ORDERS, replace(ROOM, new_lines=1)  #: one new desk line, 19 refused
+    none, no, rest = frozenset[str](), dict[str, Fault](), ("desk_in", "zoo_in")
+    shy = {lines[0].symbol: Fault.REJECT, lines[1].symbol: Fault.PARTIAL}  #: asked, short
+    held = ("desk_out", "zoo_in", "zoo_out")  #: a desk sale, a zoo yield, a zoo sale, 2 strangers
+    runs = (
+        (frozenset({"desk_in"}), ROOM, full, no, (), {"zoo_in"}),
+        (none, one, full, no, (), {"zoo_in"}),
+        (none, ROOM, 3, shy, (), set(rest)),
+        (none, ROOM, 1, no, held, {"stranger", *held, *rest}),
     )
-    carried = [s for s in answers if "carried to the next step" in (s.reason or "")]
-    assert len(broker.submitted()) == day.MAX_ORDERS == 7
-    assert len(carried) == len(lines) - 7 and all(s.filled == 0 for s in carried)
+    for n, (killed, room, cap, faults, seeded, rules) in enumerate(runs):
+        root, broker = tmp_path / str(n), Pretend(bars, faults)
+        monkeypatch.setattr(paper, "MAX_ORDERS", cap)
+        broker.open(MON)
+        for rule, line in zip(seeded, lines[2:], strict=False):
+            book.send(
+                root,
+                broker,
+                Order(f"20251110-{rule}-{line.symbol}", line, 1, *map(Decimal, (5, 1, 4))),
+                ROOM,
+            )
+        for line in lines[-2:] if seeded else ():
+            broker.inject(line.symbol, 1)
+        broker.open(TUE)
+        answers = day.trade(
+            root, first, broker, room, TUE, rates, killed=killed, strangers=True, zoo=True
+        )
+        carried = {s.order_id for s in answers if s.blocker is Blocker.CARRIED}
+        assert len(broker.submitted()) == len(seeded) + cap
+        assert sum(s.blocker in (None, Blocker.BROKER) for s in answers) == cap
+        assert {i.split("-")[1] for i in carried} == rules
+        assert {c.order_id for c in book.chains(root) if c.blocker == "CARRIED"} == carried
+        assert {b.order_id for b in halt.morning(root, TUE)[Blocker.CARRIED]} == carried
+
+
+def test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts(
+    tmp_path: Path,
+) -> None:
+    """London refused every buy on Mon 23 Nov for Friday's 386.17 pounds lost: a loss never
+    crosses into a new week, as the week's own loss does not; within the week it stands."""
+    free, fri = Charges(*[Decimal(0)] * 5), MON - timedelta(days=3)
+    lost = day.Record(fri, Decimal("-386.17"), free, Decimal(0), (), Decimal(0), 0)
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(0), Decimal(0), 0)
+    today = replace(lost, day=MON, profit=Decimal(-300))
+    book._write(tmp_path / day.RECORDS, [day.HEADER, day._row(lost), day._row(today)])
+    assert day.standing(tmp_path, MON) == Standing(Decimal(300), Decimal(300), 0)

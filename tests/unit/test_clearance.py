@@ -171,3 +171,33 @@ def test_a_moment_not_in_utc_is_refused(tmp_path: Path, monkeypatch: pytest.Monk
         with pytest.raises(ValueError, match="UTC"):
             _check(monkeypatch, tmp_path, moment, QUIET)
     assert clearance.checks(tmp_path) == ()
+
+
+def test_the_conformance_desks_share_is_set_apart_by_its_ledger_for_any_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    desk, theirs = tmp_path / "desk", tmp_path / clearance.BESIDE
+    for folder in (desk, theirs):
+        folder.mkdir()
+    row = "C1,20261113-conf-AAPL,AAPL,25,171.5,2026-11-13"
+    held = Account((replace(TEN, shares=Decimal(25)),), (replace(OURS, client="223", number="9"),))
+    assert _check(monkeypatch, desk, NOW, held).found == (  # no ledger row: all of it differs
+        HOLDS.format(25, 0),
+        ORDER.format("SELL", "STP, PreSubmitted", "1234567", 223, "not the desk's own"),
+    )
+    (theirs / book.LEDGER).write_text(",".join(book.COLUMNS) + "\n" + row, encoding="utf-8")
+    later = NOW + timedelta(hours=1)
+    assert _check(monkeypatch, desk, later, held).found == ()  # its 25 and its stop: clean
+    thin = replace(held, holdings=(replace(TEN, shares=Decimal(20)),))  # unlike its ledger
+    found = _check(monkeypatch, desk, later + timedelta(hours=1), thin).found
+    assert found == (HOLDS.format(20, 25),)
+    big = replace(held.orders[0], shares=Decimal(26))  # a stop for more than its ledger holds
+    assert (
+        len(
+            _check(
+                monkeypatch, desk, later + timedelta(hours=2), Account(held.holdings, (big,))
+            ).found
+            or ()
+        )
+        == 1
+    )

@@ -57,7 +57,7 @@ from desk import archive, bars, venues
 from desk.lines import NO_TAX, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, VARIANTS
-from lab import batch, tune, universe
+from lab import batch, chain, tune, universe
 from lab.cell import Cell
 
 if sys.platform == "win32":
@@ -68,6 +68,7 @@ else:
 PAUSE = timedelta(hours=1)  #: from one pass's start to the next's, in the week
 LIMIT = timedelta(hours=48)  #: the longest a pass may run: a full sweep fits a weekend (LAD-10)
 WEEK, LOCK = "week.jsonl", "pass.lock"
+HOME = Path(__file__).parents[1]  #: the clone whose code a pass runs
 COUNTS = ("cells", "ran", "kept", "failed", "undone")
 
 
@@ -120,7 +121,7 @@ def held(root: Path) -> tuple[Line, ...]:
         known.get((path.stem, venue), Line(path.stem, venue, *money[venue][:1], 1, money[venue][1]))
         for venue in sorted(venues.RULES)
         for path in sorted((root / venue).glob("*.csv"))
-        if not path.stem.endswith(".faults")  # an old note beside the bars, never a ticker
+        if not path.stem.endswith(".faults")  # a note beside the bars, never a ticker
     )
 
 
@@ -227,11 +228,11 @@ def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[
     that ended it. A pass still running at the limit is ended. Its words go to files, not
     pipes: a pipe would wait on for any worker the ended pass left holding it."""
     command = [sys.executable, "-m", "lab.sweep", str(root), str(kept), str(data)]
-    home, seconds = Path(__file__).parents[1], limit.total_seconds()
+    seconds = limit.total_seconds()
     with tempfile.TemporaryFile("w+") as out, tempfile.TemporaryFile("w+") as err:
         try:
             done = subprocess.run(  # noqa: S603
-                command, cwd=home, stdout=out, stderr=err, check=False, timeout=seconds
+                command, cwd=HOME, stdout=out, stderr=err, check=False, timeout=seconds
             )
         except subprocess.TimeoutExpired:
             return {"error": f"TimeoutExpired: ended at its limit of {limit}"}
@@ -242,6 +243,23 @@ def fresh(root: Path, kept: Path, data: Path, limit: timedelta = LIMIT) -> dict[
         return {"error": (said or [f"exit code {done.returncode}"])[-1]}
     counts: dict[str, Any] = json.loads(counted[-1])
     return counts
+
+
+def behind(home: Path) -> dict[str, str] | None:
+    """The error that refuses a pass, by name, when the clone at home lacks a change on main
+    (a pass runs the code at its own home: the week's clone ran pre-#1210 code and failed
+    2,810 cells an hour); None when home holds all of origin's main."""
+    git = ["git", "-C", str(home)]
+    subprocess.run([*git, "fetch", "--quiet", "origin", "main"], check=True)  # noqa: S603
+    ancestor = [*git, "merge-base", "--is-ancestor", "origin/main", "HEAD"]
+    if subprocess.run(ancestor, check=False).returncode:  # noqa: S603
+        return {"error": f"StaleClone: {home} is behind origin/main: update it, no pass is run"}
+    return None
+
+
+def current(root: Path, kept: Path, data: Path) -> dict[str, Any]:
+    """One pass, only on a clone holding all of main's code: else the refusal, by name."""
+    return behind(HOME) or fresh(root, kept, data)
 
 
 def week(
@@ -317,12 +335,13 @@ def main(argv: Sequence[str]) -> None:
     parser.add_argument("--transfer", action="store_true", help="transfer study: research list")
     args = parser.parse_args(argv)
     if args.days:
-        return week(partial(fresh, args.store, args.kept, args.data), args.data, args.days)
+        return week(partial(current, args.store, args.kept, args.data), args.data, args.days)
     window, threads = (archive.SINCE, datetime.now(UTC).date()), workers(datetime.now(UTC))
     folders = (args.data / bars.LIVE, args.kept)  # the bars from the one door, never the store
     study = args.held or args.transfer
     lines = held(args.store) if args.held else universe.UNIVERSE if study else declared()
     done = run(lines, *folders, *window, tune.windows(), args.data, threads, transfer=study)
+    chain.main({"KESTREL2_DATA": str(args.data)})  # its lines first: the count stays the last
     died = [f"{line.symbol} on {line.venue}" for line in done.report.died]
     counts = {name: getattr(done, name) for name in (*COUNTS, "seconds")}
     sys.stdout.write(json.dumps({**counts, "died": died}) + "\n")

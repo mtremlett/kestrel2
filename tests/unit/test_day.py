@@ -5,6 +5,7 @@ beside the market's, to the penny, or the lines on which the book is not the bro
 
 from __future__ import annotations
 
+import shutil
 from dataclasses import astuple, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -12,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from desk import book, day, halt, venues
+from desk import book, day, day_money, halt, venues
 from desk.broker import Crash, Fault, Pretend, Report, Restopping
 from desk.halt import Blocker
 from desk.lines import YARDSTICK, Line
@@ -53,9 +54,12 @@ ARCHIVE_LINES = {line.symbol: line for line in ARCHIVE}
 FIVE = Settings(Decimal(10_000), new_lines=5, correlation=Decimal(2))  #: A to D, F move alike
 
 
-def _trade(root: Path, broker: Restopping, on: date) -> tuple[book.Sent, ...]:
+def _trade(
+    root: Path, broker: Restopping, on: date, market: dict[str, Decimal] | None = None
+) -> tuple[book.Sent, ...]:
     before = {line: tuple(b for b in bars if b.day < on) for line, bars in ARCHIVE.items()}
-    return day.trade(root, before, broker, FIVE, on, {"GBP": Decimal(1)}, strangers=True)
+    rates = {"GBP": Decimal(1)}
+    return day.trade(root, before, broker, FIVE, on, rates, strangers=True, live=market)
 
 
 class Door:
@@ -65,6 +69,21 @@ class Door:
         self.report, self.place, self.fills = inner.report, inner.place, inner.fills
         self.holdings, self.stops, self.cancel = inner.holdings, inner.stops, inner.cancel
         self.restop = inner.restop
+
+
+def test_a_buy_into_a_gap_down_open_is_refused_or_stopped_under_the_market(tmp_path: Path) -> None:
+    """The signal's close is 9, its stop 8.1: an open at 8 is through the stop, so no buy is sent;
+    an open at 8.5 rests the stop under 8.5; an open at the close changes nothing."""
+    for live, root in ((Decimal(8), "through"), (Decimal("8.5"), "under"), (Decimal(9), "none")):
+        broker = Pretend(ARCHIVE, {})
+        broker.open(DAYS[21])
+        first = _trade(tmp_path / root, Door(broker), DAYS[21], {"A": live})[0]
+        stop = broker.resting_stops().get("A", (0, Decimal(0)))[1]
+        assert (first.blocker, stop) == {
+            "through": (Blocker.GATE, 0),
+            "under": (None, Decimal("7.65")),
+            "none": (None, Decimal("8.1")),
+        }[root]
 
 
 def test_the_day_sells_what_each_rule_holds_then_buys_from_the_book_after_each_send(
@@ -108,22 +127,19 @@ def test_a_day_the_book_is_not_the_brokers_buys_nothing_and_sells_only_lines_tha
 ) -> None:
     broker = Pretend(ARCHIVE, {})
     broker.open(DAYS[21])
-    broker.inject("Z", 5)  #: bought by hand
+    broker.inject("Z", 5)  #: bought by hand: a line the day has no order for
     stale = {line: bars[:20] for line, bars in ARCHIVE.items()}  #: no bar yet for the day before
     room, pounds = Settings(Decimal(10_000)), {"GBP": Decimal(1)}
     assert day.trade(tmp_path, stale, broker, room, DAYS[21], pounds) == (), "decided on old bars"
     unread = halt.morning(tmp_path, DAYS[21])[Blocker.UNREAD]  #: no silence: every line is named
     assert [b.order_id for b in unread] == list("ABCDHFG")
-    refused = _trade(tmp_path, broker, DAYS[21])
-    assert [s.order_id[-1] for s in refused] == list("ABCDHF") and broker.submitted() == ()
-    assert all(s.filled == 0 and "['Z']" in str(s.reason) for s in refused), "no reason given"
-    assert {s.blocker for s in refused} == {Blocker.BOOK}
-    broker.inject("Z", -5)
-    assert len(halt.morning(tmp_path, DAYS[21])[Blocker.BOOK]) == 7
-    bought = _trade(tmp_path, broker, DAYS[21])  #: the same morning, once the books agree
-    assert [s.filled > 0 for s in bought] == [True] * 5 + [False]
+    bought = _trade(tmp_path, broker, DAYS[21])  #: Z differs: only Z's orders refused
+    assert [s.order_id[-1] for s in bought] == list("ABCDHF") and "Z" not in broker.submitted()
+    assert [s.filled > 0 for s in bought] == [True] * 5 + [False], "one line stopped the others"
+    assert len(halt.morning(tmp_path, DAYS[21])[Blocker.BOOK]) == 1, "Z is said on the list"
     #: the morning's list as its last run left it: G unread, F at the gate, no order at the book
-    assert [len(b) for b in halt.morning(tmp_path, DAYS[21]).values()] == [1, 0, 0, 0, 0, 1, 0]
+    assert [len(b) for b in halt.morning(tmp_path, DAYS[21]).values()] == [1, 0, 0, 1, 0, 1, 0, 0]
+    broker.inject("Z", -5)
     broker.open(DAYS[22])
     broker.inject("A", -1)  #: one share of A sold by hand
     sold = _trade(tmp_path, broker, DAYS[22])
@@ -290,10 +306,11 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
     other, late = tmp_path / "other", Pretend(MARKET, {})
     late.inject("Z", 5)
     assert _run(other, late, DAYS[21]).profit is None
+    sent = late.submitted()
     late.inject("Z", -5)  #: the yardstick closed at 10 before the first day, and at 10.1 now
     with pytest.raises(ValueError, match="the day is over"):  #: its record made, no fill since
         day.run(other, MARKET, late, capital, DAYS[21], {"GBP": Decimal(1)})
-    assert late.submitted() == (), "orders sent on old decisions, for a day whose record is made"
+    assert late.submitted() == sent, "orders sent on old decisions, for a day whose record is made"
     assert _run(other, late, DAYS[22]).market == Decimal("100.00")
     with pytest.raises(ValueError, match="the day is over"):  #: nor the newest of two records
         day.run(other, MARKET, late, capital, DAYS[22], {"GBP": Decimal(1)})
@@ -308,6 +325,7 @@ def test_a_day_whose_book_is_not_the_brokers_names_the_lines_and_withholds_its_p
 
 def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later_day(
     tmp_path: Path,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
     broker, capital = Pretend(MARKET, {}), Settings(Decimal(10_000))
     broker.open(DAYS[21])
@@ -331,8 +349,23 @@ def test_a_session_the_desk_missed_is_named_and_gets_its_record_before_any_later
         day.publish(tmp_path, MARKET, broker, capital, date(2025, 2, 6))
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
     first = next(iter(MARKET))  #: A, still held: its bar for the day is owed, not yesterday's
-    with pytest.raises(ValueError, match="no close of A for"):
-        day.publish(tmp_path, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    held = book.positions(tmp_path)
+    owing = {line: bars[:-1] if line.symbol in held else bars for line, bars in MARKET.items()}
+    one = tmp_path_factory.mktemp("refused")
+    shutil.copytree(tmp_path, one, dirs_exist_ok=True)
+    every = day.publish(one, owing, broker, capital, DAYS[22])  #: all owed: named, published
+    assert every.profit is None and every.worth == 0
+    assert every.mismatches == tuple(sorted(s + day_money.NO_CLOSE_OWED for s in held))
+    assert all(day_money.is_owed(m) for m in every.mismatches)
+    with pytest.raises(day_money.CloseOwed):
+        day_money.close(owing, first, DAYS[22])
+    #: the held lines but A have theirs: A is named, the rest valued, the profit withheld
+    shutil.rmtree(one)
+    shutil.copytree(tmp_path, one)
+    refused = day.publish(one, {**MARKET, first: MARKET[first][:-1]}, broker, capital, DAYS[22])
+    assert (refused.profit, refused.mismatches) == (None, ("A" + day_money.NO_CLOSE_OWED,))
+    assert refused.worth > 0, "the other lines were not valued"
+    assert day.records(one)[-1] == refused, "the named line reads back from the comma file"
     halted = replace(first, suspended=frozenset({DAYS[22]}))  #: unless it did not trade
     rest = {line: bars for line, bars in MARKET.items() if line != first}
     missed = day.publish(tmp_path, {**rest, halted: MARKET[first][:-1]}, broker, capital, DAYS[22])
@@ -414,3 +447,26 @@ def test_a_holding_whose_stop_was_lost_is_on_that_days_list_with_the_stop_to_put
     book.record_rates(tmp_path, DAYS[22], {"GBP": Decimal(1)})
     day.publish(tmp_path, MARKET, broker, room, DAYS[22])
     assert halt.stopped(tmp_path, DAYS[22]) is None, "a list for a day whose orders never went"
+
+
+def test_records_kept_before_currency_and_interest_are_read_not_refused(tmp_path: Path) -> None:
+    """The live desk's records.csv of 16 November, written before the FX columns: Charges' own
+    'currency' column stays in its place and the record reads (London NO-GO, 23 Nov 05:30)."""
+    names = "day,profit,commission,spread,slippage,currency,uk_taxes,market,worth,counted,heat"
+    first = "2026-11-16,-35.95,3.76,1.85,1.85,0.55,0.00,-36.26,3675.63,2,163.15,,0"
+    (tmp_path / day.RECORDS).write_text(f"{names},halted,stopped,differ\n{first}\n", "utf-8")
+    (kept,) = day.records(tmp_path)
+    assert (kept.day, kept.profit) == (date(2026, 11, 16), Decimal("-35.95"))
+    assert kept.costs.currency == Decimal("0.55"), "Charges' currency moved or lost"
+
+
+def test_one_home_gives_each_buy_refusal_or_none(tmp_path: Path) -> None:
+    """R-RUNNER-445: an ISA-no line, a hand-parked line and a held line each get their refusal."""
+    line = Line("A", "LSE", "GBP", 1)
+    (tmp_path / "parked.csv").write_text("symbol,who,why\nB,him,a test\n", encoding="utf-8")
+    no_isa = day.refusal(tmp_path, "n", replace(line, isa=False), {})
+    assert no_isa and no_isa[1] is Blocker.GATE and "ISA" in no_isa[0]
+    assert (hand := day.refusal(tmp_path, "n", replace(line, symbol="B"), {}))
+    assert hand[1] is Blocker.GATE and "parked by hand" in hand[0]
+    assert (held := day.refusal(tmp_path, "n", line, {"A": 5})) and held[1] is Blocker.HELD
+    assert day.refusal(tmp_path, "n", line, {}) is None

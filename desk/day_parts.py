@@ -5,14 +5,14 @@ stands, the lines due, what the gate reads before a buy). desk.day gives them to
 
 from __future__ import annotations
 
-import csv
 from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass, field
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from pathlib import Path
 
 from desk import book, day_money, halt, venues
+from desk.book_parts import Rows, read_once
 from desk.halt import Blocker
 from desk.lines import LINES, Line
 from desk.orders import Charges, Settings, is_zoo, moves, order_id_of
@@ -24,7 +24,7 @@ RECORDS = "records.csv"
 FX = ("currency", "interest")
 MONEY = ("day", "profit", *Charges.__dataclass_fields__, "market", "worth", "counted", "heat", *FX)
 HEADER = (*MONEY, "halted", "stopped", "differ")
-BEFORE_FX = [name for name in HEADER if name not in FX]  #: the records' names until currency
+BEFORE_FX = [*MONEY[: -len(FX)], *HEADER[len(MONEY) :]]  #: by place: Charges has a currency
 BEFORE_HEAT = [name for name in BEFORE_FX if name != "heat"]  #: and until the heat
 
 
@@ -76,7 +76,7 @@ def _row(r: Record) -> tuple[object, ...]:
     money = (
         r.day,
         r.profit,
-        *astuple(r.costs),
+        *r.costs.amounts,
         r.market,
         r.worth,
         r.counted,
@@ -90,33 +90,40 @@ def _row(r: Record) -> tuple[object, ...]:
 def records(root: Path) -> tuple[Record, ...]:
     """Every day's record the desk has published, oldest first, as it was published. A file
     there whose first line is not the records' own names is an error, never a day short. A
-    row that ends at its money is a record made without its halts: it does not count."""
+    row that ends at its money is a record made without its halts: it does not count. Read
+    once, and grown by each day's record (book_parts.Rows): a day asks for them five times."""
     path = root / RECORDS
-    if not path.exists():
-        return ()
-    with path.open(newline="", encoding="utf-8") as kept:
-        rows = list(csv.reader(kept))
+    return read_once(path, _RECORDS) if path.exists() else ()
+
+
+def _made(rows: list[list[str]]) -> tuple[Record, ...]:
     if rows[:1] == [BEFORE_HEAT]:  #: records made before the heat have none
         rows = [BEFORE_FX, *(row[:10] + [""] + row[10:] for row in rows[1:])]
     if rows[:1] == [BEFORE_FX]:  #: records made before currency and interest have none
         rows = [list(HEADER), *(row[:11] + ["", ""] + row[11:] for row in rows[1:])]
     if rows[:1] != [list(HEADER)]:
-        raise ValueError(f"{path}: not the desk's records")
-    return tuple(
-        Record(
-            date.fromisoformat(row[0]),
-            Decimal(row[1]) if row[1] else None,
-            Charges(*map(Decimal, row[2:7])),
-            Decimal(row[7]),
-            tuple(row[15:]),
-            Decimal(row[8]),
-            int(row[9]),
-            tuple(map(datetime.fromisoformat, row[13].split())),
-            int(row[14]) if row[14] else None,
-            *(Decimal(row[i]) if row[i] else None for i in (10, 11, 12)),
-        )
-        for row in (kept + [""] * (15 - len(kept)) for kept in rows[1:])
+        raise ValueError("not the desk's records")
+    return tuple(map(_one, rows[1:]))
+
+
+def _one(row: list[str]) -> Record:
+    """A record from its row, the halts' two places blank in a row that ends at its money."""
+    row = row + [""] * (15 - len(row))
+    return Record(
+        date.fromisoformat(row[0]),
+        Decimal(row[1]) if row[1] else None,
+        Charges(*map(Decimal, row[2:7])),
+        Decimal(row[7]),
+        tuple(row[15:]),
+        Decimal(row[8]),
+        int(row[9]),
+        tuple(map(datetime.fromisoformat, row[13].split())),
+        int(row[14]) if row[14] else None,
+        *(Decimal(row[i]) if row[i] else None for i in (10, 11, 12)),
     )
+
+
+_RECORDS = Rows(_made, lambda kept, rows: (*kept, *map(_one, rows)))
 
 
 def _unreached(
@@ -189,20 +196,23 @@ def _unread(root: Path, lines: Sequence[Line], due: Mapping[str, Line], day: dat
 
 def standing(root: Path, day: date, zoo: bool = False) -> Standing:
     """WHERE THE BOOK STANDS AGAINST ITS LOSS AND ORDER-RATE LIMITS when the day opens
-    (canon B1, risk.loss_limit): the day's loss is the pounds the last published record lost
+    (canon B1, risk.loss_limit): the day's loss is the pounds the week's last record lost
     (0 when it gained or was withheld), the week's the net pounds lost over the records of
     day's own ISO week, and the new lines the lines first bought today. THE ZOO STANDS APART
     (orders.is_zoo, his 22 Nov ruling): the desk's standing leaves out its round trips' pounds
     and its lines, and the zoo's own (zoo) counts them alone, so neither spends the other's."""
     fills = book.fills(root)
     made = _zoo_made(root) if any(is_zoo(f.order_id) for f in fills) else {}
-    profits = list[tuple[date, Decimal]]()
-    for r in records(root):
+    iso, this = day.isocalendar()[:2], list[Decimal]()
+    for r in reversed(records(root)):  #: in day order: the week's are read back from the last
+        if (on := r.day.isocalendar()[:2]) < iso:
+            break
         theirs = made.get(r.day, Decimal(0))  #: a withheld record (no profit) counts 0 for both
         ours = Decimal(0) if r.profit is None else r.profit - theirs
-        profits.append((r.day, theirs if zoo else ours))
-    week = sum((p for d, p in profits if d.isocalendar()[:2] == day.isocalendar()[:2]), Decimal(0))
-    lost = -profits[-1][1] if profits else Decimal(0)
+        this += [theirs if zoo else ours] if on == iso else []
+    this = this[::-1] or [Decimal(0)]
+    lost = -this[-1]
+    week = sum(this, Decimal(0))
     bought = {
         f.symbol for f in fills if f.day == day and f.quantity > 0 and is_zoo(f.order_id) == zoo
     }

@@ -11,163 +11,11 @@ settled entries into one short summary entry; git keeps every word.
 ### 2026-11-13 — summary of the first five decisions (folded 17 November; git keeps every word)
 - Pretend broker: behaves as the paper one will, with its five faults. Send path: ask the broker first, gate second, a fill written once. Book: the ledger's fills, read by the gate. Day run: whose position, which day, which rate. Reconciliation: shares and stops checked before every order; scenes 6 and 7 together.
 
-### 2026-11-13 — one rule for "is the book the broker's?", for every broker
+### 2026-11-13 — summary: the book is the broker's; any broker behind the send path (folded 23 November; git keeps every word)
+- One rule decides whether the book is the broker's, for every broker, and the send path, ledger and day run know a broker by five questions, each asked once (R-PAPER-2). Decided by the lane as the desk's mentor.
 
-**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
-R-PAPER-1: the comparison of the desk's book with a broker's holdings has one home,
-`book.differences`, and reconciliation (`book.reconcile`, `book.send`) is rebuilt on it.
-
-1. **What it is handed: the book, and the broker's entries, each a name and its shares.**
-   Options were (a) the pretend broker's own answer, one number a line, which a real
-   account's rows would have to be added together to fit, the very fault the paper lane's
-   blind review found; (b) a typed holding carrying the real broker's own words (its kind
-   of product, its currency), which puts one broker's language in the core and means
-   nothing at the pretend one; (c) plain entries, each named by the door that read them in
-   the same words it names the book's lines in. Chosen (c): the paper door names an entry
-   by its symbol, kind and currency, the pretend broker by its symbol, and the rule itself
-   knows no broker.
-2. **Entry by entry, never added up.** Taken whole from the paper lane's rule: each entry
-   must itself be the book's shares; a line the book holds and the broker does not list is
-   named at no shares; a line listed at no shares is no holding.
-3. **A line with shares in two entries is never the book's.** The paper door's rule passed
-   two entries that were each the book's shares, which is what two accounts each holding
-   the line would look like: twice the book, read as clean. Options were to carry the rule
-   over exactly as it stood, or to close this while it was being given its one home.
-   Chosen: close it. The book holds a line once. Zero entries do not count as a second
-   place, so every case the paper door's tests hold today comes out as before.
-4. **The resting stops go through the same rule.** "The stop is for exactly the shares
-   held" is the same comparison with the stops as the entries, so reconciliation asks one
-   rule twice and has none of its own. When the paper door is taught the desk's own stops,
-   it can hand them to the same rule.
-5. **What comes back: one typed difference for each entry that is not the book's**, with
-   the name, the broker's shares and the book's. Reconciliation keeps the names, as scene 6
-   reads them; the paper door can word its sentences from the same record.
-6. **The paper door's own comparison stays until the paper lane moves it** (its file, asked
-   as R-MONEY-4). Until then the rule is written twice; after it, once.
-7. **The other blocking request (R-PAPER-2, any broker behind the send path) is the next
-   session's**, not folded into this one: one objective a session. It should have a broker
-   give its holdings and stops as entries, so a real account's rows reach this rule whole.
-
-**Evidence.** The contract test was seen failing first (`book.differences` did not exist).
-Run from outside the repository, the old book and the new traded the rehearsal's fourteen
-months to the same 68 fills, 34 round trips and every order's answer, with and without each
-line's first order rejected. A blind review found nothing blocking. It set the rule against
-its own separate statement of it on 210,525 accounts of up to three entries (whole, short,
-fractional and zero shares): no disagreement passed as clean and no agreement was named. It
-ran the old reconciliation and the new side by side over 8,000 random runs at the pretend
-broker with every fault, hand trades and cancelled stops: no difference in any answer,
-ledger or refusal. And it rebuilt the paper door on the rule in a copy: all forty of the
-door's tests passed unchanged, and of 83,793 accounts none became less safe (23 false
-cleans, all "two entries each the book's", became named). Sixty-seven deliberate breaks were
-driven in copies outside the repository, with Python's cache off: forty-three by the lane
-(thirty-nine caught at once, two gaps closed, two that cannot differ) and twenty-four by
-the review (eight survived: six gaps, one of them found by the lane too, each closed and
-caught; two that cannot differ at the pretend broker). The seven gaps were a one-share
-line, a zero entry beside two that cancel, the lines named out of order, a stop for fewer
-shares than held, entries given as a stream that can be read once, a matching entry beside
-a wrong one, and a line listed only at no shares. What the review left is in
-`docs/STATUS.md`.
-
-### 2026-11-13 — any broker behind the send path: five questions, entries, each asked once
-
-**Decided**, by the lane as the desk's mentor (no one watching), on the paper lane's request
-R-PAPER-2: the send path, the ledger and the day run know a broker by five questions
-(`broker.Broker`) and no longer by the pretend broker's name.
-
-1. **A stated interface, not a parent class.** Options were (a) the paper adapter inherits
-   from the pretend broker, and with it a simulation's insides; (b) a parent class both must
-   inherit; (c) a typed statement of the questions, which any class that answers them
-   satisfies, the type check proving it wherever one is handed over. Chosen (c). It sits in
-   `desk/broker.py` beside the answers a broker gives (`Fill`, `Report`, `Disconnected`), so
-   an adapter imports one module. The manifest's line for that file still says only "the
-   pretend broker": a lane may not reword it, so a session he starts should.
-2. **Five questions, the ones the send path and the day run ask:** what did you do with
-   this order id; take this order; your fills; your holdings; your resting stops. Opening a
-   day, planting a position, cancelling a stop by hand and the stops' levels are the
-   simulation's own instruments and stay off it. Cancelling orders will be the sixth, added
-   with the kill switch that needs it, not before.
-3. **Holdings and stops are entries, a name and its shares each, as the broker gives them.**
-   The pretend broker gave one number a line, a shape a real account's rows would have to be
-   added together to fit. It now gives entries too (`holdings`, `stops`), and its old answer
-   (`positions`) is gone, not kept beside: one job, one path. Its stops with their levels
-   (`resting_stops`) stay for the simulation's tests, which prove the level.
-4. **A line's symbol names that line and nothing else.** The door that reads an account
-   names each entry; anything that is not the line itself (another kind of product, another
-   currency) goes under a name of its own. Such an entry is named as a difference and stops
-   all buying. Options for the line's own sale were to refuse it too, or to allow it while
-   the line's own entry agrees. Chosen: allow it, as a line that has lost its stop may be
-   sold: the shares are known to be there, and a sale only lowers risk.
-5. **Each question asked once for an order, the stops before the holdings.** The send path
-   asked for the holdings twice, once to name what differs and once to judge the order's own
-   line. It now asks once for the fills, the stops and the holdings, and judges both from
-   those answers (`book._compare`). They are three moments at a real broker, and the order
-   matters (the blind review's blocking finding): with the holdings read first, a stop that
-   sold between the two readings looked like "shares there, stop gone", a line that may be
-   sold, and its sale went out for shares already sold. Read stops first and the same moment
-   shows the shares gone, and the sale is refused. A stop that sells after the last reading
-   no order of questions can catch: that is the broker's to refuse.
-6. **`place` gives an order's last answer.** The send path and the gate count fills only, so
-   an order left working at the broker is in none of the five answers, and six buys could
-   each pass a gate that sees an empty book. Options were to add working orders to the
-   interface now, or to state that an adapter must not leave one working. Chosen: state it
-   (what is not filled is cancelled), and let working orders arrive with cancelling, in the
-   kill switch's step. The interface also states what the send path leans on: one stop a
-   line, for all the shares held; fills in the order made, under ids that never change; an
-   answer whole or an error.
-7. **Left open, in `docs/STATUS.md`:** a resting order that is not a sell stop is unseen, a
-   stop's level is never compared, and a connection lost while reading is not a stated answer.
-
-**Evidence.** Tests seen failing first: the type check refused any broker but the pretend
-one (seven errors), the new contract test failed on "one order, two readings", and the
-review's race test failed with the sale not refused. Run from outside the repository, main
-and this branch traded the fourteen months to the same ledger and the same answers, with and
-without every first order rejected (68 fills, 34 round trips), before the repair and after.
-The blind review rebuilt the old send path and ran it beside the new over 4,000 random
-sequences (179,764 steps: buys, sales, every fault, hand trades, cancelled stops) and 600
-random mornings of the day run: no answer, refusal, ledger or holding differed. Its one
-blocking finding is point 5, fixed and tested; its lesser ones are taken (the interface's
-wording, three test gaps) or recorded. Eighty-five deliberate breaks were driven in copies
-outside the repository, Python's cache off: thirty-nine by the lane (one gap: a broker's
-rows collapsed into one a name), thirty-one by the review (five survived), fifteen on the
-repaired code (one gap: two stops collapsed). Six gaps are closed and each is now caught; the
-one left narrows a type of the interface's, which can refuse a broker, never admit one.
-
-### 2026-11-13 — the money book's next boxes noted: the kill switch first (#76)
-
-**Decided**, by the lane as the desk's mentor.
-- *The kill switch's files.* Options: refuse at the gate in `desk/orders.py`, or on the send
-  path in `desk/book.py`. Chosen: the send path, with a new `desk/kill.py` and `desk/broker.py`
-  (cancelling). The gate stays a pure rule over the order and the book; whether the switch is
-  thrown is a fact on disk, read at the edge where the reconciliation refusal already lives.
-- *The costs wait for the kill switch (`after: money-kill`).* Options: side by side, or in turn.
-  Chosen: in turn; both change `desk/book.py`, and his ruling puts the kill switch first.
-- *The crash watch left un-noted.* Options: note it with no `after` (a session would meet it
-  before the five-minute data exists), or wait. Chosen: wait for the data lane's box ids.
-- *File lists err wide.* A session may change nothing outside its note, so a missing file strands
-  it; a wider note only makes it wait its turn.
-
-### 2026-11-13 — each strategy declares what it is (#92, money-declared)
-
-**Decided**, by the lane as the desk's mentor.
-- *Holding period: each of the five declares none.* Options: (a) 5 sessions for RSI-2 and 20 for
-  Bollinger, the span of the average each sells on; (b) none for all five; (c) a number measured
-  from history. First built (a), but neither published rule has a time exit: RSI-2 outstays 5
-  sessions in 13 of 39 golden trades, Bollinger outstays 20 in 29 of 52 (longest 133). Chosen (b):
-  a declaration says only what its rule does; (c) is tuning. The time stop (STP-11) must choose
-  each limit and build the exit in the same change; the golden days will move, so it needs his
-  approval (canon B5).
-- *Test universe: every line of the instrument master, by reference.* Options: (a) the master's
-  lines; (b) a narrower list per rule; (c) a rule about a line's facts. Chosen (a): a rule judged on
-  fewer lines than it trades would trade unjudged; (b) changes what is traded with no evidence;
-  (c) makes the research list part of a verdict. By reference, so a new line is declared at once.
-- *Data: the numbers of the daily bar a rule reads*, proved (not a named source: the desk has one).
-- *The bar is one value, daily;* a second comes with the bars that would feed it.
-- *The declaration sits on the rule itself.* Options: (a) on the rule; (b) a second table by name;
-  (c) a wrapper. Chosen (a): one home; a rule without one fails the type check.
-- *A short sale.* No word for it in declaration, action or decision; the template sells only what
-  is held. A hand-made decision to sell is left to the gate (refusing it at its making breaks
-  orders tests this box may not edit); the true fix is the order type (recommended box).
-- *Ticked though a remainder is named:* a session given the same files could do no more.
+### 2026-11-13 — summary: the kill switch first, files err wide, each strategy declares itself (folded 27 November; git keeps every word)
+- The kill switch refuses on the send path (`desk/kill.py`, `desk/broker.py`), the gate staying a pure rule; costs wait for it; file lists err wide so a session is never stranded; each strategy declares what it is (#76, #92). Decided by the lane as the desk's mentor.
 
 ### 2026-11-13 — the kill switch and its drill (#95, money-kill)
 
@@ -453,6 +301,7 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 ### 2026-11-15 — every eponymous module declares EPONYMOUS (#280, R-RUNNER-88)
 - 16 modules gained `EPONYMOUS: Mapping[str, type[Rule]]`; a registry test sits in `tests/unit/test_eponymous_swing.py` (the lane guard lets MONEY own only tests named after a module).
 - Decided: The nameless momentum rule is named `dual_momentum` (alternative `antonacci_dual_momentum`), the name its test uses.
+- Blocked 27 Nov (money-epon-room): deleting the seven twinned rule files turns `tests/unit/test_lab_ladder_epon.py` red (`both == python`: every catalogue row has a Python twin), a RUNGS test outside this card's claim. Nothing deleted.
 - Remains: `lab/cell.py`, `ladder.py`, `trials.py` still accept only STRATEGIES (R-RUNNER-89, R-RUNNER-87).
 
 ### 2026-11-15 — Broker.stops names the desk's own stops (#282, R-PAPER-9)
@@ -793,3 +642,145 @@ Options: (a) move the broker and life classes too; (b) move only the pure parts,
 - Options: skip a trade whose expected gain is under twice the round trip's every charge, or flag it. Flag chosen: the box says "flagged", and `orders.thin(order, gain)` rounds nothing. It is pure and tested at the boundary, not yet called, because a Decision carries no expected gain.
 - The 1% liquidity-cap feed (`day._buy` passing `traded_value`) was tried and not landed: it turns test_restop, test_running and test_running_tell red (their bars have volume 1) and those files are outside the claim. Left to a card claiming them.
 - Double 7's (money-connors7) stays off MONEY on his "always go with recommended"; it waits on R-RUNGS-10 (RUNGS re-card, R-MONEY-68).
+
+### 2026-11-23 - No FAULT for lines before their first bar (#1909, money-simcity-firstbar)
+- Options: keep the per-line FAULT promise for a line with no bar before the day; skip such lines in the scenarios. Skip chosen: the night already names them under "Left out until their first bar" and the trading day is unaffected. `_Life.begun(on)` now feeds the gateway-silent, unbarred and gap scenarios.
+- Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; the lane goes to money-saved-fx and money-time-gaps; Double 7's goes to RUNGS.
+
+### 2026-11-23 - The 1% cap fed from the day's buy (#1918, money-small)
+- Options: leave the cap unfed until a card claims the three restop and running tests, or feed it now with the claim widened to test_restop. Fed now: `day._buy` passes the line's bars to `orders.size`, and test_restop fixtures carry volume 10**7 so they stay green; the two running tests passed unchanged.
+- The TRD-10 expected-gain flag stays unwired: `orders.thin` exists but a Decision carries no expected gain, which is not on main.
+- Double 7's (money-connors7) stays off MONEY on his standing "always go with recommended"; it goes to RUNGS (needs a re-carded box).
+
+### 2026-11-23 - Double 7's handed to RUNGS (#1941, money-small)
+- Options: keep money-connors7 on MONEY and raise the desk/ ceiling, or hand it to RUNGS. Handed over: MONEY's branch cannot edit the RUNGS files (lab/published_epon.py and its test) and desk/ is full, so it waits on R-RUNGS-10 and is re-carded there, per his standing "always go with recommended".
+- The TRD-10 expected-gain flag stays uncalled: a Decision has no expected gain, so calling `orders.thin` would invent one. A strategy-side source needs a design decision first.
+
+### 2026-11-23 - Step cap read from paper; alias kept (#1973)
+- Options: edit desk/simcity_incidents.py (held, not MONEY's; refused) so `day.STEP_SECONDS` can go at once, or keep `day.STEP_SECONDS` as an alias of `paper.STEP_SECONDS` until PAPER's file reads paper's. Alias kept; day.py's own STEP_MARGIN and MAX_ORDERS are deleted (one home each, in paper). R-MONEY-70 asks PAPER to change the reader, then the alias goes.
+
+### 2026-11-23 - Census pins book.chains; Double 7's re-carded (#1983, money-census-book)
+- Options: build a new scenario for the four book parts, or pin the existing ones. Pinned: the night's trips scenario already ran book.attributed, chains, conformance_cost and told; the census test now names book.chains beside the other three, so a part losing its scenario fails.
+- Double 7's (money-connors7): wait on R-RUNGS-10, or move the box. Moved to RUNGS as a re-carded box (his standing "always go with recommended"), as it blocks nothing else; this lane went to money-saved-fx and money-time-gaps.
+
+### 2026-11-23 - Halt writes its own record (#1991, money-door-writer)
+- Options for halt's record writer: reuse `store._write` (barred by the gate, which forbids the store's CSV half in these files) or a 4-line part-file-then-swap writer in `desk/halt.py`. Own writer taken: no other shared writer exists for it. Scenes 1 and 2 read through `store.judge`.
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-carded to RUNGS (R-MONEY-68), waits on R-RUNGS-10.
+
+### 2026-11-23 - The loss limit says which session (#2009, money-loss-words)
+- Options: add the session's date to the words (widen `Standing` so a caller passes it; behaviour change, rejected) or say "lost in the last session" without a date. Date left out because no caller passes one. Week limit reads "lost this week". `Standing.day_loss` comment and `day_parts.standing` docstring say "the last published session's loss".
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; re-card to RUNGS asked as R-MONEY-71, waits on R-RUNGS-10.
+
+### 2026-11-23 - Step time one home; carried orders named (#2008, money-round-cap)
+- Options for the orders past the zoo's cap: reuse `Blocker.BROKER` (rejected: it hides the cap behind broker faults) or a new `Blocker.CARRIED`, placed last in the enum. Taken: the morning list names them apart. `desk/day.py` keeps no `STEP_SECONDS` of its own; paper's is the one home.
+- Double 7's (money-connors7) stays held off MONEY on his standing "always go with recommended"; the re-card to RUNGS is R-MONEY-71, waits on R-RUNGS-10.
+
+### 2026-11-23 - Daily buy refusals have one tested home (#2012, R-RUNNER-445)
+- `day.refusal` already landed in #1682; only its direct test was missing. Options: leave it covered through `day._buy`, or pin it directly. Pinned: PAPER's R-RUNNER-436 will call it. No product change.
+
+### 2026-11-23 - Orders past the round's cap are listed, not resent (#2036, R-RUNNER-456)
+- Options: resend the CARRIED ids in `running._again` now, or list them honestly under `halt.morning` and resend later. Chosen: list them, with words saying "not sent today". The churn guard bars a third fix to `desk/running.py` until FAILURE_PATTERNS names the file, which a lane cannot write. His words: "always go with recommended".
+- The cap has one count, `day._room`. Carried ids equal the morning list's (tested).
+- Reverted 23 Nov (coordinator 140): #2036 landed over its A6 NO-GO (B1: carried orders dropped for the day) and moved the golden; R-RUNNER-456 is rebuilt from main with a real carry.
+
+### 2026-11-23 - A day's loss never crosses into a new week; golden re-pinned (#2039, R-RUNNER-455)
+London refused every buy on Mon 23 Nov 08:13 for "386.17 pounds lost this day", which was
+Friday's loss: `day_parts.standing` took the last record whatever its week, while the week's
+loss already reset on Monday. His words, Mon 23 Nov 09:05: "Reset the loss value asap".
+Decided: the day's loss is the last record of the day's own ISO week, so a Monday opens free
+of Friday and a lost day still stands against the next within the week. Options: (a) only a
+record dated today (coordinator 128), rejected: it turns three tested within-week refusals
+red and loosens the gate (canon A3); (b) the week's last record, chosen (#2005, brought here
+by R-RUNNER-455). Test: `test_a_monday_opens_free_of_fridays_loss_and_a_record_of_today_still_counts`,
+red on main 0f495ec6, green with the fix. The golden run moves (canon B5, the desk approves,
+his 22 Nov ruling): fills 68 -> 64, round trips 34 -> 32, profit over the fixture 1098.41 ->
+61.86, costs 368.78 -> 353.78, market 783.73 unchanged. Why: a week's first day after a losing week is
+no longer barred from buying, so which lines are held, and so every later buy and stop, differs
+from there on; net, four fewer fills (not traced fill by fill). The new figures are the rule's
+true result on the fixture, not a tuning target.
+
+- Stopped at the churn guard (third `fix` to `desk/day_parts.py` in ten changes, no failure pattern names it); retitling to dodge it is forbidden, so no retry. It waits on one line in pattern 20 naming the file, recorded outside the lanes.
+- Golden run now (310, 64, 32, 61.86, 353.78, 783.73), matching runner ops 132. Found, not fixed: `desk/risk.py` `day_loss` comment and its "in the last session" text still describe the old rule.
+
+### 2026-11-23 - money-connors7 waits on R-RUNGS-10 (#2052)
+- Options: raise the desk/ ceiling (100 of 100 files; his alone), or hand the box to RUNGS. Chosen: re-card it in the RUNGS book with Double 7 folded into `desk/eponymous_connors.py` (reusing commit 35158bb6) and drop R-MONEY-67. MONEY goes on to money-saved-fx (R-MONEY-66) and money-time-gaps (R-MONEY-62/64). By his "always go with recommended".
+
+### 2026-11-23 - One cap at one door; carried orders are intended and chained (#2084, R-RUNNER-456)
+- Churn guard red: options (a) close this change, (b) retitle it `feat`/`refactor`, (c) keep it open, write the finding where the guard says, and wait. Took (c): (b) is a relabel the canon forbids (A3), (a) throws away a reviewed GO fix whose only red is a missing pattern line.
+- Blind review NO-GO on the yield: options (a) land as is and list it, (b) fix it here. Took (b): the same defect as the two earlier NO-GOs, a three-line fix inside the claim.
+- Where the cap acts: (a) a check at each call site, as #2036 and #2055 did and both got NO-GO; (b) inside `_send`, the one door, after the intent is recorded. Took (b), per coordinator 140 (A2: fix at the source).
+- What takes a slot: (a) every send attempt, as on main; (b) only an answer for which the broker was asked (filled, or blocker BROKER). Took (b). An order the gate would refuse inside `book.send` after the cap is reached is answered CARRIED, not GATE; it still sends nothing.
+- Golden re-pinned (his 22 Nov: the desk approves goldens): on Mon 11 Aug 2025, 17 orders decided, 7 sent, 9 desk buys carried, 1 held; profit 61.86 -> -154.51, costs 353.78 -> 351.96; days 310, fills 64, trips 32 stand.
+- money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's goes to RUNGS, re-carded by runner ops.
+
+### 2026-11-24 - The zoo's "held already" stays on the whole book; its pounds are the zoo's own (#2137, #2152)
+- Held already for a zoo buy: (a) read only the zoo's side, as the ruling says, (b) keep reading the whole book. Took (b): line ownership is the last buyer per line, not per share, so a zoo buy of a desk-held line would flip the line to the zoo and a zoo sale would sell the desk's shares. The ruling is met safely only with per-side share counts in desk/book.py; #2152 pins the refusal as a test.
+- Total bound for the daily zoo: (a) cap lines by count only, (b) cap pounds at each line's last buy and the day's rate. Took (b): a line's room is the zoo's whole 1,000 pounds (`ZOO_DAY`) and the zoo's total stays within it.
+- money-connors7 held off MONEY (waits R-RUNGS-10); Double 7's is re-carded to RUNGS, claiming desk/eponymous_connors.py, lab/published_epon.py and their tests. His standing ruling "always go with recommended".
+- The 36 evening refusals' words are in no file of the repo; the test replays their cause with the refusal's words.
+
+### 2026-11-26 - Currency maths takes its rate source; connors7 to RUNGS (#2149)
+- money-connors7: keep on MONEY, or hand to RUNGS. Took RUNGS, following the runner's ruling (his "always go with recommended"); claim desk/eponymous_connors.py, its unit test, lab/published_epon.py, tests/unit/test_lab_published_epon.py. This session worked money-door-pound alone.
+
+### 2026-11-26 - A stops row for a line sold to 0 stays as history (#2181, R-RUNNER-512)
+- Options: prune sold lines' rows, or keep stops.csv as a history. Kept: pruning would lose the level behind "stop rests at" and a restart's put-back; the guard against a short is the held-lines-only walk in restop.move, now tested.
+
+### 2026-11-26 - The Donchian fade declares no hold for now (#2184, R-RUNNER-537)
+- Fade hold 20 sessions vs none: none for now, because the catalogue spec in lab/ decides without a time stop and the rule must match it (unit 3/5 and 5/5 went red); the 20 stays the recommended end state, needing rule and spec changed together.
+
+### 2026-11-26 - A withdrawn session is a still day in a SimCity world (#2187)
+- Options: (a) fill the world's withdrawn session as a still day at the close before; (b) change the world loop in desk/simcity.py to refuse (outside the claim); (c) drop the day from all lines (tried: the desk then refuses the next session as having no record). Took (a): smallest, inside the claim, and the refusal itself stays proved by the HOLE and PARKED scenarios. Per his 13 Nov "always go with recommended".
+
+### 2026-11-26 - R-RUNNER-533 kept at book level, no book.py change (#2210)
+- Options: pin the contract through `book.reconcile` (taken: the book code already meets it) or adopt stranger shares in book.py (rejected: it would hide the broker door's fault). The loss is upstream in `broker.fills()` / `desk/reports.py`, outside the claim.
+
+### 2026-11-27 - A fill by an undecided rule is a named mismatch (#2212)
+- Options: (a) a named "rule" mismatch for that fill, the replay goes on (taken, his gate wording); (b) skip zoo fills silently (rejected: hides them). Replaying zoo fills through a zoo rule is a separate box.
+
+### 2026-11-27 - Four eponymous rules declare no holding period (#2224, R-RUNNER-538)
+- Options: invent a limit (say 10 days) or declare none with its reason. Took none: no source on hand gives a day limit for connors, three-day high-low, dan_zanger or demark_sequential, and a guess is worse (his 21 Nov ruling: each limit from its own sell logic, or none with reason). No golden day moves.
+
+### 2026-11-27 - The zoo drops only lines the master marks isa=no (#2248, R-RUNNER-481)
+- Options: drop unrecorded isa (None) too (removes nothing today, hides unrecorded lines) or keep them. Took keep: the card says "marks isa=no". IB1T, SPY, QQQ leave; the count test moved 10/9 to 9/7.
+
+### 2026-11-27 - Gap-up sizing uses the dearer of signal and live price (#2275, R-RUNNER-535)
+- Options: overwrite `order.price` with the live price (rejected: the order's id and stop contract stays) or size at max(signal close, live price) and leave `order.price` the signal price (taken). The stop still rests 10% under min(price, market). The binary search moved to `_most()` to hold the complexity cap.
+
+### 2026-11-27 - Eponymous rules declare no holding period (#2276, #2288, R-RUNNER-539, R-RUNNER-540)
+- Options: invent a limit per rule or declare none with its reason. Took none for faber_tactical, kell_breakout, keltner_channel_trend, mansfield_rs_momentum, minervini_breakout, momentum and raschke_swing: no published sell logic gives a day limit (his 21 Nov ruling: each limit from its own sell logic). swing keeps five sessions (Jegadeesh/Lehmann week). No golden day moves.
+
+### 2026-11-27 - A line owed its close is refused by name, the rest trade (#2168, R-RUNNER-488)
+- The refusal rides the record's mismatches with one wording constant (`day_money.CloseOwed`). Options: a new Record field (rejected: changes the comma file's columns, outside the claim); a raise (rejected: that is the fault). The day's profit is withheld, never priced by an older bar, and the record is published.
+- A held yardstick owed its close still gives no record, since its close is every record's yardstick. Options: publish without a market figure, or refuse; chose refuse, unchanged.
+
+### 2026-11-27 - A buy in the replay day is sized with the live price (#2300, R-RUNNER-514)
+- Options: refuse a buy through its stop, or rest the stop under the market. The sizer already does both, so it is used as is. `live` stays optional until the live round (`desk/running.py`, PAPER's, R-MONEY-74) passes it, then becomes required.
+
+
+### 2026-11-27 - Shares under the desk's own broker stop are no stranger (#2298, money-stranger-stopped)
+- Options: (a) leave stop-covered shares out of the stranger list (taken: the minimal safe step inside the claim); (b) adopt them and keep the stop (needs desk/day.py, outside the claim).
+- The stop covers the book's own shares first; only the broker's shares beyond max(book, stop) are strangers, several stop entries on one name summed. A blind review found a first version subtracting the stop twice; fixed. SimCity's scenario `beside` now promises stopped strangers are left under their stop and unsold. Open: booking them with the stop.
+
+### 2026-11-27 - Three rules declare their holding period (#2324, R-RUNNER-541)
+- Options: invent a time limit for weinstein_stage and williams_r, or none. Took none: their published sells are price-only (his 21 Nov ruling: from its own sell logic). zweig_breadth_thrust keeps 230 sessions, the port's reading of the book's eleven-month horizon, now declared so the template's time stop sells it in place of its private counter.
+
+### 2026-11-27 - money-small's claim widened to desk/strategy.py (#2330)
+- Options: widen the claim to MONEY files (taken, his 13 Nov "always go with recommended") or ask RUNGS. R-RUNNER-504 and R-RUNNER-509 declined: #2168 is closed; #2325 and #2324 carry the follow-ups.
+
+### 2026-11-27 - A book differing on one line refuses that line only (#2333, R-RUNNER-534)
+- Options: a stranger holding in a line the day has no order for (Z) blocks every buy as before, or blocks only that line. Took the second, from the request: Z is said on the morning list and blocks no one. The kill switch stays the desk-wide stop.
+
+### 2026-11-27 - Broker fault matrix, five more cells (#2354, R-RUNNER-510)
+- Options: play the hang-up as a ConnectionError from the door (needs desk/paper.py, outside the claim: rejected), or as Fault.CRASH as the request orders (taken). The next order's refusal counts as trading not resumed. The matrix counts 7 of 325 (65 classes x 5 moments), not the request's 330. PAPER request R-MONEY-75 records the real door's gap.
+
+### 2026-11-27 - collect's gap check takes optional arguments (#2363, R-RUNNER-542)
+- Options: a new function, or required arguments breaking other lanes' callers. Took optional arguments, so every caller keeps working until the callers pass lines.
+
+### 2026-11-28 - money-epon-room blocked; zoo-own-side reverted; money-small claim gap (#2368, #2379, #2440)
+- money-epon-room (#2368): options were edit RUNGS's `tests/unit/test_lab_ladder_epon.py` outside the claim (refused, pattern 21) or stop. Stopped: the seven-file deletion turns `both == python` red; asked RUNGS to compare spec-only rows (R-MONEY-77). Remains: that test changed, then delete the seven files, their tests and manifest rows; claim needs test_lab_ladder_epon.py and manifest/money.toml.
+- zoo-own-side (#2379): per-side share counts were built and reverted after the blind review found three blockers: one broker stop per line under the newest buy's id, `day._holders` as "last buyer", and zoo share counts that go negative. Options: land it (unsafe) or keep a zoo buy of a desk-held line refused (chosen, paper only). Per-side stops and holders come first (money-side-stops); intraday refusal in desk/running.py is PAPER's (R-MONEY-76).
+- money-small claim gap (#2368, #2379, #2440): its work needs desk/strategy.py and tests/unit/test_strategy*.py, outside each card's claim. By his "always go with recommended" each session left it under Remains; runner ops widens the claim. SimCity's stack dump (#2440) is written by SimCity itself, since its limit fires before the runner's.
+### 2026-11-28 - incubation, thin-trade gain, SimCity incident split (#2386, #2447, #2454)
+- incubation (#2386): the line is the strategy-name prefix `inc_` (options: a separate ledger file, or a prefix as the zoo does); chose the prefix: one book, no new store. The two-open cap lives in `desk/incubation.py` because `orders.gate`'s HOLDINGS is fixed at five. No ceiling raised: desk/ has 101 of 100 files and loosening a guard is his alone, so it did not land.
+- thin trade (#2447): no rule forecasts a gain, so the expected gain is the line's mean daily move over 20 bars (options: the stop distance; a rule's historic trade average; the mean move). Chosen the mean move: point-in-time, one home, no new data. Wiring the flag would break two tests outside the claim, so only `orders.expected_gain` landed.
+- SimCity incidents (#2454): tests import from the new `desk/incidents/` modules (options: a re-export hub, which defeats the split; edit imports, chosen). The registry is named DRAWN/LONE, as EVENTS/ONCE would raise the two-homes constant ratchet.

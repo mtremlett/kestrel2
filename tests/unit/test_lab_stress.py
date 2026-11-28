@@ -1,6 +1,6 @@
-"""The stress scenarios: a strategy's trades replayed through the flash crashes and the 2020
-crash, what a black swan's gap would take from it in a night, and an episode the rule was
-never shown able to trade through untested."""
+"""The stress scenarios: a strategy's trades replayed through the 2008 crash, the flash
+crashes and the 2020 crash, what a black swan's gap would take from it in a night, and an
+episode the rule was never shown able to trade through untested."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from lab.stress import Gap, Stressed
 
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
-MAY, AUGUST, CRASH = (episode.name for episode in stress.EPISODES)
+GFC, MAY, AUGUST, CRASH = (episode.name for episode in stress.EPISODES)
 TENTH = Decimal("0.1")
 
 
@@ -39,6 +39,12 @@ def _stress(bars: Sequence[Bar], symbol: str = "VUSA", rates: rung.Rates = POUND
     return stress.judge(window, bars, TEN_K, rates)
 
 
+def _early(seed: int) -> tuple[Bar, ...]:
+    """A walk of 7,000 days from 1 January 2006: a history that holds the 2008 crash whole."""
+    back = date(2010, 1, 1) - date(2006, 1, 1)
+    return tuple(replace(bar, day=bar.day - back) for bar in _walk(seed, 0.008, days=7000))
+
+
 def _rates(bars: Sequence[Bar]) -> dict[date, Decimal]:
     """A rate of its own for every day of a week, from 0.3 to 0.9."""
     return {bar.day: Decimal(n % 7 + 3) / 10 for n, bar in enumerate(bars)}
@@ -46,7 +52,7 @@ def _rates(bars: Sequence[Bar]) -> dict[date, Decimal]:
 
 def _marked(found: Stressed, bars: Sequence[Bar], rates: rung.Rates = POUND) -> None:
     """Each episode tested is the market's rung's own marking of its days, summed in pounds."""
-    for replay in found.episodes[: -len(found.untested) or None]:
+    for replay in (replay for replay in found.episodes if replay.made is not None):
         e, summed = replay.episode, Decimal(0)
         for p in found.verdict.trades:
             days = market.daily([p], bars, found.verdict.key.cell.line, rates)
@@ -58,6 +64,7 @@ def _marked(found: Stressed, bars: Sequence[Bar], rates: rung.Rates = POUND) -> 
 
 def test_an_episode_is_replayed_in_pounds_after_costs() -> None:
     assert [(e.name, e.first, e.last) for e in stress.EPISODES] == [
+        ("the 2008 crash", date(2007, 10, 10), date(2009, 3, 9)),
         ("the flash crash of May 2010", date(2010, 5, 6), date(2010, 5, 7)),
         ("the flash crash of August 2015", date(2015, 8, 24), date(2015, 8, 24)),
         ("the 2020 crash", date(2020, 2, 20), date(2020, 3, 23)),
@@ -65,7 +72,7 @@ def test_an_episode_is_replayed_in_pounds_after_costs() -> None:
     bars = _flash()
     found = _stress(bars)
     _, trade = found.verdict.trades
-    may = found.episodes[0]
+    may = found.episodes[1]
     #: 192 shares worth 2,112 at the close before it; the stop brought 1,797.12, less both
     #: legs' costs of 11.64864: the flash crash took 326.52864 of the trade's loss of 268.92864
     assert (may.episode.name, may.trades, may.made) == (MAY, (trade,), Decimal("-326.52864"))
@@ -74,13 +81,14 @@ def test_an_episode_is_replayed_in_pounds_after_costs() -> None:
     _marked(_stress(bars, "AAPL", _rates(bars)), bars, _rates(bars))
     for late in range(-4, 5):  #: bought or sold before it, on its first day, its last, after
         _marked(_stress(_flash(late)), _flash(late))
-        assert _stress(_flash(late)).untested == (AUGUST, CRASH)
-    for seed in range(2):
-        bars = _walk(seed, 0.008)
+        assert _stress(_flash(late)).untested == (GFC, AUGUST, CRASH)
+    for seed in range(2):  #: a history from 2006: every episode, the 2008 crash first, replayed
+        bars = _early(seed)
         found = _stress(bars)
         _marked(found, bars)
         assert found.untested == () and found.verdict.answer is Answer.PASS
         assert any(replay.trades and replay.made for replay in found.episodes), seed
+        assert found.episodes[0].trades and found.episodes[0].made, "the 2008 crash, traded"
         assert found.gap is not None and found.worst is not None
         costs = [found.gap.lost, *(-replay.made for replay in found.episodes if replay.made)]
         assert found.worst == max(costs) / 10_000 > 0
@@ -88,23 +96,29 @@ def test_an_episode_is_replayed_in_pounds_after_costs() -> None:
 
 def test_an_episode_the_rule_was_not_shown_able_to_trade_through_is_untested() -> None:
     bars = _flash()
-    assert _stress(bars).untested == (AUGUST, CRASH), "the bars end in May: never nothing lost"
+    assert _stress(bars).untested == (GFC, AUGUST, CRASH), "bars from 2010 to May: never a pass"
     #: out of the market throughout, having traded before it: tested, and it cost nothing
-    aside = _stress(_bars(SHAPE + [10] * 105)).episodes[0]
+    aside = _stress(_bars(SHAPE + [10] * 105)).episodes[1]
     assert (aside.trades, aside.made) == ((), Decimal(0))
     #: but a rule that had never bought before it began was not shown able to: a line listed
     #: weeks before, its rule still warming, or one whose first buy is on its first day
-    assert _stress(bars[110:]).untested == (MAY, AUGUST, CRASH)
+    assert _stress(bars[110:]).untested == (GFC, MAY, AUGUST, CRASH)
     first = _stress(_bars([10] * 105 + SHAPE))  #: decided on 6 May, the episode's first day
-    assert first.untested == (MAY, AUGUST, CRASH) and len(first.verdict.trades) == 1
+    assert first.untested == (GFC, MAY, AUGUST, CRASH) and len(first.verdict.trades) == 1
     #: nor is a trade never judged, still held when the bars end: one decided before it or
     #: within it; but one decided on its last day, 7 May, is bought after it
-    for late, untested in ((0, 3), (3, 3), (4, 2)):
+    for late, untested in ((0, 4), (3, 4), (4, 3)):
         held = _stress(_bars(SHAPE + [10] * (77 + late) + SHAPE[:23] + [11, 11]))
         assert len(held.verdict.trades) == 1 and len(held.untested) == untested, late
     #: nor an episode with a session of its venue the line has no bar for: a fall not seen
     for lost in (125, 126):
-        assert _stress(bars[:lost] + bars[lost + 1 :]).untested == (MAY, AUGUST, CRASH)
+        assert _stress(bars[:lost] + bars[lost + 1 :]).untested == (GFC, MAY, AUGUST, CRASH)
+    early = _early(0)  #: and a history from 2006 lacking the day Lehman fell is not through 2008
+    lehman = [bar for bar in early if bar.day != date(2008, 9, 15)]
+    assert _stress(early).untested == () and _stress(lehman).untested == (GFC,)
+    #: and its reason says so, whatever the worst tested scenario was: never a silent pass
+    assert "untested" not in _stress(early).judged()[1]
+    assert _stress(lehman).judged()[1].endswith(f"; untested: {GFC}")
     none = _stress(_bars(SHAPE[:23] + [11, 11]))
     assert (none.verdict.answer, none.gap, none.worst) == (Answer.FAULT, None, None)
     #: a window that starts after the line's first bar could leave out a trade held into it
@@ -121,13 +135,13 @@ def test_the_worst_scenario_is_judged_against_a_fifth_of_the_capital() -> None:
     assert Decimal("0.2") == stress.STRESS_LIMIT and found.capital == 10_000
 
     def lose(pounds: int) -> Stressed:
-        crash = replace(found.episodes[2], made=Decimal(-pounds))
-        return replace(found, episodes=(*found.episodes[:2], crash), gap=None)
+        crash = replace(found.episodes[3], made=Decimal(-pounds))
+        return replace(found, episodes=(*found.episodes[:3], crash), gap=None)
 
     assert lose(1900).judged()[0] is Answer.PASS
     answer, why = lose(2100).judged()
     assert answer is Answer.FAIL and why == (
-        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00"
+        f"worst: {CRASH} lost 2,100.00 pounds; the limit is 2,000.00; untested: {GFC}, {AUGUST}"
     )
     assert lose(2000).judged()[0] is Answer.PASS
     assert replace(found, episodes=(), gap=None).judged()[0] is Answer.THIN

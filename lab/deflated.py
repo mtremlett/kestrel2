@@ -1,5 +1,5 @@
 """deflated - THE LUCK TEST FIXED BEFORE ANY RESULT: the deflated Sharpe and its bands, the
-yearly Sharpe too good to be true, and the one rule that turns the named rungs into a verdict.
+yearly Sharpe too good to be true, and the rungs read from a trial's trades.
 
 Everything here is a constant or a rule with no knob: the bands, the 5%, the flag and the
 list of rungs are written down before any strategy is run: a bar is set by a rule fixed
@@ -41,11 +41,10 @@ trial's window, which is what daily accounts come to over a year when one trade'
 nothing of the next. Above FLAG the trial is in doubt however it scored: such a result is
 far more often a fault in the test (a peek ahead, a cost left out) than an edge.
 
-THE ONE RULE. Each rung in NAMED gives its answer (`rung.Answer`); the verdict is the least
-of them, and `rule` refuses a set of answers that is not exactly the named rungs, so none can
-be left out after its answer is seen. Four are read here from the trial's trades (OWN); the
-folds (`lab/folds.py`) and the market (`lab/market.py`) are read where they are run, and a
-trial short of any one has no verdict. A later rung joins by being named here.
+THE RUNGS NAMED. Each rung in NAMED gives its answer (`rung.Answer`); four are read here from
+the trial's trades (OWN), the folds (`lab/folds.py`) and the market (`lab/market.py`) where they
+are run. The cell's one answer is not the least of them but `verdict.one_answer` (L19): hard
+gates must pass, soft rungs are scored with MAX_WEAK.
 
 ONE CORRECTION, NOT TWO (L18, decision b). The luck rung multiplies a trial's chance by every
 trial ever entered (3,435 a rule against about 1,017 judged), asking a t of 4.6 no line has
@@ -62,7 +61,7 @@ a trial still counts among the trials every other is corrected for.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import NormalDist, fmean
 
@@ -86,13 +85,6 @@ REPORTED = tuple(name for name in OWN if name not in NAMED)
 _NORMAL = NormalDist()
 _EULER = 0.5772156649015329
 _YEAR = 365.25
-
-
-def rule(rungs: Mapping[str, Answer]) -> Answer:
-    """The one verdict rule: the least answer among the named rungs, every one of them."""
-    if set(rungs) != set(NAMED):
-        raise ValueError(f"the rule reads {NAMED}, every one and no other: given {sorted(rungs)}")
-    return min(rungs.values())
 
 
 @dataclass(frozen=True)
@@ -163,7 +155,12 @@ def judge_lines(verdicts: Sequence[Verdict]) -> tuple[Deflated, ...]:
 
 def best_by_luck(spread: float, trials: int) -> float:
     """The Sharpe to expect of the best of so many trials with no edge, their Sharpes spread
-    by this variance: nothing for one trial alone."""
+    by this variance: nothing for one trial alone. Never skipped (LAD-09): a count under one,
+    a spread that is no number, or more than one trial with no spread, is refused."""
+    if trials < 1 or not 0 <= spread < math.inf or (trials > 1 and not spread):
+        raise ValueError(
+            f"{trials} trials, their Sharpes spread by {spread}: nothing to deflate by"
+        )
     if trials == 1:
         return 0.0
     best = (1 - _EULER) * _NORMAL.inv_cdf(1 / trials)

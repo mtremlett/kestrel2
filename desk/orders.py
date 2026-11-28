@@ -5,11 +5,12 @@ ONE ROUNDING POLICY for what is published of it."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import astuple, dataclass, field, replace
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import ROUND_HALF_EVEN, Decimal
 from enum import Enum
+from operator import attrgetter
 
 from desk.lines import Line
 from desk.orders_parts import (
@@ -30,8 +31,6 @@ from desk.orders_parts import (
 from desk.orders_parts import (
     STOP_SLIPS as STOP_SLIPS,
 )
-from desk.orders_parts2 import MOVES_DAYS as MOVES_DAYS
-from desk.orders_parts2 import MOVES_FROM as MOVES_FROM
 from desk.orders_parts2 import Refused as Refused
 from desk.orders_parts2 import _apart, _within_limits, _within_underlying, daily_moves
 from desk.risk import Standing
@@ -69,6 +68,7 @@ class Settings:
     #: correlated past it with a line held is refused (canon B1, docs/DECISIONS.md); above 1 it
     #: never refuses.
     correlation: Decimal = Decimal("0.90")
+    holdings: int = HOLDINGS  #: the parts the capital is cut in; one line's room is a part
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
@@ -140,19 +140,28 @@ class Charges:
     uk_taxes: Decimal  #: on a purchase, the part of its value the line states (Line.uk_tax)
 
     @property
+    def amounts(self) -> tuple[Decimal, ...]:
+        """The lines in their order, as they are kept: read off, not deep-copied as astuple does
+        (27 Nov: adding up every fill's costs that way was a third of a SimCity day's work)."""
+        return _AMOUNTS(self)
+
+    @property
     def total(self) -> Decimal:
-        return sum(astuple(self), Decimal(0))
+        return sum(self.amounts, Decimal(0))
 
     def __add__(self, other: Charges) -> Charges:
-        return Charges(*(a + b for a, b in zip(astuple(self), astuple(other), strict=True)))
+        return Charges(*(a + b for a, b in zip(self.amounts, other.amounts, strict=True)))
 
     def part(self, shares: int, of: int) -> Charges:
         """The share of a fill's costs that some of its shares carry."""
-        return Charges(*(a * shares / of for a in astuple(self)))
+        return Charges(*(a * shares / of for a in self.amounts))
 
     def published(self) -> Charges:
         """Each line as it is published: rounded once, by the one policy (pennies)."""
-        return Charges(*map(pennies, astuple(self)))
+        return Charges(*map(pennies, self.amounts))
+
+
+_AMOUNTS = attrgetter(*Charges.__dataclass_fields__)
 
 
 def pennies(amount: Decimal) -> Decimal:
@@ -203,6 +212,16 @@ def stop_under(line: Line, price: Decimal) -> Decimal:
     return price * (1 - STOP_FALL * line.leverage)
 
 
+def _most(room: Decimal, one: Decimal, paid: Callable[[int], Decimal]) -> int:
+    """The most whole shares whose cost (paid) fits the room, 0 if one does not; one is the
+    pounds of a share, which bounds the search."""
+    fits, over = 0, int(room / one) + 2
+    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
+        middle = (fits + over) // 2
+        fits, over = (middle, over) if paid(middle) <= room else (fits, middle)
+    return fits
+
+
 def size(
     decision: Decision,
     line: Line,
@@ -222,7 +241,7 @@ def size(
     if decision.action is not Action.BUY or decision.symbol != line.symbol:
         raise ValueError(f"{line.symbol}: only a buy for this line is sized, not {decision}")
     order_id = order_id_of(decision)
-    stop = stop_under(line, price if market is None else min(price, market))
+    stop = stop_under(line, min(price, market or price))
 
     def order(quantity: int) -> Order:
         return Order(order_id, line, quantity, price, fx, stop, session=decision.day, market=market)
@@ -230,16 +249,17 @@ def size(
     if market is not None:
         _above_stop(replace(order(1), stop=stop_under(line, price)))
 
-    room, one = _room(line, settings), order(1)  #: one share proves the price, rate and stop
-    if cost(one) > room:
+    #: R-RUNNER-535: shares are counted at the dearer of the signal's price and the live one, so a
+    #: gap up never makes a holding cost more than its room.
+    counted = max(price, market or price)
+
+    room = _room(line, settings)
+    fits = _most(room, counted * fx, lambda quantity: cost(replace(order(quantity), price=counted)))
+    if fits == 0:
         raise Refused(f"{order_id}: one share costs more than the room of {room} pounds")
-    fits, over = 1, int(room / (price * fx)) + 1
-    while over - fits > 1:  #: cost grows with the shares, so halve the gap until it closes
-        middle = (fits + over) // 2
-        fits, over = (middle, over) if cost(order(middle)) <= room else (fits, middle)
     already = held.get(line.symbol, 0)
     if traded is not None:
-        fits = min(fits, int(LIQUIDITY * traded / (price * fx)))
+        fits = min(fits, int(LIQUIDITY * traded / (counted * fx)))
     if fits <= already:
         raise Refused(f"{order_id}: {already} shares held leave no room for more")
     bought = order(fits - already)
@@ -250,6 +270,14 @@ def size(
 def traded_value(bars: Sequence[Bar], fx: Decimal) -> Decimal:
     """The pounds a line traded over its last TRADED_DAYS bars, each at its close, at fx."""
     return sum((b.close * b.volume for b in bars[-TRADED_DAYS:]), Decimal(0)) * fx
+
+
+def expected_gain(bars: Sequence[Bar], order: Order) -> Decimal:
+    """The pounds a trade is expected to gain: the line's mean daily close-to-close move over its
+    last TRADED_DAYS bars (no rule forecasts one), on the order's shares, at its rate."""
+    last = bars[-TRADED_DAYS - 1 :]
+    moves = [abs(b.close - a.close) for a, b in zip(last, last[1:], strict=False)]
+    return sum(moves, Decimal(0)) / max(len(moves), 1) * order.quantity * order.fx
 
 
 def thin(order: Order, gain: Decimal) -> bool:
@@ -281,6 +309,9 @@ ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHIN
 #: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
 #: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
 ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
+#: The daily round's: a line's room the whole of it (a share of AAPL is not refused for costing
+#: over a fifth); the zoo's total within it is day._zoo_full's.
+ZOO_DAY = replace(ZOO_ROOM, holdings=1)
 
 
 def is_zoo(order_id: str) -> bool:
@@ -374,4 +405,4 @@ def _above_stop(order: Order) -> None:
 def _room(line: Line, settings: Settings) -> Decimal:
     """Pounds one holding in the line may cost: a fifth of the capital, counted at what the
     line controls."""
-    return settings.capital / HOLDINGS / line.leverage
+    return settings.capital / settings.holdings / line.leverage

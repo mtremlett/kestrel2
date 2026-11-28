@@ -28,6 +28,7 @@ DONCHIAN FADE IN CHOP.
   Reading here: long only; buy a close at or under the lowest low of the 20 sessions before,
                when that channel is a range (high less low at most a tenth of its midpoint);
                sell a close at or over the channel's midpoint. On the close.
+  Holding period: none declared; the source gives none (a 20-session time stop is open).
 """
 
 from __future__ import annotations
@@ -46,7 +47,8 @@ WEEKS_4 = 20
 
 class DonchianChannelBreakout:
     """Buy a close over the highest high of the 20 sessions before; sell a close under the
-    lowest low of the 20 sessions before. Nothing is bought until 20 sessions are seen."""
+    lowest low of the 20 sessions before. Nothing is bought until 20 sessions are seen. No
+    holding period: Faith's rule ends a trade on the channel low alone, and a trend is held."""
 
     declared: ClassVar[Declared] = Declared(Timeframe.DAILY, None, LINES, RANGES)
 

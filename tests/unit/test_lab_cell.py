@@ -6,7 +6,7 @@ move, and only then."""
 from __future__ import annotations
 
 import ast
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
@@ -20,7 +20,7 @@ from desk import strategy
 from desk.lines import LINES, STAMP_DUTY, Line
 from desk.store import Bar
 from desk.strategy import Action
-from lab import cell, grid
+from lab import cell, grid, rulebook
 from lab.cell import Cell, Trade
 
 START = date(2020, 1, 1)
@@ -50,6 +50,7 @@ def test_a_cell_names_a_real_strategy_a_real_line_and_a_window() -> None:
     with pytest.raises(ValueError, match="ends before it starts"):
         _cell(9, 8)
     assert _cell(9, 9).end == _day(9)
+    assert not hasattr(_cell(9, 9), "symbol")
     #: one symbol can be two companies: a cell names its line, venue and all, and a line of
     #: the research list need not be one of the twenty
     boeing, bae = Line("BA", "US", "USD", 1), Line("BA", "LSE", "GBP", 1, STAMP_DUTY)
@@ -79,13 +80,13 @@ def test_its_trades_are_the_desks_own_decisions() -> None:
 def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    desk, asked = strategy.decide, [0]
+    desk, asked = strategy._run, [0]
 
-    def counted(bars: Mapping[str, Sequence[Bar]]) -> tuple[strategy.Decision, ...]:
+    def counted(name: str, *rest: Any) -> Any:
         asked[0] += 1
-        return desk(bars)
+        return desk(name, *rest)
 
-    monkeypatch.setattr(strategy, "decide", counted)
+    monkeypatch.setattr("lab.cell._run", counted)
     series_asked = (("walk 1", _walk(1, 1200), 0), ("jumpy 10", _jumpy(10), 1))
     for series, kind, desks in (*series_asked, ("jumpy 332", _jumpy(332), 2)):
         for name, days in GOLDEN[series].items():
@@ -104,6 +105,40 @@ def test_the_grid_answers_and_the_desk_decides_what_it_refuses(
     with pytest.raises(KeyError):
         cell.run(Cell("trend_50_200", AAPL, START, _walk(1, 300)[-1].day), _walk(1, 300))
     assert asked[0] == 2
+
+
+def test_a_refused_cell_runs_its_one_rule_and_holds_what_the_desk_decides(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """S9: where the grid refuses, only the cell's own rule is run on the desk's engine, never
+    all five, built as `decide` builds it (no rule book read), and it holds after each bar what
+    that rule's decisions in `decide` say."""
+    bars = _jumpy(10)
+    whole = strategy.decide({AAPL.symbol: bars})
+    ran: list[str] = []
+    desk = strategy._run
+
+    def counted(name: str, *rest: Any) -> Any:
+        ran.append(name)
+        return desk(name, *rest)
+
+    def refused(*_: Any) -> Any:
+        raise grid.TooClose("planted")
+
+    def unread(name: str) -> Any:
+        raise AssertionError(f"the rule book read for the desk's own {name}")
+
+    monkeypatch.setattr("lab.cell._run", counted)
+    monkeypatch.setattr(grid, "held", refused)
+    monkeypatch.setattr(rulebook, "rule", unread)  #: the five are built as `decide` builds them
+    for name in strategy.STRATEGIES:
+        held: list[bool] = []
+        for decision in (d for d in whole if d.strategy == name):
+            was = held[-1] if held else False
+            held.append({Action.BUY: True, Action.SELL: False}.get(decision.action, was))
+        ran.clear()
+        assert cell._held(Cell(name, AAPL, bars[0].day, bars[-1].day), bars) == held, name
+        assert ran == [name], name
 
 
 def test_a_trade_belongs_to_the_window_it_was_bought_in() -> None:

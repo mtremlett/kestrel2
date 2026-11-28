@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import shutil
+import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -68,6 +71,18 @@ def test_a_gap_no_source_fills_is_named_red(tmp_path: Path) -> None:
     assert said.startswith(
         "quality: RED, 0 bars backfilled, 0 rolled up, coverage 0.00; SPY: 1 ses"
     )
+
+
+def test_a_hole_is_one_rule_a_session_with_no_bar_and_no_suspension(tmp_path: Path) -> None:
+    """The hover, the greenkeeper and the ladder's pre-flight read one rule of a hole: a session
+    of the line's venue between two days, with no bar and no suspension (R-RUNGS-40)."""
+    held = {DAYS[0], DAYS[2], DAYS[5]}
+    assert SPY.holes(held, DAYS[0], DAYS[5]) == [DAYS[1], DAYS[3], DAYS[4]]
+    shut = replace(SPY, suspended=frozenset({DAYS[3]}))
+    assert shut.holes(held, DAYS[0], DAYS[5]) == [DAYS[1], DAYS[4]]
+    path = seeded(tmp_path, {DAYS[3]})
+    assert quality.gaps(path, [SPY], TODAY) == [(SPY, DAYS[3])]
+    assert quality.gaps(path, [shut], TODAY) == []
 
 
 def test_rolled_bars_are_built_and_a_pulled_bar_that_differs_is_red(tmp_path: Path) -> None:
@@ -170,6 +185,56 @@ def test_a_drive_with_under_a_tenth_free_turns_the_monitor_red(tmp_path: Path, m
         assert ("disk: 5% free" in said) is red
 
 
+def test_rolloff_deletes_only_a_byte_identical_copy_and_lists_the_rest(tmp_path: Path) -> None:
+    old, kept = tmp_path / "old", tmp_path / "kept"
+    (old / "sub").mkdir(parents=True)
+    (kept / "sub").mkdir(parents=True)
+    for folder, name, text in (
+        (old, "a.csv", "1"), (kept, "a.csv", "1"), (old, "b.csv", "1"), (kept, "b.csv", "2"),
+        (old, "sub/c.csv", "3"), (old, "sub/d.csv", "4"), (kept, "sub/d.csv", "4"),
+    ):  # fmt: skip
+        (folder / name).write_text(text, "utf-8")
+    deleted, listed = quality.rolloff(old, kept)
+    assert [p.name for p in deleted] == ["a.csv", "d.csv"]
+    assert [p.name for p in listed] == ["b.csv", "c.csv"]
+    assert sorted(p.name for p in old.rglob("*.csv")) == ["b.csv", "c.csv"]
+    assert (kept / "a.csv").exists()
+
+
+def test_rolloff_rows_lists_safe_only_a_file_whose_every_row_the_store_holds(
+    tmp_path: Path,
+) -> None:
+    seeded(tmp_path, set())
+    head = "symbol,day,open,high,low,close,volume\n"
+    rows = [f"SPY,{d},{bar(d).open},{bar(d).high},{bar(d).low},{bar(d).close},1000\n" for d in DAYS]
+    held, lacking = tmp_path / "held.csv", tmp_path / "lacking.csv"
+    held.write_text(head + "".join(rows), "utf-8")
+    lacking.write_text(head + rows[0] + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    safe, kept = quality.rolloff_rows([held, lacking], tmp_path, [SPY])
+    assert (safe, kept) == ([held], [lacking])
+    assert held.exists() and lacking.exists()
+
+
+def test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it(tmp_path: Path) -> None:
+    seeded(tmp_path, set())
+    old = tmp_path / "old"
+    old.mkdir()
+    head = "symbol,day,open,high,low,close,volume\n"
+    (old / "held.csv").write_text(
+        head + f"SPY,{DAYS[0]},{bar(DAYS[0]).open},{bar(DAYS[0]).high},"
+        f"{bar(DAYS[0]).low},{bar(DAYS[0]).close},1000\n",
+        "utf-8",
+    )
+    (old / "lacking.csv").write_text(head + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    (old / "store.parquet").write_bytes(b"\x00\xff")
+    path = quality.write_rolloff_rows(old, tmp_path, [SPY])
+    assert path == tmp_path / "rolloff_rows.json"
+    said = json.loads(path.read_text("utf-8"))
+    assert [Path(p).name for p in said["safe"]] == ["held.csv"]
+    assert [Path(p).name for p in said["kept"]] == ["lacking.csv", "store.parquet"]
+    assert len(list(old.iterdir())) == 3
+
+
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     state = tmp_path / "archive.json"
@@ -220,9 +285,11 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     said, ok = quality.hover({"live": path}, [SPY], NOW)
     assert said.startswith("data quality: 75% fresh, 1 faults, 1 gaps, worst live/SPY/")
     assert not ok
+    assert "; stale spans live/1h" in said and "live/daily" not in said.split("; stale")[1]
     assert "(gap): holds no bar" in said or "(stale): newest" in said
     odd = replace(SPY, symbol="ZZZ")  # a line first in order, but not golden: SPY's fault leads
     assert "worst live/SPY/" in quality.hover({"live": path}, [odd, SPY], NOW)[0]
+    assert "live golden: SPY/" in quality.table({"live": path}, [SPY], NOW)
     with bars.writing(path, bars.Source.IBKR) as held:
         held.timed(SPY, "1h", [Timed("1h", last, price, price, price, price, 5)])
         held.timed(
@@ -232,6 +299,7 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
         )
     shown = quality.table({"live": path}, [SPY], NOW)
     assert "live/1h: 100% fresh, 0 faults, 0 gaps" in shown
+    assert "live golden: green" in shown
     assert shown.endswith("live sources: IBKR paper 1; replaced: none")
     assert quality.hover({"live": path}, [SPY], NOW) == (
         "data quality: 100% fresh, 0 faults, 0 gaps, worst none",
@@ -244,6 +312,8 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     holed = seeded(tmp_path / "holed", {date(2026, 11, 12)})
     assert quality.cell(holed, SPY, "daily", NOW) == "1 sessions missing, the first 2026-11-12"
     assert quality.kind("1 sessions missing, the first x") == "hole"
+    assert quality.escalate("gap", frozenset({"gap"})) == "sonnet"
+    assert quality.escalate("hole", frozenset({"gap"})) == "opus"
     first = quality.alarm(None, None, False, "SPY/1h", NOW)
     assert first == (NOW, NOW, "data quality RED: SPY/1h")
     soon = NOW + timedelta(minutes=10)
@@ -264,6 +334,26 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     assert quality.watch(state, "", True, later) is None
     assert quality.announce("l", "x") == "l\nSEND: x\n"
     assert quality.announce("l", None) == "l\n"
+
+
+def test_a_venue_wide_hole_inside_a_held_session_is_named_and_one_quiet_line_is_not(
+    tmp_path: Path,
+) -> None:
+    isf, sgln = (next(ln for ln in LINES if ln.symbol == s) for s in ("ISF", "SGLN"))
+    price, path = Decimal(10), tmp_path / bars.LIVE
+    now, opened = datetime(2026, 11, 27, 21, tzinfo=UTC), datetime(2026, 11, 27, 8, tzinfo=UTC)
+    day = [opened + timedelta(minutes=5 * n) for n in range(102)]  # 08:00 to 16:25: the session
+    held = {isf: day[:94], sgln: day[13:94]}  # both stop at 15:45 (the outage); SGLN starts late
+    with bars.writing(path, bars.Source.IBKR) as round_:
+        for line, starts in held.items():
+            round_.five(line, [Five(t, price, price, price, price, 5) for t in starts])
+    said = "8 bars missing in its venue's feed, the first on 2026-11-27"
+    assert quality.cell(path, isf, "5m", now) == quality.cell(path, sgln, "5m", now) == said
+    assert quality.kind(said) == "hole"
+    with bars.writing(path, bars.Source.IBKR) as round_:  # the broker's bars into the hole
+        round_.five(isf, [Five(t, price, price, price, price, 5) for t in day[94:]])
+    assert quality.cell(path, isf, "5m", now) is None
+    assert quality.cell(path, sgln, "5m", now) is None  # its quiet morning and tail are its own
 
 
 def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:
@@ -290,3 +380,69 @@ def test_the_daily_check_asks_the_broker_for_each_line(tmp_path: Path) -> None:
     if day in held:
         assert quality.check_records(path, [SPY], lambda _l, _d: [held[day]], NOW) == []
     assert "gave no bar" in quality.check_records(path, [SPY], lambda _l, _d: [], NOW)[0]
+
+
+def test_a_weekly_bar_is_fresh_for_the_last_complete_week_and_stale_after_a_fortnight(
+    tmp_path: Path,
+) -> None:
+    price, mondays = Decimal(600), (date(2026, 11, 2), date(2026, 11, 9), date(2026, 11, 16))
+    for monday, why in zip(
+        mondays, ("newest 2026-11-02, last session 2026-11-09", None, None), strict=True
+    ):
+        path = tmp_path / str(monday) / bars.LIVE
+        at = datetime.combine(monday, time(), UTC)
+        with bars.writing(path, bars.Source.IBKR) as held:
+            held.timed(SPY, "1wk", [Timed("1wk", at, price, price, price, price, 5)])
+        assert quality.cell(path, SPY, "1wk", NOW) == why
+
+
+def test_an_intraday_gap_is_asked_of_the_broker_first_then_the_archive_and_no_gap_asks_nothing(
+    tmp_path: Path,
+) -> None:
+    path, asked = seeded(tmp_path, set()), []
+    start = datetime(2026, 11, 16, 15, 0, tzinfo=UTC)
+    one = Decimal(600)
+
+    def pull(name: str, answer: object):  # type: ignore[no-untyped-def]
+        def ask(_line: object, span: str) -> object:
+            asked.append((name, span))
+            return answer
+
+        return ask
+
+    here = [Timed("15m", start, one, one, one, one, 5)]
+    pulls = (
+        (bars.Source.IBKR, pull("broker", Refused("no"))),
+        (bars.Source.BACKFILL, pull("archive", here)),
+    )
+    wrote = quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("broker", "15m") in asked and ("archive", "15m") in asked
+    assert "SPY/15m: archive, backfilled" in wrote
+    asked.clear()
+    quality.fill_cells(path, [SPY], pulls, NOW)
+    assert ("archive", "15m") not in asked and ("broker", "15m") not in asked
+
+
+def test_a_daily_bar_moved_off_ibkr_is_a_fault_and_the_brokers_value_written_back_clears_it(
+    tmp_path: Path,
+) -> None:
+    path, day = seeded(tmp_path, set()), DAYS[3]
+    history = tmp_path / bars.HISTORY
+    with closing(sqlite3.connect(history)) as raw, raw:  # the old writer's relabel (27 Nov)
+        raw.execute(
+            "INSERT INTO correction SELECT *, 'archive' FROM bar WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+        raw.execute(
+            "UPDATE bar SET source = 'archive', volume = 7 WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+    assert quality.cell(path, SPY, "daily", NOW) == "1 days moved off IBKR, the first 2026-11-12"
+    assert quality.kind("1 days moved off IBKR, the first x") == "source"
+    assert not quality.hover({"live": path}, [SPY], NOW)[1]
+    with bars.writing(path, bars.Source.IBKR) as held:  # the broker's value, through the writer
+        held.days(SPY, [bar(day)])
+    assert quality.cell(path, SPY, "daily", NOW) is None
+    with closing(sqlite3.connect(history)) as raw:
+        kept = raw.execute("SELECT volume, source, replaced_by FROM correction").fetchall()
+    assert kept == [(1000, "IBKR paper", "archive"), (7, "archive", "IBKR paper")]  # none deleted

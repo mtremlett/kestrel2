@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
@@ -87,6 +88,13 @@ class Line:
             raise ValueError(f"{self.symbol}: {self.isin!r} is not an ISIN with a good check digit")
         self._records()
 
+    def holes(self, days: Collection[date], first: date, last: date) -> list[date]:
+        """THE ONE RULE OF A HOLE (R-RUNGS-40): each session of the line's venue from first to
+        last, read from the one calendar, on which it holds no bar (days) and is not suspended.
+        The hover, the greenkeeper and the ladder's pre-flight (`lab/market.py` gaps) read it."""
+        held = frozenset(days) | self.suspended
+        return [d for d in venues.sessions(self.venue, first, last) if d not in held]
+
     def _records(self) -> None:
         if any(not r.is_finite() or r <= 0 or r == 1 for _, r in self.splits):
             raise ValueError(f"{self.symbol}: a split's ratio must be positive and not one")
@@ -149,14 +157,14 @@ MOVES = {
     "AMD": ((2008, 9, 29, "4.289999961853027"), (2008, 9, 30, "5.25")),  # range 3 to 6, then up
 }
 #: Each line's ISIN, as the broker's contract details give it (the conformance tapes of 14
-#: November 2026); IDTL's as its issuer lists it.
+#: November 2026); IDTL's as IBKR lists it (23 November: IE00BSKRJX20 is E20Y).
 ISINS = dict(
     pair.split(":")
     for pair in (
         "3LGO:IE00B8HGT870 2MU:IE00BKT66K01 SMGB:IE00BMC38736 IITU:IE00B3WJKG14"
         " VHYG:IE00BK5BR626 5QQQ:XS2399364152 ISF:IE0005042456 VUSA:IE00B3XXRP09"
         " SGLN:IE00B4ND3602 VUAG:IE00BFMXXD54 EQQQ:IE0032077012 IB1T:XS2940466316"
-        " IDTL:IE00BSKRJX20 AAPL:US0378331005 TSLA:US88160R1014 NVDA:US67066G1040"
+        " IDTL:IE00BSKRJZ44 AAPL:US0378331005 TSLA:US88160R1014 NVDA:US67066G1040"
         " SPCX:US84615Q1031 MSTR:US5949724083 AMD:US0079031078 MU:US5951121038"
         " SPY:US78462F1030 QQQ:US46090E1038"
         " XSPS:LU0322251520 SUK1:IE00B94QKG22 1MCS:IE00BBGBF313 LQQS:IE00BLRPRJ20"
@@ -227,6 +235,22 @@ LINES = tuple(
 #: readable as reference series, never traded (R-PAPER-16). They sit in LINES only until the
 #: callers that still take them from there (conformance, the Mansfield rule) move to this.
 REFERENCE = tuple(line for line in LINES if line.retail is False)
+
+
+#: Five more US lines, watched and never traded (not in LINES, so no caller can buy, rank or
+#: rehearse them): the polled round needs 27 lines to reach its floor (desk.keeper.POLLED).
+WATCHED = tuple(
+    Line(symbol, "US", "USD", 1, NO_TAX, None, None, underlying=symbol, source=name, isin=isin)
+    for symbol, name, isin in (
+        ("MSFT", "Microsoft Corp.", "US5949181045"),
+        ("AMZN", "Amazon.com Inc.", "US0231351067"),
+        ("GOOGL", "Alphabet Inc.", "US02079K3059"),
+        ("META", "Meta Platforms Inc.", "US30303M1027"),
+        ("AVGO", "Broadcom Inc.", "US11135F1012"),
+    )
+)
+#: Every line the keeper's polled rounds ask: the traded lines, the references, the watched.
+POLLED_LINES = (*LINES, *WATCHED)
 
 
 #: The pound in dollars at the archive, kept as a reference series (never traded), and the band

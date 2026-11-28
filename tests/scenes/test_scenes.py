@@ -60,23 +60,34 @@ def _run_days(root: Path, broker: Pretend, days: Sequence[date]) -> list[day.Rec
 # ---------------------------------------------------------------- the scenes
 
 
-def test_scene_1_the_days_data_is_clean_or_the_line_is_parked(tmp_path: Path) -> None:
-    parked = store.prepare(tmp_path, SPOILT, TODAY)
+def _judged() -> tuple[dict[str, tuple[store.Bar, ...]], list[store.Parked]]:
+    """The spoilt archive through the store's one judgement: each line's bars, the lines parked."""
+    kept, parked = {}, []
+    for line, answer in SPOILT.items():
+        bars, _, park = store.judge(line, answer, TODAY)
+        kept[line.symbol] = tuple(bars)
+        parked += [park] if park else []
+    return kept, parked
+
+
+def test_scene_1_the_days_data_is_clean_or_the_line_is_parked() -> None:
+    kept, parked = _judged()
 
     assert [(p.symbol, p.day) for p in parked] == [(BAD.symbol, TODAY)]
     assert parked[0].reason.strip(), "a parked line names its reason"
     for line in LINES:
         if line != BAD:
-            assert store.read(tmp_path, line.symbol) == CLEAN[line], f"{line.symbol} incomplete"
-    kept = store.read(tmp_path, BAD.symbol)
-    assert WRONG_UNIT not in kept, "the bad bar reached the store"
-    assert [b.day for b in kept] == sorted({b.day for b in kept}), "a date is stored twice"
+            assert kept[line.symbol] == CLEAN[line], f"{line.symbol} incomplete"
+    assert WRONG_UNIT not in kept[BAD.symbol], "the bad bar was kept"
+    days = [b.day for b in kept[BAD.symbol]]
+    assert days == sorted(set(days)), "a date is kept twice"
 
 
-def test_scene_2_the_decision_cannot_see_the_future(tmp_path: Path) -> None:
-    parked = {p.symbol for p in store.prepare(tmp_path, SPOILT, TODAY)}
-    trading = [line.symbol for line in LINES if line.symbol not in parked]
-    bars = {symbol: store.read(tmp_path, symbol) for symbol in trading}
+def test_scene_2_the_decision_cannot_see_the_future() -> None:
+    every_bar, parked = _judged()
+    skip = {p.symbol for p in parked}
+    trading = [line.symbol for line in LINES if line.symbol not in skip]
+    bars = {symbol: every_bar[symbol] for symbol in trading}
 
     every = strategy.decide(bars)
     names = {d.strategy for d in every}
@@ -248,4 +259,4 @@ def test_golden_run_replays_the_fourteen_months_to_the_penny(tmp_path: Path) -> 
         sum((t.costs.total for t in trips), Decimal(0)).quantize(penny),
         sum((r.market for r in records), Decimal(0)),
     )
-    assert golden == (310, 68, 34, Decimal("1098.41"), Decimal("368.78"), Decimal("783.73"))
+    assert golden == (310, 64, 32, Decimal("-154.51"), Decimal("351.96"), Decimal("783.73"))

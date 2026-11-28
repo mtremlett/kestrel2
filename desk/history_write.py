@@ -62,6 +62,15 @@ HOURLY = ("1h", "4h")  #: the timeframes built from held 30-minute bars, not ask
 HALF = timedelta(minutes=30)
 FROM_ONE = ("2m", "10m")  #: the timeframes built from held one-minute bars
 FROM_FIVE = ("15m", "30m")  #: the timeframes built from held five-minute bars
+ROLL_REACH = timedelta(weeks=2)  #: a round's reach: the longest rolled span (1wk) and one more
+
+
+def recent(now: datetime) -> datetime:
+    """Where a 5-minute round's roll-up starts: the Monday at or before ROLL_REACH back from now, so
+    every bar it builds is whole; older bars cannot have changed since the last round (pattern 26:
+    the whole history re-read every round outgrew the round)."""
+    back = (now - ROLL_REACH).date()
+    return datetime.combine(back - timedelta(days=back.weekday()), time(), UTC)
 
 
 def built(venue: str, candles: Iterable[Candle], frame: str) -> list[Candle]:
@@ -83,33 +92,38 @@ def built(venue: str, candles: Iterable[Candle], frame: str) -> list[Candle]:
     return made
 
 
-def _held(path: Path, line: Line, span: str, now: datetime) -> list[Candle]:
-    """The line's bars of one span as held (a day's at its midnight UTC), none if the store
-    never held the span."""
+def _held(path: Path, line: Line, span: str, now: datetime, since: datetime) -> list[Candle]:
+    """The line's bars of one span from since up to now as held (a day's at its midnight UTC),
+    none if the store never held the span."""
     try:
         if span == "1d":
             return [Candle(datetime.combine(b.day, time(), UTC), b.open, b.high, b.low, b.close,
-                           b.volume, "ibkr") for b in bars.daily(path, line)]  # fmt: skip
-        got = bars.five(path, line, EPOCH, now) if span == "5m" else bars.timed(
-            path, line, span, EPOCH, now)  # fmt: skip
+                           b.volume, "ibkr") for b in bars.daily(path, line)
+                    if b.day >= since.date()]  # fmt: skip
+        got = bars.five(path, line, since, now) if span == "5m" else bars.timed(
+            path, line, span, since, now)  # fmt: skip
     except LookupError:  # the store never held this span for the line: none to build from
         return []
     return [Candle(b.start, b.open, b.high, b.low, b.close, b.volume, "ibkr") for b in got]
 
 
-def _made(path: Path, line: Line, now: datetime) -> dict[str, list[Candle]]:
-    """The line's 2m, 10m, 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held."""
-    halves, fives, days, ones = (_held(path, line, s, now) for s in ("30m", "5m", "1d", "1m"))
+def _made(path: Path, line: Line, now: datetime, since: datetime) -> dict[str, list[Candle]]:
+    """The line's 2m, 10m, 15m, 30m, 1h, 4h and weekly bars as built from the finer bars held
+    from since (a Monday's midnight, or EPOCH) up to now."""
+    halves, fives, days, ones = (
+        _held(path, line, s, now, since) for s in ("30m", "5m", "1d", "1m")
+    )
     made = {f: built(line.venue, halves, f) for f in HOURLY}
     made |= {f: rollup.rollup(line.venue, ones, f, "1m") for f in (*FROM_ONE, "5m")}
     made |= {f: rollup.rollup(line.venue, fives, f, "5m") for f in FROM_FIVE}
     return {**made, "1wk": rollup.weekly(line.venue, days)}
 
 
-def roll(path: Path, line: Line, now: datetime) -> int:
+def roll(path: Path, line: Line, now: datetime, since: datetime = EPOCH) -> int:
     """Build the line's 1h, 4h and weekly bars from the 30-minute and daily bars the database
-    holds and add them: a bar already held, pulled or not, stays. Says how many landed."""
-    made = _made(path, line, now)
+    holds from since and add them: a bar already held, pulled or not, stays. Says how many
+    landed."""
+    made = _made(path, line, now, since)
     landed = 0
     for source, frames in (
         (bars.Source.ROLLUP_1M, FROM_ONE),
@@ -125,13 +139,16 @@ def roll(path: Path, line: Line, now: datetime) -> int:
     return landed
 
 
-def clashes(path: Path, line: Line, now: datetime) -> list[str]:
-    """A fault for each bar built that a bar already held for its moment does not match in
-    open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
+def clashes(path: Path, line: Line, now: datetime, since: datetime = EPOCH) -> list[str]:
+    """A fault for each bar built from since that a bar already held for its moment does not
+    match in open, high, low or close (a pulled bar stays; the disagreement is recorded)."""
     faults = []
-    for frame, candles in _made(path, line, now).items():
-        got = bars.five(path, line, EPOCH, now) if frame == "5m" else bars.timed(
-            path, line, frame, EPOCH, now)  # fmt: skip
+    for frame, candles in _made(path, line, now, since).items():
+        try:
+            got = bars.five(path, line, since, now) if frame == "5m" else bars.timed(
+                path, line, frame, since, now)  # fmt: skip
+        except LookupError:  # the store never held this span: no held bar to differ from
+            continue
         have = {b.start: b for b in got}
         for c in candles:
             one = have.get(c.start)

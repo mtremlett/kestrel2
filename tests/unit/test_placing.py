@@ -17,6 +17,7 @@ from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, S
 
 from desk import book, kill, paper, placing
 from desk.broker import Broker, Disconnected, Fill, Report
+from desk.listing import Listing
 from desk.orders import Order, Refused, Sale
 
 ID, DATED, VUSA = "20261113-rsi2-IITU", date(2026, 11, 13), replace(SMGB, symbol="VUSA")
@@ -31,8 +32,8 @@ AFTER = _but(DONE, 22, f"{ID}-stop")  # and that stop's own order, ended: not th
 AT = datetime(2026, 11, 16, 8, 5, tzinfo=UTC)
 
 
-def _paper(root: Path = Path("unread"), at: datetime = AT) -> placing.Paper:
-    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK))
+def _paper(root: Path = Path("unread"), at: datetime = AT, within: bool = False) -> placing.Paper:
+    return placing.Paper(LISTED, root, lambda: at, paper.Door(paper.DESK), within=within)
 
 
 def _ready(root: Path) -> Path:
@@ -228,7 +229,7 @@ def test_a_sale_is_sent_once_and_answered_with_what_the_broker_did(
     # ended by the broker itself, a reason given: no cancel (a real refusal: test_placing_seen.py)
     over = [REJECTED, _but(MINE[1], 2, "Cancelled")]
     sent = _gateway(monkeypatch, [], BARE, over, BARE, [("102",)], [END], BARE)
-    told = broker.place(SALE)
+    told = _paper(tmp_path, within=True).place(replace(SALE, session=AT.date()))  # a bar's, today
     assert told.fills == () and "201: Order rejected - reason: closed" in str(told.reason)
     assert sent == [b"", ACCOUNT, PLACED, ACCOUNT, ENDED, FILLS, ACCOUNT]
 
@@ -278,6 +279,10 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
     both = _msg({16: "BUY", 27: "0"}) + _msg(AT_STOP | {1: "42", 28: "41"})
     assert sent == [b"", ACCOUNT, both, *ASKED, ACCOUNT]
+    # a rehearsal's door (the markets shut) gives an order seconds, not minutes, to fill
+    shut = placing.Paper(LISTED, tmp_path, lambda: AT, placing.Shut(paper.DESK))
+    _gateway(monkeypatch, [], EMPTY, FILLING, under, *did, under)
+    assert shut.place(BUY_IT).fills == (FILL,) and WAITS[2] == placing.SHUT_SECONDS
     # a stop the broker is not holding protects nothing: the stop due is sent, that one cancelled
     limbo = _account([HELD], *_order("42", "SELL STP 3600.0", f"{ID}-stop", "Inactive"))
     sent = _gateway(monkeypatch, [], EMPTY, FILLING, limbo, *did, limbo, [MINE[1]], [ENDED_42])
@@ -369,6 +374,7 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
         (_paper(ready), (replace(SALE, line=SMGB),), Refused, "does not list SMGB: the"),
         (_paper(ready), (replace(SALE, line=VUSA),), Refused, "VUSA: it was not"),
         (_paper(ready), (replace(SALE, session=AT.date()),), Refused, "the one it is dated"),
+        (_paper(ready, within=True), either, Refused, "not the session of the one it is dated"),
         (_paper(ready, AT + timedelta(days=1)), either, Refused, "17 is not the session of"),
         (_paper(ready, AT - timedelta(days=2)), either, Refused, "next after the one it is dated"),
         (_paper(tmp_path / "new"), either, Refused, "was not drilled in the last 31 days"),
@@ -387,14 +393,31 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
     # two; and no other order open at the broker, the desk's own on any line or anyone else's
     late = _order("7", "SELL STP", f"{ID}-stop", "PendingSubmit")
     more = [_order("8", "BUY MKT", "a", "Submitted", client=c) for c in ("222", "31")]
-    far = (*PROTECTED[3:5], _but(more[0][0], 2, "265598"), more[0][1])  # its own, on another line
-    whys = ["stops on IITU are not settled: .*-stop .P"] * 2 + ["open at the broker: .'a .Subm"] * 2
-    for rest, why in zip((late, (*PROTECTED[3:5], *CHILD), far, more[1]), whys, strict=True):
+    whys = ["stops on IITU are not settled: .*-stop .P"] * 2 + [
+        "open at the broker on IITU: .'a .S"
+    ]
+    for rest, why in zip((late, (*PROTECTED[3:5], *CHILD), more[1]), whys, strict=True):
         for order in either:
             sent = _gateway(monkeypatch, [], _account([HELD], *rest))
             with pytest.raises(Refused, match=why):
                 _paper(ready).place(order)
             assert sent == [b"", ACCOUNT]
+    # an order open on ONE line refuses that line alone (R-RUNNER-568): Tuesday's conformance
+    # stop on SMGB (PreSubmitted, client 31) leaves IITU's buy and sale to go, and refuses SMGB's
+    iitu = LISTED["IITU"]
+    assert isinstance(iitu, Listing)
+    smgb = replace(iitu, line=SMGB, contract="999")
+    both, stop = (
+        placing.Paper({**LISTED, "SMGB": smgb}, ready, lambda: AT, paper.Door(paper.DESK)),
+        (_order("5", "SELL STP", "conf3", "PreSubmitted", client="31")),
+    )
+    shut = _account([HELD], _but(stop[0], 2, "999"), stop[1])
+    for order in either:
+        _gateway(monkeypatch, shut)
+        assert both._before(iitu, order)[0] == 26  # noqa: SLF001
+    _gateway(monkeypatch, shut)
+    with pytest.raises(Refused, match=r"on SMGB: .*conf3 .PreSubmitted"):
+        both._before(smgb, replace(BUY_IT, line=SMGB))  # noqa: SLF001
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
     with pytest.raises(Disconnected, match="port is closed"):  # never received: sent next time
         _paper(ready).place(BUY_IT)

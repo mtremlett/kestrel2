@@ -13,49 +13,32 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
-from desk import book, broker, day, halt, kill, orders, strategy
+from desk import (
+    book,
+    broker,
+    day,
+    day_money,
+    halt,
+    incidents,
+    kill,
+    orders,
+    simcity_incidents,
+    strategy,
+)
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
-from desk.simcity_incidents import (
-    CANCELLED,
-    DEAF,
-    HOLE,
-    LEFT,
-    LIVE,
-    LOCKED,
-    PARKED,
-    SHUT,
-    SILENT,
-    SLOW,
-    STALE,
-    STOP_SILENT,
-    UNBARRED,
-    UNHELD,
-    beside,
-    cancelled,
-    deaf,
-    gateway_silent,
-    hole,
-    locked,
-    minutes,
-    parked,
-    silent,
-    slow,
-    stale,
-    unbarred,
-    unheld,
-    unreachable,
-)
 from desk.simcity_parts import MONTH, Archive, Night, _behind, _gapped, _killed
 from desk.simcity_parts import _market as dealt
 from desk.store import Bar
+from desk.store_parts import upto
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
@@ -92,9 +75,11 @@ class _Counted(Pretend):
         super().__init__(archive, {})
         self._rng, self.met = rng, Counter[Fault | None]()
         self.buys = 0  #: the orders to buy that reached the door
+        self.bought = Counter[str]()  #: and of which line each was
 
     def place(self, order: Order | Sale) -> Report:
         self.buys += isinstance(order, Order)
+        self.bought[order.line.symbol] += isinstance(order, Order)
         if self._rng.randrange(FAULTY) == 0:
             self._faults[order.line.symbol] = self._rng.choice(tuple(Fault))
         waiting = self._faults.get(order.line.symbol)
@@ -148,16 +133,16 @@ class _Life:
     def live(self, on: date) -> day.Record:
         """One day whole, from the data saved by its end, and its record."""
         saved = {
-            x: [b for b in bars if b.day <= on]
-            for x, bars in self.market.items()
-            if bars[0].day < on
+            x: list(bars[: upto(bars, on)]) for x, bars in self.market.items() if bars[0].day < on
         }
-        scenario, buys = self.census.scenario, self.pretend.buys
+        scenario, buys = self.census.scenario, self.pretend.bought.copy()
         record = self._run(saved, on)
         self.census.now(scenario)
-        odd = set(record.mismatches) - book.adopted(self.desk, on)  #: strangers, sold, are none
-        quiet = not (odd and self.pretend.buys > buys)
-        self.promise("nothing is bought on a day the book is not the broker's", quiet)
+        odd = {m for m in record.mismatches if not day_money.is_owed(m)} - book.adopted(
+            self.desk, on
+        )
+        quiet = not any(self.pretend.bought[name] > buys[name] for name in odd)
+        self.promise("nothing is bought on a line the book is not the broker's on", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
         net = Counter[str]()  #: shares of a stranger's not sold: none of the desk's lines
         for f in book.fills(self.desk):
@@ -251,26 +236,16 @@ def _unstopped(life: _Life, on: date) -> None:
         put_back()
 
 
-Event = tuple[str, Callable[[_Life, date], object]]
+Event = incidents.Event
 EVENTS: tuple[Event, ...] = (
-    (STALE, stale),
+    *incidents.DRAWN[:1],  #: the keeper's stale one is drawn first
     (BEHIND, _behind),
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
     (KILLED, _killed),
     (THROUGH, _through),
-    (HOLE, hole),
-    (LEFT, beside),
-    (CANCELLED, cancelled),
-    (PARKED, parked),
-    (DEAF, deaf),
-    (UNHELD, unheld),
-    (UNBARRED, unbarred),
-    (LOCKED, locked),
-    (LIVE, minutes),
-    (SILENT, silent),
-    (SLOW, slow),
-    (STOP_SILENT, gateway_silent),
+    *incidents.DRAWN[1:],
+    (simcity_incidents.OLD, simcity_incidents.old_records),
 )
 
 
@@ -342,6 +317,8 @@ def _stops(life: _Life) -> None:
     )
     life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
     life.promise("a trade gaining nothing is flagged thin", orders.thin(order, Decimal(0)))
+    gain = orders.expected_gain(life.market[line], order)
+    life.promise("a trade expects a gain of no less than nothing", gain >= 0)
     buy = strategy.Decision("rule", symbol, life.records[-1].day, strategy.Action.BUY)
     price, fx, held = Decimal(100), life.rates[line.currency], book.positions(life.desk)
     gap = orders.stop_under(line, price) - 1  #: the live price gaps under the signal's stop
@@ -363,7 +340,8 @@ def _stops(life: _Life) -> None:
 
 def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     """BIC-04: the trips' gross is their trading at the buy's rate plus the currency's move."""
-    money, rate = {line.symbol: line.currency for line in life.market}, book.pounds_per(life.desk)
+    money = {line.symbol: line.currency for line in life.market}
+    rate: book.Rate = lambda currency, _day: life.rates[currency]  # noqa: E731 - the night's own pound
     traded = sum(
         (
             -t.sell.quantity * (t.sell.price - t.buy.price) * rate(money[t.buy.symbol], t.buy.day)
@@ -373,12 +351,11 @@ def _apart(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
     )
     gross = sum((t.gross for t in trips), Decimal(0))
     unit = {line.symbol: Decimal(1) for line in life.market}
-    open_gain = (
-        book.open_currency_gain(life.desk, life.market, {k: v * 2 for k, v in unit.items()}, d)
-        == 2 * book.open_currency_gain(life.desk, life.market, unit, d)
+    held = partial(book.open_currency_gain, life.desk, life.market)
+    return traded + book.currency_gain(life.market, trips, rate) == gross and all(
+        held({k: v * 2 for k, v in unit.items()}, d, rate) == 2 * held(unit, d, rate)
         for d in {t.sell.day for t in trips}
     )
-    return traded + book.currency_gain(life.desk, life.market, trips) == gross and all(open_gain)
 
 
 def _told(life: _Life, trips: tuple[book.RoundTrip, ...]) -> bool:
@@ -422,10 +399,10 @@ def _live(life: _Life) -> None:
             ran = happen(life, on) is not False  #: False: it could not run today, still owed
             todo += [] if ran else [(scenario, happen)]
             life.done |= {scenario} if ran else set()
-        elif SHUT not in life.done:  #: once, on a plain morning; it draws nothing from the seed
-            census.now(SHUT)
-            unreachable(life, on)
-            life.done.add(SHUT)
+        elif incidents.LONE[0] not in life.done:  #: once, on a plain morning; no draw
+            census.now(incidents.LONE[0])
+            incidents.LONE[1](life, on)
+            life.done.add(incidents.LONE[0])
         else:
             life.live(on)
     census.now(RECKONING)

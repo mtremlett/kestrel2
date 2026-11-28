@@ -25,7 +25,9 @@ from desk import (
     book,
     clearance,
     command,
+    command_parts,
     day,
+    gateway,
     halt,
     history,
     keeper,
@@ -107,7 +109,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     # London open, and no key of his: the round is made on the store's bars at the pound's
     # rate, and only then the step fails, naming what he must set
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
-        _run(tmp_path, MON.replace(hour=8, minute=5))
+        _run(tmp_path, MON.replace(hour=9, minute=5))
     desk = tmp_path / "desk"
     (note,) = running.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words
@@ -115,6 +117,11 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     assert ASKED and {home for home, _ in ASKED} == {tmp_path}
     with pytest.raises(SystemExit, match="--preflight"):
         _run(tmp_path, MON, "--now")
+
+
+def test_the_dollar_band_has_one_home_desk_lines() -> None:
+    assert not hasattr(command, "DOLLARS")
+    assert not hasattr(command_parts, "DOLLARS")
 
 
 def test_the_pound_is_read_from_the_price_store_alone_the_broker_and_archive_never_asked(
@@ -255,6 +262,21 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
 
 
+def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ticks, steps = iter(range(0, 10_000_000, 600)), list[datetime]()
+    monkeypatch.setattr(running, "step", lambda _desk, at: steps.append(at))
+    moments = command._moments(FRI)
+    desk = command._desk(tmp_path, Mock(), tmp_path)
+    clock = lambda: SUNDAY + timedelta(seconds=next(ticks))  # noqa: E731 - ten minutes a call
+    failed = command._live(desk, moments, clock)
+    spent = f"the rehearsal's {command.RUN_SECONDS} s were spent"
+    assert 0 < len(steps) < len(moments) and failed == [
+        f"{moments[len(steps)]:%H:%M} UTC stopped, {spent}"
+    ]
+
+
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -329,6 +351,19 @@ def test_a_real_step_is_followed_by_the_hourly_pnl_once_an_hour(
         command.hourly(desk, moment)
     assert [call.args[0] for call in post.call_args_list] == ["the day so far"] * 2
     assert told.call_args.args[-1] == open_london.replace(hour=10)
+
+
+def test_with_the_broker_unreachable_the_hourly_says_not_trading_and_counts_no_fills(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    post = Mock(side_effect=range(1, 9))
+    monkeypatch.setattr(pnl, "told", Mock(side_effect=AssertionError("profit told while down")))
+    monkeypatch.setattr(gateway, "known", Mock(return_value=gateway.Known(gateway.State.HIS, "x")))
+    desk, at = command._desk(tmp_path, post, tmp_path), MON.replace(hour=9, minute=0)
+    command.hourly(desk, at)
+    said = post.call_args.args[0]
+    assert "NOT trading: the paper Gateway is down since 09:00 UK" in said
+    assert "orders are not sent" in said and "filled" not in said and "✅" not in said
 
 
 def test_the_email_fallback_is_wired_only_when_his_smtp_settings_are_set(tmp_path: Path) -> None:

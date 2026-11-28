@@ -5,10 +5,12 @@ results file; it writes `ladder/sets/EPON.md` and `.json` - each rule, line and 
 with its reason, the trials, the author's result beside the desk's, what goes forward - and
 ends `SET EPON: <n> rules, <passed> passed, table <path>`. A rule has passed when a line's one
 verdict is PASS and every rung run passed. Every table is PRE-REVIEW until the blind review
-(R-RUNNER-40) is clean. `python -m lab.ladder first` runs the first set instead; `leveraged`
+(R-RUNNER-40) is clean. `first` runs set 1 instead, its table published too; `leveraged`
 runs set LEV (STR-18): six trend rules, named in `TREND`, on the leveraged lines only, judged
 on their own trial count. `variants` names set VAR before any result (canon B6): every variant
 of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
+`transfer` publishes set 2, the grid's transfer study, from the file `lab/transfer.py` wrote.
+A set that ends with its `SET` line is told to his phone once (LAD-09), through the one door.
 """
 
 from __future__ import annotations
@@ -21,20 +23,20 @@ from functools import partial
 from pathlib import Path
 from typing import cast
 
+from desk import keeper, messenger
 from desk.lines import LINES, Line
 from lab import (
     basket,
     batch,
-    folds,
     history_bars,
     intraday,
     ladder,
     ladder_pool,
     members,
     rulebook,
-    rung_retail,
     scalping,
     tape,
+    transfer,
     trials,
     variants,
     verdict,
@@ -81,15 +83,17 @@ def _spells(record: members.Record, line: Line) -> list[tuple[date, date]]:
     return spells + ([(open_from, END)] if open_from is not None else [])
 
 
+def _names(record: members.Record, line: Line) -> bool:
+    """Whether the list's record names the line, today or in its changes."""
+    return any(t.venue == line.venue for t in record.today) and line.symbol in (
+        {t.symbol for t in record.today} | {c.symbol for c in record.changes}
+    )
+
+
 def window(line: Line, records: Mapping[str, members.Record]) -> tuple[date, date] | None:
     """The days a line was a member of any list that names it, as one window: its longest
     run of membership. None when no list's record names the line: it is traded as it is."""
-    named = [
-        r
-        for r in records.values()
-        if any(t.venue == line.venue for t in r.today)
-        and line.symbol in {t.symbol for t in r.today} | {c.symbol for c in r.changes}
-    ]
+    named = [r for r in records.values() if _names(r, line)]
     if not named:
         return None
     runs = sorted(run for r in named for run in _spells(r, line))
@@ -103,6 +107,15 @@ def window(line: Line, records: Mapping[str, members.Record]) -> tuple[date, dat
     return max(merged, key=lambda w: w[1] - w[0]) if merged else never
 
 
+def _bias(line: Line, first: date, records: Mapping[str, members.Record]) -> str:
+    """A line's survivorship note: `members.bias` of the first list naming it, from its first
+    day; a line no list names says it is not corrected."""
+    for name, record in records.items():
+        if _names(record, line):
+            return members.bias(name, max(first, members.FIRST))  #: a record starts at FIRST
+    return NOT_CORRECTED
+
+
 def survivors(
     rules: Sequence[str], lines: Sequence[Line], records: Mapping[str, members.Record]
 ) -> tuple[tuple[Cell, ...], tuple[str, ...]]:
@@ -110,10 +123,12 @@ def survivors(
     line saying whether its survivorship was corrected. A line the lists never named is traded
     over the whole window and its note says so; a line that was never a member is left out."""
     windows = {line: window(line, records) for line in lines}
-    notes = tuple(
-        f"{line.symbol} ({line.venue}): {NOT_CORRECTED}" for line in lines if windows[line] is None
-    )
     spans = {line: windows[line] or (START, END) for line in lines}
+    notes = tuple(
+        f"{line.symbol} ({line.venue}): " + _bias(line, spans[line][0], records)
+        for line in lines
+        if spans[line][0] <= spans[line][1]
+    )
     cells = tuple(
         Cell(rule, line, *spans[line])
         for rule in rules
@@ -139,9 +154,46 @@ def epon(
     rules = eponymous() if rules is None else rules
     todo, notes = survivors(rules, lines, records)
     counts = go(home, bars, pounds, todo, now, plan)  #: a rule's lines together: its pool once
-    count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
+    return publish(home, bars, pounds, (todo, rules, notes), counts, plan, len(lines))
+
+
+def first(
+    home: Path,
+    make: Callable[[], Bars],
+    pounds: Rates,
+    todo: Sequence[Cell] | None = None,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
+) -> str:
+    """Set 1 on the pool, each published rule on the lines it declares, whole (none corrected
+    for survivorship), its table published as every set's is (L16)."""
+    todo = ladder.cells() if todo is None else todo
+    counts = _pooled(make)(home, None, pounds, todo, now, ladder.FIRST)
+    rules = tuple(dict.fromkeys(c.strategy for c in todo))
+    notes = tuple(
+        f"{one.symbol} ({one.venue}): {NOT_CORRECTED}"
+        for one in dict.fromkeys(c.line for c in todo)
+    )
+    return publish(home, make(), pounds, (todo, rules, notes), counts, ladder.FIRST, len(notes))
+
+
+def publish(
+    home: Path,
+    bars: Bars,
+    pounds: Rates,
+    judged: tuple[Sequence[Cell], Sequence[str], Sequence[str]],
+    counts: str,
+    plan: Plan,
+    lines: int,
+) -> str:
+    """A judged set's table, `rungs built: n of 12` in its header, and the set's closing lines;
+    `judged` is its cells, rules and survivorship notes, of `lines` lines."""
+    todo, rules, notes = judged
     last = Kept(home / FOLDER / f"{plan.stem}.jsonl")
-    rows = [cast(verdict.Row, last.get(tuple(batch.row(c)))) for c in todo]
+    kept = [last.get(tuple(batch.row(c))) for c in todo]
+    if counts.startswith(ladder_pool.STOPPED) or None in kept:  #: no table of a pass cut short
+        return counts  #: by STOP, nor of cells never judged: older rows would stand as this pass
+    count = trials.count(home / FOLDER / f"{plan.stem}.trials.jsonl", plan.question)
+    rows = [cast(verdict.Row, row) for row in kept]
     stop, shown = faults(rows)  #: over 1% of the cells FAULT, baskets aside: withheld (L20)
     if verdict.EASED:  #: easing 2: each rule's lines also judged pooled, one basket a rule
         rows += baskets(bars, pounds, todo, rules, plan)
@@ -153,11 +205,17 @@ def epon(
     with table.open("a", encoding="utf-8") as out:
         out.write("\n## Survivorship\n\n" + "".join(f"- {note}\n" for note in notes))
         out.write(NL.join(_authors(rules) + withheld) + NL)
-    said = f"survivorship: {len(notes)} of {len(lines)} lines not corrected, none guessed"
+    said = survivorship_said(notes, lines)
     said += "" if shown else NL + stop[-1]
     passed = sum(any(map(verdict.goes, mine)) for mine in verdict.by_rule(rows, rules).values())
     last_line = f"SET {plan.tag}: {len(rules)} rules, {passed} passed, table {table}"
     return f"{counts}\n{said}\n{tapes_held(home)}\n{last_line}"
+
+
+def survivorship_said(notes: Sequence[str], lines: int) -> str:
+    """The set's survivorship line: how many of its lines no list corrected."""
+    left = sum(note.endswith(NOT_CORRECTED) for note in notes)
+    return f"survivorship: {left} of {lines} lines not corrected, none guessed"
 
 
 def _authors(rules: Sequence[str]) -> list[str]:
@@ -227,12 +285,16 @@ def baskets(
     ]
 
 
-def _against(first: Verdict, bars: Bars, pounds: Rates) -> rung_retail.Against:
+def _against(first: Verdict, bars: Bars, pounds: Rates) -> basket.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
-    and the pound rates."""
+    and the pound rates; a market the keeper refuses is one with no bars, the retail rung's gap."""
     venue = first.key.cell.line.venue
     market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
-    return rung_retail.Against(market, bars(market), pounds)
+    try:
+        held = bars(market)
+    except keeper.Stale:  #: named by `basket.grade` as a market holding no bars, never dropped
+        held = ()
+    return basket.Against(market, held, pounds)
 
 
 def tapes_held(home: Path) -> str:
@@ -262,7 +324,8 @@ def weather_line(home: Path, bars: Bars, held: Sequence[Line]) -> str:
 
 def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
     """`run` on the pool, the bars made in each worker by `make`, after the same pre-flight as
-    `ladder.run` (L20): a set whose inputs have a gap refuses to start."""
+    `ladder.run` (L20): a set whose bars have a gap refuses to start; a missing pound day is its
+    cell's named reason, never a refused set."""
 
     def go(
         home: Path,
@@ -272,7 +335,7 @@ def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         plan: Plan = ladder.FIRST,
     ) -> str:
-        folds.preflight(ladder.inputs(todo, make()), pounds)
+        ladder.preflight(todo, make(), pounds)
         return ladder_pool.run(home, make, pounds, todo, now, plan)
 
     return go
@@ -286,16 +349,58 @@ def entered(home: Path) -> str:
     return f"SET VAR: {len(made)} variants entered, {count} trials counted; none judged yet (GC)"
 
 
+def transferred(home: Path) -> str:
+    """Set 2, the grid's transfer study (`lab/transfer.py`, PRE-REVIEW, never a verdict), read from
+    the results file the study wrote and closed with its `SET` line: its rules, how many scored
+    PASS on some line, and that none goes forward. No study written: refused, naming the file."""
+    path = home / transfer.FOLDER / f"{transfer.NAME}.json"
+    if not path.exists():
+        sys.exit(f"ladder: no transfer study at {path}; `python -m lab.transfer` writes it first")
+    data = json.loads(path.read_text("utf-8"))  # bounded: one study, rewritten whole each run
+    rows, label = data["rows"], data["label"]
+    rules = dict.fromkeys(row["rule"] for row in rows)
+    passed = {row["rule"] for row in rows if row["answer"] == Answer.PASS.name}
+    fits = f"{data['fits']} fitted, {data['bare']} bare"
+    counts = f"{data['lines']} lines, {len(rows)} scores, {fits}"
+    return (
+        f"set TRANSFER ({label}): {counts}{NL}SET TRANSFER: {len(rules)} rules, {len(passed)} "
+        f"scored PASS on a line, none goes forward ({label}, never a verdict), "
+        f"table {path.with_suffix('.md')}"
+    )
+
+
 def leveraged(lines: Sequence[Line]) -> tuple[Line, ...]:
     """The lines that make more than their market's daily move."""
     return tuple(line for line in lines if line.leverage > 1)
 
 
-def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
+def told(home: Path, said: str, now: datetime, door: Callable[[], messenger.Post]) -> str:
+    """A finished set's summary sent once a day for each `SET` line it ends with (a set judged
+    again to another answer is told again), through `messenger.send`, its record in the ladder's
+    folder; a set with no `SET` line (stopped, or cells left unjudged) is not told. Its line says
+    the message's number, or why his phone was not told."""
+    ended = [one for one in said.split(NL) if one.startswith("SET ")]
+    if not ended:
+        return "telegram: not told, the set ended with no SET line"
+    try:
+        sent = messenger.send(home / FOLDER, now, f"ladder {now.date()} {ended[-1]}", said, door())
+    except (ValueError, messenger.Undelivered) as why:
+        return f"telegram: NOT TOLD, {why}"
+    return f"telegram: told, message {sent.number}"
+
+
+def main(
+    env: Mapping[str, str],
+    argv: Sequence[str] = (),
+    door: Callable[[Mapping[str, str]], messenger.Post] = messenger.telegram,
+    now: Callable[[], datetime] = lambda: datetime.now(UTC),
+) -> int:
     """Set EPON on every line the research store holds; `first` runs the first set instead and
     `leveraged` set LEV, the trend rules on the leveraged lines; `intraday` set INTRADAY
     (five-minute rules), `scalping` set SCALP (one-minute rules); `variants` only enters set
-    VAR's trials. The sets run on the pool (R-RUNNER-110): every core but two."""
+    VAR's trials; `transfer` publishes set 2, the grid's study. The sets run on the pool
+    (R-RUNNER-110): every core but two. A finished set is told to his phone by `told`; 1 when
+    it could not be."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
@@ -306,15 +411,25 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         ["intraday"],
         ["scalping"],
         ["variants"],
+        ["transfer"],
     )
     if list(argv) not in sets:
         sys.exit(
             f"ladder: {list(argv)} is no set; the command takes nothing, `first`, `leveraged`, "
-            "`intraday`, `scalping` or `variants`"
+            "`intraday`, `scalping`, `variants` or `transfer`"
         )
     if argv == ["variants"]:  #: names a family; reads no bars
         sys.stdout.write(entered(home) + NL)
         return 0
+    said = transferred(home) if argv == ["transfer"] else _judged(home, argv)
+    sys.stdout.write(said + NL)
+    phone = told(home, said, now(), partial(door, env))
+    sys.stdout.write(phone + NL)
+    return int("NOT TOLD" in phone)
+
+
+def _judged(home: Path, argv: Sequence[str]) -> str:
+    """A set judged on the store's bars, named by `argv`, and what it said."""
     make = partial(history_bars.reader, home)
     pounds, held = history_bars.pounds(home), history_bars.lines(home)
     if argv == ["intraday"]:
@@ -325,9 +440,8 @@ def main(env: Mapping[str, str], argv: Sequence[str] = ()) -> int:
         held = leveraged(held)
         said = epon(home, make(), pounds, held, rules=TREND, go=_pooled(make), plan=LEV)
     elif argv:
-        said = _pooled(make)(home, None, pounds, ladder.cells())
+        said = first(home, make, pounds)
     else:
         said = epon(home, make(), pounds, held, go=_pooled(make))
-        said += "\n" + weather_line(home, make(), held)
-    sys.stdout.write(said + "\n")
-    return 0
+        said += NL + weather_line(home, make(), held)
+    return said

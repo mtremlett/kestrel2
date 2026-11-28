@@ -33,6 +33,10 @@ BRIEF, KEEPER = replace(STEP, limit=timedelta(seconds=0.5)), Job("keeper", "x", 
 OK = "import os, sys\nwith open(sys.argv[1] + '/ran.txt', 'a') as f:\n f.write(f'{os.getpid()} ')\n"
 LOST = OK + "sys.stderr.buffer.write(b'\\x81\\n')\nraise SystemExit('the broker is gone ' * 20)\n"
 STUCK = OK + "import threading as t, time\ntime.sleep(60)\n"
+DRILL = (
+    OK
+    + "import time\nif len(open(sys.argv[1] + '/ran.txt').read().split()) < 2:\n time.sleep(60)\n"
+)
 FROZEN = STUCK.replace("\nti", "\n[x.cancel() for x in t.enumerate()[1:]]\nti")
 LINGER = STUCK.replace("time.sleep(60)", "t.Thread(target=time.sleep, args=(60,)).start()")
 #: A supervisor of that one job in a process of its own, as Windows would start it.
@@ -107,7 +111,7 @@ def test_a_job_runs_when_due_in_a_process_of_its_own_and_every_run_leaves_a_date
     assert supervisor.health(root, clock(), [STEP]) == (BADLY.format("step", "08:05", 2, GONE),)
     # it is back: the next run is good, and nothing is wrong
     _program(monkeypatch, tmp_path, OK)
-    clock.return_value = T0 + 15 * MIN
+    clock.return_value = T0 + 20 * MIN
     good = Receipt("step", clock(), clock(), DONE)
     assert supervisor.attend(root, [STEP], clock) == (good,) and len(set(_ran(root))) == 4
     assert supervisor.health(root, clock(), [STEP]) == ()
@@ -116,28 +120,36 @@ def test_a_job_runs_when_due_in_a_process_of_its_own_and_every_run_leaves_a_date
 def test_a_job_killed_from_outside_or_still_running_at_its_time_limit_is_run_again_when_due(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    root, clock = _program(monkeypatch, tmp_path, STUCK), Mock(return_value=T0)
-    # THE KILL DRILL: the job's process is killed from outside as it runs, and its receipt
-    # says how it ended
-    killer = Thread(target=_kill, args=(root,))
+    root, clock = _program(monkeypatch, tmp_path, DRILL), Mock(return_value=T0)
+    # THE KILL DRILL: under the real supervisor loop the job's process is killed from outside as
+    # it runs; its receipt says how it ended, and the next look, due again, runs it afresh and
+    # well, each receipt dated
+    killer, wait = Thread(target=_kill, args=(root,)), Mock(side_effect=[None, _Enough])
     killer.start()
-    (killed,) = supervisor.attend(root, [STEP], clock)
+    clock.side_effect = [T0, T0, *[T0 + 5 * MIN] * 2]  # a began and an ended for each look
+    with pytest.raises(_Enough):
+        supervisor.supervise(root, [STEP], clock, wait)
     killer.join()
-    assert killed.how in {ENDED.format(code, "it said nothing") for code in (15, -15)}
-    assert supervisor.health(root, T0, [STEP]) == (BADLY.format("step", "08:00", 1, killed.how),)
+    clock.side_effect = None
+    (_, began, _, how), (_, again, _, last) = _receipts(root)
+    assert how in {ENDED.format(code, "it said nothing") for code in (15, -15)}
+    assert (began, again, last) == (T0.isoformat(), (T0 + 5 * MIN).isoformat(), DONE)
+    assert len(_ran(root)) == 2
+    assert supervisor.health(root, T0 + 5 * MIN, [STEP]) == ()  # restarted, and well since
     # stuck again, with nobody watching it at all: at its time limit the process ends itself
+    _program(monkeypatch, tmp_path, STUCK)
     alone = [sys.executable, *supervisor.WORK, str(root), "step", "the_job", "0.5", str(root)]
     assert subprocess.run(alone, cwd=REPO, check=False).returncode == supervisor.OVERRUN  # noqa: S603
     # and under the supervisor the receipt says so; one too far gone even for that is killed
     # by the supervisor soon after, and its receipt says the same
-    for n, program in ((5, STUCK), (10, FROZEN)):
+    for n, program in ((10, STUCK), (15, FROZEN)):
         _program(monkeypatch, tmp_path, program)
         clock.return_value = T0 + n * MIN
         over = Receipt("step", clock(), clock(), OVERRAN.format(BRIEF.limit))
         assert supervisor.attend(root, [BRIEF], clock) == (over,)
     # the next run is a new process and done; what lingers of it is ended at the limit too
     _program(monkeypatch, tmp_path, LINGER)
-    clock.return_value = T0 + 15 * MIN
+    clock.return_value = T0 + 20 * MIN
     assert supervisor.attend(root, [BRIEF], clock)[0].how == DONE
     assert supervisor.health(root, clock(), [STEP]) == () and _ran(root)[-1] != _ran(root)[0]
 
@@ -373,3 +385,22 @@ def test_a_job_with_hours_is_not_run_judged_or_missed_in_the_night_the_gateway_r
     morning = _at(5, 30) + 24 * HOUR  # the night is no break in the desk's running
     assert supervisor.attend(tmp_path, [day], Mock(return_value=morning), run)
     assert supervisor.unattended(tmp_path, morning + MIN, [day]) == morning - _at(21, 59)
+
+
+def test_install_makes_windows_start_the_supervisor_at_boot_and_tell_every_hour(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    made = Mock()
+    monkeypatch.setattr(subprocess, "run", made)
+    boot, hourly = supervisor.install(tmp_path, "py.exe")
+    assert supervisor.main(["install", str(tmp_path)]) == 0
+    assert made.call_count == 4
+    assert (boot[boot.index("/TN") + 1], boot[boot.index("/SC") + 1]) == (
+        "KestrelSupervisor",
+        "ONSTART",
+    )
+    assert hourly[hourly.index("/SC") + 1] == "HOURLY"
+    assert boot[-1] == (
+        f'cmd /c cd /d "{supervisor.CODE}" && "py.exe" -m desk.supervisor run "{tmp_path}"'
+    )
+    assert hourly[-1].endswith(f'tell "{tmp_path}"')

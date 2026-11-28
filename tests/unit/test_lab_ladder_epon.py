@@ -18,7 +18,7 @@ from test_lab_reproduce import _bars as _author
 import desk
 from desk import strategy
 from desk.lines import LINES
-from lab import grid, ladder, ladder_sets, published, reproduce, rulebook
+from lab import grid, ladder, ladder_sets, published, reproduce, rulebook, verdict
 from lab.cell import Cell
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
@@ -60,7 +60,8 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     assert "against the author's 2" in vusa["reproduction"][0] and "reproduce" not in vusa["unrun"]
     assert (
         "reproduction" not in plain_vusa
-        and "no author's figure" in plain_vusa["unrun"]["reproduce"]
+        and plain_vusa["unrun"] == {}
+        and plain_vusa["rungs"]["reproduce"][1].startswith(verdict.DETERMINED)
     )
     #: the trend rule made no trade at all in 2022 over the two lines it was pooled on: a
     #: year with none is a FAULT, and the worst year is the verdict's
@@ -73,7 +74,8 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
     head = "| rule | line | venue | answer | rungs | trials | holding | "
     head += "reproduction | goes forward |"
     assert md.startswith("# SET EPON - PRE-REVIEW") and md.count(head) == 2
-    assert "first PASS:" in md and "plateau UNRUN:" in md and "no author's figure" in md
+    assert "first PASS:" in md and "no author's figure" in md
+    assert "plateau UNRUN" not in md and "plateau " in md  #: L17: the verdict builds its own
     assert "goes forward" in md and ": 0 of 3 lines go forward" in md
 
 
@@ -146,3 +148,10 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
     off = {r["cell"][0] for r in rows if "error" in r}
     assert off == set(found) - set(EPONYMOUS_PUBLISHED)
     assert all("no published rule on file" in r["error"] for r in rows if "error" in r)
+
+
+def test_a_catalogue_row_with_no_python_file_is_listed_through_its_spec_not_refused(
+    tmp_path: Path,
+) -> None:
+    """With no eponymous file in the folder every spec row is still listed, no KeyError."""
+    assert set(ladder.eponymous(tmp_path)) == set(rulebook.specs())

@@ -16,23 +16,8 @@ verdict is the one rule over those six: no folds, or an author's figure not repr
 none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
 line (UNRUN). Nothing goes to paper before all eleven.
 
-THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
-A row's names differ:
-`first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
-not yet there; after the dash, what is owed. BUILT: its module declares a RUNG, so the ladder
-judges by it; every other row owes `no RUNG` first (the test holds the two to agree).
- 1 sample size, effective trades: lab/rung_sample.py, tests/unit/test_lab_rung_sample.py - no RUNG
- 2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
- 3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
- 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
- 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
- 6 benchmark excess: lab/rung_benchmark.py, tests/unit/test_lab_rung_benchmark.py - no RUNG
- 7 deflated Sharpe: lab/rung_dsr.py, tests/unit/test_lab_rung_dsr.py - no RUNG; L14's clustered set
- 8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
- 9 placebo on blocks of days: lab/rung_placebo.py, tests/unit/test_lab_rung_placebo.py - no RUNG
-10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
-11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - `bootstrap`, unwired
-12 retail, basket beside market: lab/rung_retail.py, tests/unit/test_lab_rung_retail.py - no RUNG
+The rung map, and its count of rungs built, are `lab/ladder_map.py`'s (R-RUNNER-571): a new rung
+adds its row there, never here.
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
@@ -71,13 +56,14 @@ from typing import Any, cast
 
 import desk
 from desk import carry, keeper
-from desk.command import CAPITAL, DOLLARS, POUND
-from desk.lines import LINES, Line
+from desk.command import CAPITAL, POUND
+from desk.lines import DOLLARS, LINES, Line
 from desk.store import Bar
 from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
+from lab.ladder_map import rungs_built as rungs_built  #: its callers' name (R-RUNNER-571)
 from lab.ladder_parts import (
     FAILED,
     RUNGS,
@@ -124,14 +110,6 @@ def cells() -> tuple[Cell, ...]:
         for name in published.PUBLISHED
         for line in STRATEGIES[name].declared.universe
     )
-
-
-def rungs_built() -> tuple[int, int]:
-    """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
-    paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
-    rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
-    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if ".py (unbuilt)" not in r}
-    return sum(hasattr(importlib.import_module(f"lab.{m}"), "RUNG") for m in mods), len(rows)
 
 
 def names(c: Cell) -> list[str]:
@@ -225,6 +203,44 @@ def inputs(todo: Sequence[Cell], bars: Bars) -> Iterator[tuple[Cell, Sequence[Ba
                 yield Cell(c.strategy, line, c.start, c.end), read
 
 
+def preflight(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> None:
+    """The set runner's pre-flight (L20) over `inputs`: a gap in a line's bars refuses the set; a
+    day with no pound rate does not, it is its cell's named reason (`_unrated`), judged again
+    once the one writer fills it from the stored DEXUSUK series (`desk/backfill.py`)."""
+    folds.preflight(
+        ((c, read) for c, read in inputs(todo, bars) if not _unrated(c, ((c.line, read),), pounds)),
+        pounds,
+    )
+
+
+def _unrated(c: Cell, read: Sequence[tuple[Line, Sequence[Bar]]], pounds: Rates) -> str | None:
+    """The first day in the cell's window one of its lines has a bar and no rate of pounds, named
+    as a gap; None when every such day has its rate."""
+    for line, bar in ((line, bar) for line, held in read for bar in held):
+        try:
+            if c.start <= bar.day <= c.end:
+                rung.rate(line, pounds, bar.day)
+        except ValueError as gap:  #: named, never passed over: the cell's reason
+            return f"a gap in the pound's rates, to be filled from DEXUSUK: {gap}"
+    return None
+
+
+def _priced(bars: Bars, pounds: Rates, rule: str, todo: Sequence[Cell]) -> Bars:
+    """The rule's lines as its pooled folds read them: a line with a day unrated in its own cell's
+    window (a proxy, in the widest of the rule's) raises, so the pool leaves it out and its gap is
+    its own cell's reason, never a FAULT in the folds of the lines beside it."""
+    mine = [one for one in todo if one.strategy == rule]
+
+    def read(line: Line) -> Sequence[Bar]:
+        own = [one for one in mine if one.line == line] or mine
+        span = Cell(rule, line, min(o.start for o in own), max(o.end for o in own))
+        if gap := _unrated(span, ((line, held := bars(line)),), pounds):
+            raise ValueError(gap)
+        return held
+
+    return read
+
+
 def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
     """The set's results file and its count of trials entered; the register made on a first run."""
     results, register = (home / FOLDER / (plan.stem + e) for e in (".jsonl", ".trials.jsonl"))
@@ -249,7 +265,7 @@ def run(
     if cell.code_version(module=ME) != cell.RUNGS[ME]:
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = cells() if todo is None else todo
-    folds.preflight(inputs(todo, bars), pounds)
+    preflight(todo, bars, pounds)
     results, count = begun(home, todo, plan)
     last = Kept(results)
     shared = Shared(todo)
@@ -286,8 +302,7 @@ def _one(
     shared: Shared,
     now: datetime,
 ) -> verdict.Row:
-    """The cell's line: the one kept under the key these bars, rates and trials give, else its
-    answers now, or why it could not be judged."""
+    """The cell's row: kept under the key of its bars, rates, trials; else judged, or why not."""
     tag, count = tagged
     head: dict[str, Any] = {"set": tag, "cell": batch.row(c), "trials": count}
     key = None  #: what this try covers, once the cell's bars are read
@@ -296,7 +311,7 @@ def _one(
         head |= {"proxy": f"proxy: {proxy.symbol} for {head['cell'][1]}"} if proxy else {}
         held = bars(beside := next(one for one in LINES if one.symbol == MARKETS[c.line.venue]))
         made = _made(c.strategy, shared, bars)
-        pool = _pool(c.strategy, shared, bars, pounds)
+        pool = _pool(c.strategy, shared, _priced(bars, pounds, c.strategy, shared.todo), pounds)
         mine = cell.key(c, own).rung(ME)
         days = sorted(
             d for d in pounds if d <= c.end and (c.line.currency != "GBP" or pool.dollars)
@@ -313,6 +328,8 @@ def _one(
             return was  #: kept, or failed on all of this before: it waits for its key to change
         if (first := pool.firsts.get(c)) is not None and first.refusal is not None:
             return head | {"key": key, "refused": f"refused by the desk's sizing: {first.refusal}"}
+        if gap := _unrated(c, ((c.line, own), (beside, held)), pounds):
+            raise ValueError(gap)  #: the cell's reason, kept under its key; never a FAULT
         folded = lambda: pool.fold(pounds, made)  # noqa: E731 - asked for only if the folds are read
         look = None if first is None else pool.among(c)  #: L18: among its rule's own lines
         judged = verdict.judge(c, own, beside, held, pounds, count, made, folded, first, None, look)
@@ -340,7 +357,9 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     every = rulebook.eponymous(folder)
     python = tuple(n for n, make in every.items() if not _needs_data(make))
     return python + tuple(
-        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+        n
+        for n, spec in rulebook.specs(book, folder).items()
+        if n not in python and not _needs_data(every.get(n) or rulebook._made(spec))
     )
 
 

@@ -1,9 +1,11 @@
 """history - THE ONE CLIENT FOR THE BROKER'S HISTORICAL BARS: a line's daily bars, asked of IB
 Gateway's paper port through the desk's one door (desk/paper.py), read-only, as its own client
 (CLIENT), the store's FIRST source (his ruling of 16 November 2026: IBKR, then the archive,
-then the old Stooq downloads). It asks one line at a time and waits PACING seconds between
-asks, inside IBKR's limit of 60 asks in ten minutes; it asks never inside a desk round. A line
-the broker will not give is Refused, with the broker's own words, for the store to judge."""
+then the old Stooq downloads). It asks one line at a time. IBKR's limit of 60 asks in ten
+minutes binds only bars of 30 seconds and under, and every bar size kept here is a minute or
+more, so asks go as fast as the broker answers; only where the broker says pacing does the pull
+wait PACING seconds. It asks never inside a desk round. A line the broker will not give is
+Refused, with the broker's own words, for the store to judge."""
 
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ import time
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import BinaryIO, TypeVar, cast
 
@@ -21,7 +23,7 @@ from desk.rollup import Candle
 from desk.store import Answer, Bar, Refused
 
 CLIENT = 225  #: the history reader's own client id at the gateway (never 222 or 223)
-PACING = 11.0  #: seconds between asks: 60 asks in ten minutes is the broker's limit
+PACING = 11.0  #: seconds the pull slows after the broker says pacing (its small-bar limit)
 ASK, BARS, NEWS, ID = 20, "17", "4", 9001
 #: A bar's fields in the answer: its day, open, high, low, close, volume, the average and a count.
 WIDTH = 8
@@ -97,6 +99,15 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     )
 
 
+def _volume(text: str, fields: list[str]) -> int:
+    """A bar's volume in whole shares: the broker's -1 (no trades counted, the pound's) is none,
+    and a decimal (shares traded in parts) the nearest whole share, half to even; any other text
+    is refused, the message named."""
+    if text == "-1":
+        return 0
+    return int(paper.number(text, fields).to_integral_value(ROUND_HALF_EVEN))
+
+
 def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     """The bars of an answer of the broker's, those from since and before day."""
     body = fields[5:]
@@ -112,7 +123,7 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
         taken = date(int(stamp[:4]), int(stamp[4:6]), int(stamp[6:8]))
         if since <= taken < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Bar(taken, o, h, low, c, max(int(volume), 0)))
+            found.append(Bar(taken, o, h, low, c, _volume(volume, fields)))
     return tuple(found)
 
 
@@ -130,7 +141,7 @@ def _candles(fields: list[str], day: date, since: date) -> tuple[Candle, ...]:
         start = datetime.fromtimestamp(int(stamp), UTC)
         if since <= start.date() < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Candle(start, o, h, low, c, max(int(volume), 0), "ibkr"))
+            found.append(Candle(start, o, h, low, c, _volume(volume, fields), "ibkr"))
     return tuple(found)
 
 
@@ -149,34 +160,45 @@ def ask(
         paper.other(fields)  # news of the feeds is let by; any other stops the read
 
 
+def slowed(got: Got, wait: Wait) -> None:
+    """Slow the pull by PACING seconds when, and only when, the broker's refusal says pacing."""
+    if isinstance(got, Refused) and "pacing" in got.reason.lower():
+        wait(PACING)
+
+
+def _busy() -> str:
+    """The refusal's words, the round hours read from the one list of them."""
+    hours = ", ".join(f"{a:%H:%M}-{b:%H:%M}" for a, b in conformance_tape.ROUNDS)
+    return f"a desk round runs ({hours} UK): history is not asked now"
+
+
 def quiet(now: datetime) -> bool:
     """Whether no desk round runs at the moment: the account is the desk's then."""
-    at = venues.uk_time(now).time()
-    return not any(start <= at < end for start, end in conformance_tape.ROUNDS)
+    return not conformance_tape.round_at(now, 0)
 
 
 def gather(
     lines: Sequence[Line], day: date, since: date, now: datetime, wait: Wait = time.sleep
 ) -> dict[Line, Answer]:
-    """Each line's daily bars before day, from since, the broker asked on one connection at
-    PACING seconds apart. Not asked in a desk round: it raises Busy, and nothing is sent."""
+    """Each line's daily bars before day, from since, the broker asked on one connection, slowed
+    only where it says pacing. Not asked in a desk round: it raises Busy, and nothing is sent."""
     if not quiet(now):
-        raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
+        raise Busy(_busy())
     door = paper.Door(CLIENT)  #: the history reader's own door, passed down
 
     def talk(wire: BinaryIO, send: paper.Send) -> dict[Line, Answer]:
         paper.start(wire, send, door)
         answers: dict[Line, Answer] = {}
         for line in lines:
-            if answers:
-                wait(PACING)
-            answers[line] = cast(Answer, ask(wire, send, line, day, since))  # daily asks give bars
+            got = cast(Answer, ask(wire, send, line, day, since))  # daily asks give bars
+            slowed(got, wait)
+            answers[line] = got
         return answers
 
     return paper.dial(talk)
 
 
-#: The most lines one call asks the broker for: at PACING, inside the keeper's four minutes.
+#: The most lines one call asks the broker for: inside the keeper's four minutes.
 MOST = 12
 
 
@@ -258,18 +280,16 @@ def pull(
     asks: Sequence[Ask],
     fetch: Callable[[Line, str], Got],
     keep: Callable[[Line, str, Got], object],
-    wait: Wait = time.sleep,
     limit: int | None = None,
 ) -> int:
-    """Make the asks one at a time, PACING seconds apart (so never over the broker's limit), each
-    answer given to keep as it comes (the caller notes it done), stopping after limit asks.
+    """Make the asks one at a time, as fast as the broker answers (`back` slows where it says
+    pacing), each answer given to keep as it comes (the caller notes it done), stopping after
+    limit asks.
     Returns how many were made; the asks not made are what plan gives again."""
     made = 0
     for line, frame in asks:
         if made == limit:
             break
-        if made:
-            wait(PACING)
         keep(line, frame, fetch(line, frame))
         made += 1
     return made
@@ -277,14 +297,13 @@ def pull(
 
 def back(wire: BinaryIO, send: paper.Send, line: Line, frame: str, day: date, wait: Wait) -> Got:
     """One line's bars of a timeframe as far back as the broker gives: PAGES pages of REACH days,
-    each before the last, PACING apart. The first page refused is the answer; a later page
-    refused or empty ends the walk, the pages already had kept."""
+    each before the last, slowed where the broker says pacing. The first page refused is the
+    answer; a later page refused or empty ends the walk, the pages already had kept."""
     found: list[Bar | Candle] = []
     for page in range(PAGES[frame]):
         end = day - timedelta(REACH[frame] * page)
-        if page:
-            wait(PACING)
         got = ask(wire, send, line, end, end - timedelta(REACH[frame]), frame)
+        slowed(got, wait)
         if not isinstance(got, tuple) and not found:
             return got
         if not isinstance(got, tuple) or not got:
@@ -301,12 +320,12 @@ def run(
     wait: Wait = time.sleep,
     limit: int | None = None,
 ) -> int:
-    """The pull over the broker's own conversation, as the history reader, paced, each ask going
+    """The pull over the broker's own conversation, as the history reader, each ask going
     back as far as the broker gives (PAGES); not in a desk round (Busy, nothing sent). Returns
     how many asks were made. Bars reach keep in the broker's unit (pence for a London line):
     `history_write.keeper` turns them into the line's currency, once, on entry."""
     if not quiet(now):
-        raise Busy("a desk round runs (08:00-08:30, 14:30-15:00 UK): history is not asked now")
+        raise Busy(_busy())
     door = paper.Door(CLIENT)
 
     def talk(wire: BinaryIO, send: paper.Send) -> int:
@@ -315,6 +334,6 @@ def run(
         def fetch(line: Line, frame: str) -> Got:
             return back(wire, send, line, frame, day, wait)
 
-        return pull(asks, fetch, keep, wait, limit)
+        return pull(asks, fetch, keep, limit)
 
     return paper.dial(talk)

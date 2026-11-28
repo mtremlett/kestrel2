@@ -29,19 +29,9 @@ before this fold: `git log -p docs/lanes/data.md`).
 - *The fast store* (#89): SQLite in WAL mode, whole rounds, exact decimals, benchmarks held.
 - *The lists' members* (#96): S&P 500 and Nasdaq 100 by day since 2010; `on` refuses the rest.
 
-### 2026-11-14 — the head start, currency and store rules, folded (#175-#254)
+### 2026-11-14 to 15 — head start, currency, store rules, adjusted closes, folded (#175-#294)
 
-Settled and folded; git keeps every word. The old desk's five-minute bars, and later ibkr_store, Stooq and
-mark_the_trend files and the old database's daily rows, are read as a head start into the fast store, daily fill-only
-(#175, #236, #238, #245, #254). Currency steps are judged by the day's pound, with recorded splits and London-midnight
-dating; a long run of dollar-quoted bars is dropped (#217, #220); the six parked London lines came out clean (#222).
-Every rule and constant of `desk/store.py` is pinned by a row of one synthetic table, and that guard was driven red
-(#225, #227, #230; R-RUNNER-43, -46). The lane's open boxes were put in working order (#180).
-
-### 2026-11-15 — adjusted against as-traded closes; the 39-minute close rule, folded (#286, #294)
-
-The head start recognises a store of adjusted prices beside the as-traded one and never writes over raw (R-RUNNER-90, #286).
-The store holds each venue's closes within 39 minutes of its close (R-PAPER-23, #294). Details are in git history.
+Old five-minute bars and ibkr_store, Stooq and mark_the_trend files are a fill-only head start (#175-#254); currency steps judged by the day's pound (#217, #220); every `desk/store.py` rule pinned by a synthetic table (#225-#230); adjusted stores never overwrite raw (#286); closes within 39 minutes of close kept (#294). Git keeps the words.
 
 ### 2026-11-15 — nine settled store and keeper rules, folded (#314-#381)
 
@@ -130,140 +120,8 @@ Nineteen settled and built entries folded into one; git keeps every word (`git l
 - bars to ask = since last held (spec), floor 2 minutes, first run one hour; pacing counted by
   the word "pacing" in a refusal's reason.
 
-### 2026-11-17 — the keeper names the lines parked live (data-keeper, step) (#642)
-
-- (1) Parked state is derived from the store at each look, not a record: options were a
-  persisted live record (needs a file beyond this claim) or derive; derived, so recovery is
-  automatic. (2) 15 minutes late (three bars), as an illiquid line may trade nothing for five
-  or ten; too long-quiet lines are parked, the safe side. (3) Printed by the command, not a
-  miss, so a venue's miss rule is unchanged.
-
-### 2026-11-17 — no change - data-members remainder waits on a members source (#638)
-
-- Options were (a) invent a FTSE 350 record from memory, (b) record the funds as unchanged
-  since 2010, (c) land nothing and name the wait. Chose (c): (a) and (b) would give a study
-  survivor-biased lists presented as complete, the exact fault this box exists to remove.
-
-### 2026-11-17 — pulled broker bars written into the history database (R-RUNNER-216, step) (#636)
-
-- a bar off its timeframe's marks raises (fail loudly) rather than being silently shifted.
-  Options: shift to the UTC grid, or fail. I chose fail, because session-aligned venue bars
-  need the venue's calendar.
-
-### 2026-11-17 — calendars carried to 2030 (data-calendar-years) (#641)
-
-- horizon 2030 (options: 2028 only, 2030, 2035); chose 2030 as the rules are stable and no
-  later list is published to test against.
-
-### 2026-11-17 — the archive spared - slow, backing off, cached, refusing_since (data-archive-spared) (#637)
-
-- caching default from KESTREL2_DATA (options: only when callers pass a home / default to the
-  environment's folder; chose the latter so every caller is spared with no edit outside my
-  claim). Five-minute answers left uncached (stale by the next round).
-
-### 2026-11-17 — 2MU's moves confirmed against Stooq (data-2mu) (#650)
-
-- options (a) record a fifth move, (b) confirm the reason. Chose (b): Stooq contradicts the
-  archive's 24 Oct bar, so recording it would admit a wrong price.
-
-### 2026-11-17 — archive obeys Retry-After (data-polite) (#665)
-
-- Retry-After capped at 300 s so a hostile header cannot stall the keeper's slot; options:
-  obey uncapped, ignore it; chose capped.
-
-### 2026-11-17 — the keeper measures and shows the source's delay (data-keeper) (#659)
-
-- indicators are not stored copies, they are read from the kept bars (options: store computed
-  indicators, or compute on read; chose compute on read: one source of truth, canon A4).
-
-### 2026-11-17 — keeper receipts and stale-line alert (data-kept-hot) (#672)
-
-- Stale = newest daily bar earlier than the venue's last session before the day the venue is
-  readied for (so Monday morning owes Friday's close, and the just-closed day is not owed
-  until it settles). Options: judge against today's date (false alarms every evening) or this;
-  chose this. A receipt is written only when a call did or missed something (192 empty lines a
-  day would hide the real ones).
-
-### 2026-11-17 — the history pull knows what the database holds and has a command (R-RUNNER-216, step) (#674)
-
-- depth of one year for every timeframe, 50 asks per run (50 x 11 s stays inside 60 asks per
-  ten minutes). Options: per-timeframe depth now (needs a change to history.run's single
-  `since`, outside the 100-line step) or one depth now; chose one depth, recommended as the
-  smaller step.
-
-### 2026-11-17 — the research store's home, nightly refresh and clear-out (data-research-home) (#679)
-
-- Home = grid/store (where the grid and history import already read; options: a new folder;
-  chosen the existing one, one home per concept). The list "reflected" = lists' sizes plus a
-  short fingerprint (option: copy the whole list; the fingerprint is enough to tell a change).
-  The history database keeps a departed ticker's past bars (a study of the past needs them);
-  only the live store files are cleared. Taken on his standing ruling "always go with
-  recommended".
-
-### 2026-11-17 — data-polite - no change; parts already on main, limits unmeasured (#678)
-
-- Held data-isa-twins and went on, by his ruling "always go with recommended"; chose not to
-  add a speculative rate figure without measurement (options: guess a faster pace; leave 1 s;
-  chosen leave, because a wrong guess risks a ban of the only free price source).
-
-### 2026-11-17 — no change - data-keeper's remainder is MONEY's gate on parked_live (#648)
-
-- (1) Do not add a second parked-line store inside the keeper. Options: write a parked file
-  the day reads, or let the day call `keeper.parked_live(hot, LINES, now)` on the same store.
-  Chose the call: one source of truth, no file to go stale (canon A4). (2) Left LATE at 15
-  minutes. Options: tighten to 10, or keep. Kept: the watch's alert is at 20, and IBKR bars
-  land within a minute, so 15 already catches real lateness without parking on a slow round.
-
-### 2026-11-17 — archive pace is a courtesy, not a probed limit (data-polite) (#685)
-
-- Measure the archive's limits by burst-probing? Options: (a) probe with bursts until refused;
-  (b) keep the fixed 1 s pace and let real refusals drive the backoff and the six-hour alert.
-  Chosen (b), recommended: the archive publishes no limit, a probe risks banning this PC's
-  address and so the desk's own data, and a measured number would be a test of a third party,
-  not repeatable.
-
-### 2026-11-17 — 5QQQ starts on 22 August 2024; its jump was a unit change (data-5qqq) (#681)
-
-- Options: (a) keep the 500 split (wrong, 5x too high); (b) a ratio of 100 (the store's jump
-  test cannot confirm it across the 432-session gap); (c) start the line on 22 August 2024.
-  Chose (c): the only one the evidence supports, smallest, guessed no ratio. His standing
-  ruling: "please always go with recommended".
-
-### 2026-11-17 — SGLN's garbled 2011 handled by a start date (data-sgln) (#694)
-
-- Options: (a) drop only the zero-volume dollar bars by a new rule, (b) start the line after
-  the last one. Chose (b): no new store rule (failure pattern 13), the mechanism exists, the
-  loss is six months. Under his "always go with recommended" ruling: data-isa-twins held
-  (waits on operator), kept to data-sgln.
-
-### 2026-11-17 — 3LGO's history recorded, the rule for enough (data-3lgo, step) (#699)
-
-- Held data-isa-twins as told (his "always go with recommended"). Gaps of 2015: options were
-  record them as suspensions, or leave them as an old recorded fault; chose to leave them,
-  since no second source confirms a suspension and an old fault does not park. Rule for
-  "enough gathered": options were (a) the archive's own bars alone reach the ladder's MIN_BARS
-  (452), (b) any fixed count of years; chose (a), one number already in lab.verdict. No store
-  code change: the store already unparks a line by itself on the first clean day.
-
-### 2026-11-17 — data-3lgo ticked from #699; a stretched bar's change recorded beside it (data-stretched) (#702)
-
-- Per the runner's ruling taken for him ("always go with recommended"): data-3lgo is ticked
-  from #699 rather than held for the daily feed. Stretch note options: (a) list it and park
-  the line, which contradicts his 13 Nov ruling; (b) list it with a `noted` flag that parks
-  nothing. Chosen (b).
-
-### 2026-11-17 — the keeper's command asks the broker first (R-RUNNER-270) (#701)
-
-- (1) Ask the broker only for lines the archive lacks, not all 22 lines: options all lines
-  (about 4 minutes of pacing, would miss the runner's window) / only short lines (chosen,
-  recommended). (2) A closed gateway is a Refused in words, not a crash: the archive still
-  runs (his ruling: IBKR first, Yahoo fills).
-
-### 2026-11-17 — each timeframe's pull goes back as far as IBKR gives in one ask (R-RUNNER-216, step) (#703)
-
-- reach per timeframe taken from IBKR's published duration limits per bar size (options: one
-  reach for all, refused by the broker; per-size reach, chosen as it keeps pacing and the plan
-  unchanged).
+### 2026-11-17 — keeper, archive, research home and unit rules, folded (#638-#752, the oldest settled entries)
+Settled: the keeper names lines parked live; pulled broker bars are written to the history database; calendars reach 2030; the archive is spared (slow, backing off, cached, obeys Retry-After) and its pace is a courtesy, not a probed limit; the keeper shows the source's delay and writes receipts with a stale-line alert; the history pull knows what the database holds; the research store has a home, a nightly refresh and a clear-out; 5QQQ starts 22 August 2024 (its jump a unit change), SGLN's garbled 2011 is handled by a start date, 3LGO's history is recorded; the keeper's command asks the broker first and each timeframe pulls as far back as IBKR gives in one ask. Git keeps each entry's detail.
 
 ### 2026-11-19 — a refused line is kept and parked, not wiped (#801, R-RUNNER-309)
 
@@ -304,6 +162,21 @@ Options: 4 places, 6 places, significant figures; chose 4, the broker's own form
 ### 2026-11-19 — the keeper's fault window is 400 sessions (#863, R-RUNNER-327)
 
 Options: 60 sessions (too short, hides a lasting step the strategies still read), 400 sessions (coverage.NEED, what a rule needs before trading), all history (today's fault). Chose 400; lasting faults dated outside it are named only.
+
+### 2026-11-23 — #2088 (R-DATA-77): the withdraw rule, not the SimCity start (DATA)
+Options: move the SimCity start past 2019-06-18 (rejected: it hides the fault); fix `keeper._dropped` to withdraw a refused day only when the stored bar is the refused bar (chosen: the withdraw rule was the cause). Days already hidden stay hidden until a bar is given again.
+
+### 2026-11-23 — #2098 (data-members): unmeasured sources named, never bought (DATA)
+Options: buy FTSE Russell/funds data (rejected: no paid data before profit; his 22 Nov "nothing parks on him but hard lines"); store by-date members in a file (left: the nightly line is the record for now); name them UNMEASURED in the nightly line (chosen).
+
+### 2026-11-26 — #2201 (R-RUNNER-522): only stale spans are named (DATA)
+Options: name held-but-behind spans only (chosen: they are faults; never-held spans are gaps, already counted, and the line stays short); name both; a new command. No new command.
+
+### 2026-11-26 — #2205 (R-RUNNER-525): a missing old bar is named, vouching not repeated (DATA)
+Options: judge vouching again for each old bar (rejected: the check must not repeat the adoption); name every old bar absent from the one store as missing, whether never vouched or lost (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-26 — #2208 (R-RUNNER-524): the live-day copy is silent in `keep` (DATA)
+Options: add a report line, or stay silent. Silent keeps the output the runner and tests read unchanged. The `--live` one-minute round does not copy; the next five-minute round does.
 
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -749,3 +622,151 @@ Options: worst by age (rejected: needs a span-aware age scale), or first golden 
 
 ### 2026-11-23 — one hourly table for both databases (DATA, #1850)
 Options: two commands or one table with database-prefixed rows. Took one table, so the runner posts one message.
+
+### 2026-11-23 — the members feed lands in two steps, pure parsing first (DATA, #1870, #1885, #1899)
+Options: wire the nightly refresh now (needs files outside the claim) or land the in-claim steps. Took the steps: parsing and URL building pure with one thin `fetch`, then `fetch_review` over a fixture getter. The wikitext rule "second cell is the ticker" is an assumption recorded in the module docstring; the live shape is unverified until the first real fetch, and a different shape raises.
+
+### 2026-11-23 — the pound's noon rate is written unjudged (DATA, #1902)
+Options: judge it through `store.judge` (rejected: one noon price has no high or low for the bar judge) or write it as `lab/universe_history` already does. Took the second; a day the Fed gives none is named, never invented.
+
+### 2026-11-23 — kind is a function of the fault text, the pre-2010 refusal stays, the ramp is 25% (DATA, #1874, #1883, #1886)
+HOVER's kind: a function of the fault text (rejected: a new tuple field, which breaks the runner's parse of the line). Pre-2010 five-minute bars: keep the named refusal (rejected: widen hours to older clock rules, no intraday history before 2010 exists, DECISIONS 17 Nov). Polling ramp: a clean round rises 25%, so the ramp is measured, not leapt; the rule landed alone since the wiring needs files outside the claim.
+
+### 2026-11-23 — the Fed's pound is filled by a command; the polled round returns counts; the nightly docstring is fixed (DATA, #1910, #1916, #1922)
+Pound: `desk/backfill.py` repeats the FRED URL because desk/ may not import lab/ (options: import from lab, or a second constant; took the constant, lab/universe_history should import it from desk/backfill later). Polled round: `pace` stays in keeper.py and `keeper_live` returns the refusal count (options: a late import of keeper, a cycle; or moving pace); no new module. Nightly target: move the write to market_history.db (rejected: the code already lands there) or fix the docstring (chosen); the test now pins the file.
+
+### 2026-11-23 — no announcement scraper on an unverified shape; a generic User-Agent (DATA, #1948, #1962)
+Announcement: options were to scrape the lseg.com HTML, or take the announcement from the page diff alone. The first guesses a shape (the regulatory-news address answers 404, no stable machine-readable source), the second drops the two-source check. Took neither: the box waits (operator) for a stable free announcement source; nightly wiring waits too, as FTSE lists are still owed in `lab.members`.
+User-Agent: options were none (Wikipedia answers 403), or a contact email (would publish private details). Took a generic client name with no personal detail.
+
+### 2026-11-23 — the polled round's rate is a one-integer file per interval (DATA, #1963)
+Options: a database table, or a file. Took the file, `polled_<minutes>.rate`, written temp-then-replace: simplest, and no schema. No ruling needed from him.
+
+### 2026-11-23 — the VUAG refusal stands; the reader's handling goes to its own request (DATA, #2028)
+Options: (a) loosen `store.FROZEN` or exempt VUAG: refused, a frozen archive run (19 sessions at 39.915, no volume) is real bad data and a special case is forbidden; (b) make `keeper._dropped` withdraw only days whose held row is the refused bar: needs the held-with-withdrawn read in desk/bars.py, outside the claim; (c) leave as is and name the reader's handling as a request. Took (c): R-DATA-77.
+
+### 2026-11-23 — the deleted store names are pinned in the store's own test (DATA, #2025)
+Options: a guard over all imports in tests/guards (out of the card's claim; the names are gone so an import fails anyway), or one test in tests/unit/test_store.py. Took the test.
+
+### 2026-11-23 — an undefined line is named untradeable, not dropped (DATA, #2031)
+Option A name IDTL `untradeable` in keeper-live's words (taken); option B drop IDTL from the lines (no: it is the ISA twin). His 13 Nov "always go with recommended" settles it.
+
+### 2026-11-23 — the history output drops its pound count; the keeper reuses the one roll; the weekly rule stays (DATA, #2063, #2083, #2080)
+#2063: the output line dropped "N pound days added" (nothing is added now); chosen over keeping a zero count, which would say nothing.
+#2083: the keeper rolls through `history_write.roll` (one owner); a new builder in rollup.py was rejected as a duplicate path. The 1h bar's label is rollup:30m, its schema source, as the store already names it.
+#2080: tightening the weekly rule to the last complete week only was rejected: the weekly bar is rolled after the week ends, so one week of grace is needed or Friday evening reads stale.
+
+### 2026-11-23 — #2088 (R-DATA-77) cannot land from a lane: desk/keeper.py needs a failure pattern (DATA)
+Found, not fixed: `desk/keeper.py` has three fixes in its last ten changes, so `tests/guards/test_churn.py` stops a fourth until `docs/FAILURE_PATTERNS.md` names the file's mechanism. A lane cannot write that pattern, and a retitle to dodge the guard was refused. Branch lane/data-1123-145659-s2 holds the green fix (only the guards step is red); a session the operator starts records the pattern, then #2088 lands.
+Options: retitle #2088 to dodge the guard (rejected, a relabel); close #2088 (rejected, the fix is correct and its only red is the missing pattern). Left open with a comment (#2089).
+
+### 2026-11-23 — #2122 (data-disk-rolloff): a true duplicate is a byte-identical same-named copy (DATA)
+"Held in the one store" is read as a byte-identical, same-named copy under the store folder; anything else is listed for his yes, never deleted (his 23 Nov ruling).
+Options: a row-check against market.db (heavier, and a file with no byte twin may still be research); the byte check (chosen: the stricter proof of a true duplicate). The row-check stays open for files with no byte twin; the runner job calling `rolloff` is runner ops'.
+
+### 2026-11-24 — roll-up differences are told as FAULT lines in the round (DATA, #2129)
+A rolled bar that differs from a held one is a FAULT line in the keeper round's told lines, not an exit 1, as the box says "told". Checked after the roll so a fresh 30m-built hour is compared the same round.
+
+### 2026-11-24 — market.db and bars.db are recorded as already in, no importer (DATA, #2143)
+Options: A, build a market.db/bars.db importer; B, record that they are already in. Took B (recommended: every row is in market_history.db bar 156 of 32,124 mark_the_trend Stooq bars the store refused on entry; a copier would duplicate the writer and add code, no bars). His words: "please always go with recommended to avoid waiting for me to attend". Deleting the two files stays his alone.
+
+### 2026-11-26 — a lone newest bar the size of the pound's step is judged as a normal move (DATA, #2167)
+Options: (a) keep a lone newest pound-sized step as a lasting fault, (b) judge it as a normal move. Took (b): the next day's bar then confirms or refutes it and the existing step rule parks it; a real dollar bar among pounds is trusted for at most one day.
+
+### 2026-11-26 — the keeper's RULES hashes every store module by glob (DATA, #2170)
+Options: an explicit list of the three store modules (two more imports, more lines), or glob `desk/store*.py`. Took the glob: a future store module is covered without an edit.
+
+### 2026-11-26 — a broker-answered daily bar is written in a second IBKR round (DATA, #2172)
+Options: a per-day source in the one writer (bars_form is outside the claim, desk at its line ceiling), or a second IBKR round in the keeper. Took the second round, no new path; a bar already held is not rewritten, so the label never flips back.
+
+### 2026-11-26 — pacing is recognised by the word in the broker's refusal (DATA, #2191)
+Options: code 162 only, or the word "pacing". Took the word, which covers 162 and 420 wording. The refused ask is not retried: the pull moves on, slowed.
+
+### 2026-11-26 — the golden row joins `table`, no new command (DATA, #2144)
+One table, no new code path: `desk.quality table` carries one golden row per database.
+
+### 2026-11-27 — the keeper's copy to history is silent in `keep` (DATA, #2208)
+Options: add a report line, or stay silent. Took silent: the output the runner and tests read stays unchanged. The `--live` one-minute round does not copy by itself; the next five-minute round does.
+
+### 2026-11-27 — the quality job names only held-but-behind spans (DATA, #2201)
+Never-held spans are gaps, counted already; only a held span that is behind is a fault and is named. Cheapest option, no new command.
+
+### 2026-11-27 — the old-store check names a missing bar without judging why (DATA, #2205)
+Options: judge vouching again to tell never-vouched from lost (rejected: the check must not repeat the adoption); name every absent bar as missing (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-27 — daily rows reuse the five-minute Tally (DATA, #2274)
+Options: a second type for days, or the same Tally with days shown as midnight UTC. Took the Tally, to stay small. A line absent from an old store is skipped; one absent from the one store counts all its days missing.
+
+### 2026-11-27 — `quality.escalate` kept, not deleted (DATA, #2258)
+A small tested step of data-monitor restored from an unfinished branch rather than deleted; it has no caller yet.
+
+### 2026-11-27 — the unconfirmed-step pin row is named `_unconfirmed:1` (DATA, #2263)
+The rule pin test names rules by function, so the row follows the function that holds the rule.
+
+### 2026-11-27 — four boxes' waits on requests are written as a date (DATA, scribe)
+The runner asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80` on data-isa-twins, data-survivorship, data-second-source and data-dividends. `tests/guards/test_requirements.py::test_every_id_the_plan_names_is_known` refuses two-digit R-DATA ids in a box (red on the first try). Options: write the ids (guard red; loosening it is his alone); drop the waits; write a date. Took the date 2026-12-04, the requests stay named in STATUS; the next scribe moves each wait to its request when the guard allows.
+
+### 2026-11-27 — the waits stay a date, again (DATA, scribe)
+The runner again asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80`; `test_every_id_the_plan_names_is_known` is red on them (two-digit ids), driven this run. Same options and choice as the entry above: the date 2026-12-04 stays, the requests stay named in STATUS.
+
+### 2026-11-27 — a pound-sized newest bar parks its line until a later bar (DATA, #2301)
+Options: A, park until a later bar removes the fault (chosen, per the request); B, park until the broker's bar for that day confirms it (left for a later step). The bar is still kept.
+
+### 2026-11-27 — monthly bars start on the month's first day 00:00 UTC (DATA, #2304)
+Options: start on the last session of the month, or on the first day as weekly starts on Monday (chosen). The store names a bar by its start, so a start on the last session was rejected. A month is written only when every session was held.
+
+### 2026-11-27 — a daily bar served off IBKR's is a fault in every hover (DATA, O12)
+His standing rule, IBKR first for every bar, had no check that read the store: 538 days sat relabelled `archive` for hours, seen only by a hand query. Options: A, a check inside the keeper's re-clean only (misses any other writer, as the old job copy was); B, the hover's daily cell reads the store itself: a day whose served bar is not IBKR's while `correction` holds IBKR's value replaced is a FAULT, kind `source` (chosen: every hour, whoever wrote it, 0.1 s on the real store). Driven red on the real store read-only, 27 Nov: 21 of 22 lines, 538 days (SPY 177, QQQ 157, AAPL 141).
+
+### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
+Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
+
+### 2026-11-27 — a hole the whole venue's feed shows is red in the hover, so the greenkeeper asks for it (DATA, O12)
+On 27 Nov every LSE line's bars stop at 15:45 (the old keeper's outage): 5m 15:50-16:25, 4h 12:00 and 16:00, 1m outside 11:54-15:46, and every US line's 1m at 17:59 before the early close. The hover called each cell fresh (its newest bar was of the last session), and no door asks again for a span already held, so the holes would never fill. Options: A, `history_write.plan` asks again a span held with holes (its done-set is per line and timeframe, it knows no session, and it is not the hourly door); B, fill the day by hand (A2: refused); C, the hover's intraday cell names the moments of the last ended session at which no line of the venue holds a bar, kind `hole`, so the greenkeeper, which works the hover's red cells, asks IBKR for that page (chosen: one judge, one door, IBKR first). A moment one line alone lacks is its own quiet spell, never a hole (2MU trades from 09:10), and one line holding the span alone cannot tell the two apart. Read on the real store, 27 Nov 20:2x: 166 cells red (51% fresh) until the greenkeeper's next run fills them: the hover was 98% only because it could not see them.
+
+### 2026-11-27 — every withdraw rule of the keeper and the writer has a row (DATA, O12, pattern 13)
+`desk/keeper.py` (#2389, #2394) and `desk/bars.py` (#2394, #2404) were each fixed twice in a day, each time for one live fault. Options: A, more rows by hand (the table had no way to say a rule was missing); B, a guard like `test_store_rules.py`: every function of keeper.py, bars.py and bars_form.py that is or uses a mark rule (WITHDRAW, RESTORE, UNDER, `_barred`, `_dropped`, `_upheld`) is named by a row's `SITES`, else red (chosen). Driven red 27 Nov: a planted keeper function reading `bars.UNDER` failed the guard; `_upheld` emptied failed three rows; `_dropped` emptied failed two tests. Next change to keeper.py or bars.py lands only with this guard green (the builders lead's ruling).
+
+### 2026-11-27 — Shiller's table lives in lab/, not desk/ (DATA, #2308)
+desk/ is at its 100-file ceiling, a guard, not loosened. The free CSV route (datahub s-and-p-500) was preferred over a library, as requested.
+
+### 2026-11-27 — the hourly old-store check reuses headstart_hours' reader (DATA, #2317)
+One owner for reading old hours rather than a second reader. Deleting the originals still waits on his yes, asked once the real run is clean (hard line).
+
+### 2026-11-27 — a withdrawn day stays withdrawn only while the judge drops its held bar (DATA, O12)
+2,975 daily bars of 14 lines (SPY 174, QQQ 154, IITU 326, VUAG 376 among them) sit withdrawn: IBKR's own bars, marked untrue by an earlier judgement and never judged again, because only a source giving the day afresh lifted a mark and no source gives 2022 again. Options: A, lift every mark by hand once (a one-line-at-a-time fix, pattern 13: refused); B, lift a mark only when a fresh source gives the day again (the rule until now: the marks never heal); C, each daily refresh judges the line's whole held history, its withdrawn days among it, with the one judge, and a day stays withdrawn only while that judgement drops its held bar, its bar and source otherwise kept as held (chosen: one judgement, nothing deleted or relabelled, and a corrected store rule heals the history it once marked). Pinned by `test_the_withdraw_rule_table`, one synthetic row per rule. Measured read-only on the store, 27 Nov: today's rules would restore 222 of the 2,975; the rest are held out by the pound rule (`same_as_pound` with the pound near $1.07 in late 2022 calls an ordinary day's move a change of currency), a store rule fixed in its own change.
+
+### 2026-11-27 — a write the store refuses lifts no withdrawn mark (DATA, O12)
+690 correction rows (538 days; AAPL, SPY, QQQ, MSTR, 3 on most others) show IBKR's daily bars rewritten as `archive`, prices alike, the archive's volume: the old job copy (5a2d74f0, without #2361) re-cleaned a held IBKR bar under a withdrawn mark as fresh, every such row before 19:02, none since. Main's writer refuses the archive over any IBKR day, marked or not, now pinned by a withdraw-table row. The same reading found a second fault: the refused day's mark was lifted anyway, so an IBKR bar the judge drops (a zero close) was served again. Options: A, let the archive take a withdrawn IBKR day (breaks IBKR first, refused); B, lift the mark for every day given (the rule until now); C, only a bar that lands, or the judge's own restore, lifts a mark (chosen: one judgement, IBKR first, nothing deleted). Pinned by `test_the_withdraw_rule_table`'s two new rows, both driven red with the archive filter removed.
+
+### 2026-11-28 — the polled round's five extra names are watch-only US lines (DATA, #2307)
+
+Decided: `lines.WATCHED` (MSFT, AMZN, GOOGL, META, AVGO, ISINs checked) beside LINES, `POLLED_LINES` = 27. Options: more LSE lines; add to LINES (rejected: makes them tradeable and ranked). No ticker list lives in the keeper. Evidence: test_keeper_pace.py red on main, green now.
+
+### 2026-11-28 — a polled round is its own gateway client (DATA, #2321)
+
+Decided: client ids 227, 228, 229 for the 5, 15 and 60 minute rounds. Option: reuse 226 (refused: two conversations on one id are refused by the gateway). Evidence: test_keeper_pace.py red without the keeper change.
+
+### 2026-11-28 — the archive yields to a held IBKR day at the writer (DATA, #2361)
+
+Decided: the one writer leaves a held IBKR daily bar when the ARCHIVE writes that day and writes no correction row. Options: a rank per line or day (rejected by the request); a rank for every source (wider than asked). BACKFILL already fills only where none is held. The 682 existing correction rows stay: repairing them is a separate job.
+
+### 2026-11-28 — a roll-up bar follows its restated days (DATA, #2453)
+
+Decided: the writer upserts a held bar of its OWN roll-up source when values differ; identical values write nothing; a pulled bar stays. Options: delete and re-roll in the keeper (rejected: two paths). Reason: derived data follows its source (B3).
+
+### 2026-11-28 — an empty comparison does not prove an old store deletable (DATA, #2408)
+
+Decided: `lab.headstart check` names a store 'deletable on his yes' only if every comparison matched with nothing missing, something was compared, and the restore drill read back clean; otherwise 'KEEP: not proven'. Options: count empty as proven (rejected: nothing compared proves nothing; fail loudly). Nothing is deleted; the yes is his.
+
+### 2026-11-28 — the list of rollable files is one JSON in the data home (DATA, #2409)
+
+Decided: `desk.quality rolloff-rows` writes rolloff_rows.json atomically so the runner reads one stable file. Option: stdout only (rejected).
+
+### 2026-11-28 — the archive adapter lives in desk/archive.py; 1h waits (DATA, #2438, #2439, #2461)
+
+Decided: `archive.five_pull` answers 5m, 15m, 30m and London 1h cells; the adapter sits in archive.py because the one-price-door guard lets only the writers read outside the databases. A US 1h cell is refused with its reason: the archive's US hour starts at :30, the store's mark is the UTC hour. Options: (a) re-anchor US 1h to the UTC hour (misdates bars, touches desk/spans.py outside the claim); (b) refuse loudly (chosen); (c) fill US 1h from the broker only (next); or roll 1h up from 5m (recommended for 4h and 1wk).
+
+### 2026-11-28 — data in tiers: no placeholder for Tier B (DATA, #2267)
+
+Decided: Tier B (vendor not bought, after the A-GATE) raises NotImplementedError; overflow goes to London's 15-minute broker feed or Tier C. Option: a placeholder feed (refused by A5, a fake). Allowance priority: held, signalled, watched. The module line is in manifest/data.toml.

@@ -579,3 +579,68 @@ Wired in `running._say`, the one place daily messages go, before the evening mes
 ### 2026-11-23 — only the 05:40 card moves earlier, not his waking hour (#1864)
 
 MORNING starts 05:40 (the plan's time). Options: move the whole "awake" gate to 05:40, or only the card (chosen, so the account check, notes and weekly reminders never reach him before 08:00; `running.py` reads `gateway.WAKES`, not `MORNING.start`).
+
+### 2026-11-23 — an unset email door is READY, not NOT READY (#1925)
+
+The morning pre-flight line now carries "the email:" ("no SMTP_ setting, his phone alone" or "its settings are set"; a partial set is refused by name at start-up). Options: ready-with-note, or not-ready. Chose ready-with-note: the phone is a working door and email is only the fallback, so a desk without SMTP is not blocked from trading.
+
+### 2026-11-23 — the evening week is the last 7 days; missed winners left out (#1940)
+
+The weekly cost beside net profit reads the records of the last 7 calendar days. Options: Monday-to-Sunday, or last 7 days. Chose last 7 days: the message goes daily and needs no calendar edge. Missed winners are not shown: no record on main holds a signal the desk would have won on and did not take, and a faked one would break canon A5; R-PAPER-41 asks MONEY for the record.
+
+
+### 2026-11-23 — the real side is right on the VHYG buy; the pretend side is asked to follow (#2026)
+
+R-RUNNER-449 from the tapes: the 1-share VHYG market buy (plain DAY MKT) at 08:37 sat unfilled 120 s and was cancelled with 0 filled (trades-london-20261123-0835.csv); at 09:06 the same buy filled within a second at 77.90 (-0906.csv); 19 Nov alike (08:10, 08:35 unfilled, 09:36 filled). Options: (a) lengthen the real wait (rejected: no fill ever came after a cancel); (b) change the real order (rejected: the same order fills at 09:06); (c) leave the real side, ask the pretend broker's owner to leave such a buy unfilled before the hour IBKR fills (chosen, nothing hidden). Only a comment in `desk/paper.py` changed. The hour of first fill (between 08:37 and 09:06) is unmeasured; R-RUNNER-399's one-share probe at 08:45/09:00 would pin it. Request: R-MONEY-72.
+
+### 2026-11-23 — London's round starts at 09:00; the busy-hours window stays (#2068)
+
+London's orders filled 31 of 31 only from 09:00 UK. One number, `conformance_tape.STARTS`, now says when each round begins and `running._pending` reads it. Options: also move `ROUNDS` (the hours history and conformance keep out of) to 09:00-09:30, or leave it at 08:00-08:30. Chose to leave it: moving it breaks `tests/unit/test_history.py`, outside the claim, and conformance only stays quiet a little longer. Remains: move it with that test.
+
+### 2026-11-23 — an intraday order is due in its own bar's session (#2075)
+
+All 143 intraday orders since 10:43 were refused: `desk/placing.py` sent only an order dated the session before today's, the daily rule. Options: (a) a due-session field on Order and Sale (`desk/orders.py`, MONEY's, outside the claim); (b) read the intraday id's -HHMM suffix (a fact read from a name, forbidden by A2 and B3); (c) the broker built for a bar's round treats orders as due in the session they are dated (`placing.Paper(..., within=True)`). Chose (c): one rule in placing, set by the round's kind and not by the zoo, inside the claim. (a) is the real fix and is asked of MONEY as R-PAPER-42. The money path is held for a fresh A6 blind review.
+
+### 2026-11-23 — Windows boot task: ONSTART plus hourly `tell`, started in the code folder (#2102, #2110)
+
+`python -m desk.supervisor install ROOT` makes KestrelSupervisor (ONSTART, `run`) and KestrelTell (hourly; `tell` dedups per UTC hour); run again it replaces them. Options: ONLOGON (rejected, not at boot); a task file (rejected, more code). His yes: "Yes, add it" (Sun 22 Nov). #2110 fixed that each command ran with no working folder (a Windows task starts in System32: "No module named desk"); each now runs `cmd /c cd /d <code folder> && python -m desk.supervisor ...`. Remains: he runs the install once as administrator; not ticked.
+
+### 2026-11-23 — the paper-watcher hold: the blocking card's own deletion taken (#2109)
+
+Options: wait, or delete. Chose delete (his "always go with recommended"): `day_gap`, `_result`, `Gap` in `desk/reports.py` had no caller (49 lines, R-RUNNER-478). #2107 still needs 75+ more lines of room; that is a separate card for runner ops.
+
+
+### 2026-11-24 — the day's rate is read in running.py, kept once (#2166)
+
+Desk.rates answers a day's rates from their first record in rates.csv when the day has them, else fetches; a later step's different rate neither errors nor overwrites. Options: reader in `desk/book_parts.py` (refused by the lane wall), or in `desk/running.py` as the request wrote it. Chose running.py. Latent, non-blocking: a day kept with one currency never fetches the other (no writer makes a partial day).
+
+### 2026-11-24 — the conformance share is found beside the desk's root (#2178)
+
+The day check finds the conformance ledger as root.parent/"conformance", only for the desk's own door (222). Options: every caller passes the folder (outside the claim), or derive it in `desk/clearance.py`. Chose derive, so no caller changes. Order filter: only a client-223 SELL stop no bigger than the ledger share is left out, the narrowest rule; any other 223 order is still named.
+
+### 2026-11-27 — the intraday round shares the desk's order cap (#2195)
+Options: a new constant for the intraday round, or reuse `day._send`'s round cap and `paper.MAX_ORDERS`. Chose reuse: one number, one home. A new order is one the broker has no report for; orders it already holds use no slot. Blind review made the cap per step, not per venue.
+
+### 2026-11-27 — carried orders go through the existing round-again path (#2200)
+Options: a new send path for the morning's CARRIED list, or let `running._again` also take those ids. Chose the latter: one code path; the "orders <venue> again" note stops a second send.
+
+### 2026-11-27 — the refused line stays the conformance reference line (#2209)
+Options: keep the refused line (a US line, sends nothing) as reference, or find a non-retail London line. None exists, and the line only labels a step that sends nothing, so kept; `_barred` now judges the run's own market only.
+
+### 2026-11-27 — an ISIN line is asked of the broker with an empty security type (#2264)
+Options: always an empty type, or only when the line has an ISIN. Chose the latter so lines without an ISIN keep STK; no symbol special case. Not yet seen against the real gateway.
+
+### 2026-11-27 — conformance sizes at the lower of close and latest price (#2251)
+Options: pass `market` to size(), which would refuse the buy (emergency rule) instead of resting the stop under the market, or size at min(close, latest 5-minute close). Chose the latter; a store with no bar of today leaves the close standing.
+
+### 2026-11-27 — the Gateway-down time is kept in a file at the data root (#2347)
+Options: derive it from notes, or change the step's return. Chose a small mark file (first moment found down, cleared when the Gateway answers): the smallest change, touching only claimed files.
+
+### 2026-11-28 — conformance settles its own earlier orders, refusing if one will not end (#2369)
+Options: ignore a leftover order of client 223 and send, or refuse the run. Chose refuse, per B1 and "fail loudly"; settle reads the account the run already reads once, so no extra gateway read. A desk order (client 222) is never touched.
+
+### 2026-11-28 — conformance mirrors the desk on a gap through the stop (#2381)
+Options: keep a private lower-of price rule (the duplicate the audit named) or pass the close and today's last five-minute bar to `orders.size`. Chose the desk's: a gap through the signal's stop makes the plan refuse by the desk's own emergency rule.
+
+### 2026-11-28 — the watcher reads the supervisor's lock, not its receipts (#2434)
+Options: keep the lock design (the system's word, independent of the supervisor's own files) or judge by receipts (the supervisor's own health already does that). Lock chosen, since the point is independence; the test takes the box's check name though. His standing ruling: "please always go with recommended".

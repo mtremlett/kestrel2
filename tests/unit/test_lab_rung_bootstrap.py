@@ -33,6 +33,11 @@ Rung = Callable[[Sequence[float], int], bool]  #: a cell's days and its seed: pa
 POWER = {1.0: 0.17, 2.5: 0.72, 4.0: 0.98}
 
 
+def _drawn(record: Record, bars: Sequence[Bar]) -> Redrawn:
+    """The rung on the first rung's verdict of the record, as the ladder hands it over."""
+    return rung_ci.bootstrap(rung.judge(record, bars, Settings(CAPITAL), {}), bars, {})
+
+
 def _real(days: Sequence[float], seed: int) -> bool:
     """The rung's own decision, the one `judge` gives."""
     return redrawn(days, seed).answer is Answer.PASS
@@ -118,21 +123,23 @@ def test_the_rung_reads_the_cells_tape_and_is_keyed_by_the_tape_this_code_and_th
     def never(c: Cell, _bars: Sequence[Bar]) -> Record:
         raise AssertionError(f"{c}: simulated again")
 
-    won = rung_ci.bootstrap(tape.kept(tmp_path, never)(c, edge), edge, {})
+    won = _drawn(tape.kept(tmp_path, never)(c, edge), edge)
     assert won.answer is Answer.PASS and won.share is not None and won.share <= RATE
     trades = rung.judge(made, edge, Settings(CAPITAL), {}).trades
     span = [bar for bar in edge if trades[0].held[0] <= bar.day <= trades[-1].held[1]]
     assert won.days == len(span), "its days: from its first judged buy's fill to its last sale's"
     none = cell.run(Cell(c.strategy, VUSA, noise[0].day, noise[-1].day), noise)
-    lost = rung_ci.bootstrap(none, noise, {})
+    lost = _drawn(none, noise)
     assert lost.answer is Answer.FAIL and lost.share is not None and RATE < lost.share < 1
-    assert lost == rung_ci.bootstrap(none, noise, {}), "a cell judged again is drawn the same"
+    assert lost == _drawn(none, noise), "a cell judged again is drawn the same"
     other = cell.run(Cell(c.strategy, VUSA, noise[0].day - timedelta(1), noise[-1].day), noise)
-    again = rung_ci.bootstrap(other, noise, {})
+    again = _drawn(other, noise)
     assert (again.days, again.answer) == (lost.days, lost.answer), "the same days, by another name"
     assert again.share != lost.share, "each cell has a draw of its own"
     young = cell.run(Cell(c.strategy, VUSA, c.start, edge[400].day), edge)
-    assert rung_ci.bootstrap(young, edge, {}) == Redrawn(0, None, Answer.THIN)
+    assert _drawn(young, edge) == Redrawn(0, None, Answer.THIN)
+    with pytest.raises(ValueError, match="did not make the first rung's verdict"):
+        rung_ci.bootstrap(rung.judge(made, edge, Settings(CAPITAL), {}), noise, {})
     key, rate = rung_ci.bootstrap_key, {edge[5].day: Decimal("0.8")}
     dollars = Record(cell.key(Cell(c.strategy, AAPL, c.start, c.end), edge), 0, ())
     engine, bars = replace(made.key, code="another engine"), replace(made.key, data="other bars")
@@ -140,9 +147,11 @@ def test_the_rung_reads_the_cells_tape_and_is_keyed_by_the_tape_this_code_and_th
     keys = [key(one, {}) for one in parts] + [key(dollars, rate)]
     late = rate | {c.end + timedelta(1): Decimal("0.9")}  #: a day after the window prices nothing
     assert key(made, rate) == keys[0] and key(dollars, late) == keys[-1] and len(set(keys)) == 6
-    monkeypatch.setitem(cell.RUNGS, rung_ci.ME, "this module edited")
+    monkeypatch.setitem(cell.RUNGS, rung_ci.__name__, "this module edited")
     keys += [key(made, {})]
     monkeypatch.setattr(tape, "rule_code", lambda _: "the rule edited")
     keys += [key(made, {})]
     monkeypatch.setattr(np, "__version__", "another numpy")  #: whose draws need not be the same
-    assert len({*keys, key(made, {})}) == 9, "this code, the rule's and the drawing's are in it"
+    keys += [key(made, {})]
+    monkeypatch.setattr(rung_ci, "CAPITAL", CAPITAL * 2)  #: every trade sized again
+    assert len({*keys, key(made, {})}) == 10, "this code, the rule's, the draw's, the capital's"

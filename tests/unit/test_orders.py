@@ -77,6 +77,10 @@ def test_the_first_stop_is_under_the_live_price_and_a_gap_past_the_signals_is_re
 
     assert sized("140").stop == Decimal("126.0")
     assert sized("150").stop == sized(None).stop
+    gapped_up = orders.size(_buy(PLAIN), PLAIN, Decimal(100), Decimal(1), TEN_K, {}, Decimal(130))
+    live_cost = orders.cost(replace(gapped_up, price=Decimal(130)))
+    assert live_cost <= Decimal(2000), "a live price 30% over sizes within the room"
+    assert gapped_up.quantity == 15 and gapped_up.price == Decimal(100)
     with pytest.raises(orders.Refused, match="emergency rule"):
         sized("130")
 
@@ -215,3 +219,8 @@ def test_a_trade_expected_to_gain_under_twice_its_round_trip_cost_is_flagged() -
     assert trip > 0
     assert orders.thin(order, 2 * trip - Decimal("0.01"))
     assert not orders.thin(order, 2 * trip)
+
+
+def test_the_expected_gain_is_the_mean_daily_move_on_the_orders_shares() -> None:
+    bars = [Bar(date(2026, 1, 1 + i), *(Decimal(10 + i % 2),) * 4, 10) for i in range(5)]
+    assert orders.expected_gain(bars, _order(PLAIN, 100, "10")) == 100

@@ -21,7 +21,7 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 import desk
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, ladder, ladder_sets, rung, tape, verdict
+from lab import cell, ladder, ladder_sets, rulebook, rung, tape, verdict
 from lab.cell import Cell, Record
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -192,3 +192,14 @@ def test_editing_one_rule_of_a_file_leaves_its_sibling_keyed_as_it_was(
     moved = keys(text.replace("H = 1", "H = 2"))
     assert moved[0] != a and moved[1] != b
     assert keys(text.replace("\n", "\r\n").encode()) == [a, b]
+
+
+def test_a_rule_made_from_a_catalogue_row_is_keyed_by_its_row(tmp_path: Path) -> None:
+    """T1: a row's params edited in the catalogue give its variants a new key, so no stale tape
+    or verdict is read; a Python rule of the same name, which never reads the row, keeps its own."""
+    variant, python = "connors_three_day_high_low[entry.n=2,exit.n=3]", "connors_three_day_high_low"
+    edited = tmp_path / "catalogue.toml"
+    text = rulebook.CATALOGUE.read_text(encoding="utf-8")
+    edited.write_text(text.replace("filter = { n = 200 }", "filter = { n = 150 }", 1), "utf-8")
+    assert tape.code_of_rule(variant, book=edited) != tape.code_of_rule(variant)
+    assert tape.code_of_rule(python, book=edited) == tape.code_of_rule(python)

@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from desk.eponymous_zweig_breadth_thrust import HOLD, Breadth, decide
+from desk.eponymous_zweig_breadth_thrust import HOLD, Breadth, ZweigBreadthThrust, decide
 from desk.store import Bar
 from desk.strategy import Action
 
@@ -38,3 +38,7 @@ def test_a_day_without_breadth_fails_loudly_and_an_empty_day_is_refused() -> Non
         decide({"X": bars}, {})
     with pytest.raises(ValueError, match="advances or declines"):
         Breadth(0, 0)
+
+
+def test_the_holding_period_is_declared_for_the_time_stop() -> None:
+    assert ZweigBreadthThrust.declared.hold == HOLD

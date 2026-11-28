@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from desk import messenger
 from desk.lines import LINES, Line
 from lab import (
     history_bars,
     intraday,
     ladder,
+    ladder_pool,
     ladder_sets,
     members,
     rulebook,
     scalping,
+    transfer,
     trials,
     variants,
     verdict,
@@ -31,18 +35,21 @@ RECORD = Record(
     (Change(date(2018, 3, 1), "NEW", True), Change(date(2015, 6, 1), "LEFT", False)),
 )
 LONDON = next(line for line in LINES if line.venue == "LSE")
+TRANSFERRED = (("a", "PASS"), ("a", "FAIL"), ("b", None), ("c", "REFUSED"))  #: set 2's scores
 
 
 def test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected() -> None:
     cells, notes = ladder_sets.survivors(
-        ["breakout_20_10"], [STAYS, LEFT, JOINED, LONDON], {"X": RECORD}
+        ["breakout_20_10"], [STAYS, LEFT, JOINED, LONDON], {"SP500": RECORD}
     )
     spans = {c.line.symbol: (c.start, c.end) for c in cells}
     assert spans["LEFT"] == (START, date(2015, 5, 31))  #: out on the day it left
     assert spans["NEW"] == (date(2018, 3, 1), END)
     assert spans["STAY"] == (START, END)
     assert spans[LONDON.symbol] == (START, END)
-    assert notes == (f"{LONDON.symbol} (LSE): survivorship: not corrected",)
+    assert f"NEW (US): {members.bias('SP500', date(2018, 3, 1))}" in notes  #: its list's bias
+    assert f"STAY (US): {members.bias('SP500', members.FIRST)}" in notes  #: from the record's start
+    assert notes[-1] == f"{LONDON.symbol} (LSE): survivorship: not corrected"
 
 
 def test_the_real_lists_trade_a_leaver_only_up_to_its_leaving() -> None:
@@ -82,10 +89,10 @@ def test_a_basket_row_carries_the_market_its_lines_venue_is_set_beside(
 ) -> None:
     from test_lab_ladder import EDGE, ISF, VUSA, _door
 
-    from lab import basket, rung_retail
+    from lab import basket
     from lab.cell import Cell
 
-    seen: list[rung_retail.Against | None] = []
+    seen: list[basket.Against | None] = []
     row = basket.row
 
     def spy(*a: Any) -> Any:
@@ -150,12 +157,30 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
     monkeypatch.setattr(history_bars, "pounds", lambda _: {})
     monkeypatch.setattr(history_bars, "lines", lambda _: ())
     monkeypatch.setattr(intraday, "judge_set", lambda *_: "SET INTRADAY: stub")
-    env = {"KESTREL2_DATA": str(tmp_path)}
-    assert ladder_sets.main(env, ["intraday"]) == 0
-    assert "SET INTRADAY: stub" in capsys.readouterr().out
+    env, phone, noon = (
+        {"KESTREL2_DATA": str(tmp_path)},
+        list[str](),
+        datetime(2026, 1, 2, 12, tzinfo=UTC),
+    )
+
+    def post(text: str) -> int:
+        phone.append(text)
+        return len(phone)
+
+    def door(_: object) -> messenger.Post:
+        return post
+
+    for _ in range(2):  #: a finished set is told his phone once a day, under its tag
+        assert ladder_sets.main(env, ["intraday"], door, lambda: noon) == 0
+        assert capsys.readouterr().out == "SET INTRADAY: stub\ntelegram: told, message 1\n"
+    monkeypatch.setattr(intraday, "judge_set", lambda *_: "SET INTRADAY: judged again")
+    assert ladder_sets.main(env, ["intraday"], door, lambda: noon) == 0  #: another answer: told
+    assert phone == ["SET INTRADAY: stub", "SET INTRADAY: judged again"]
     monkeypatch.setattr(scalping, "judge_set", lambda *_: "SET SCALP: stub")
-    assert ladder_sets.main(env, ["scalping"]) == 0
-    assert "SET SCALP: stub" in capsys.readouterr().out
+    assert ladder_sets.main(env, ["scalping"], messenger.telegram) == 1  #: no key: said, red
+    assert "SET SCALP: stub\ntelegram: NOT TOLD, no TELEGRAM_BOT_TOKEN" in capsys.readouterr().out
+    cut = ladder_sets.told(tmp_path, ladder_pool.STOPPED, noon, lambda: door(0))
+    assert cut == "telegram: not told, the set ended with no SET line" and len(phone) == 2
     made = variants.family(rulebook.specs())  #: every ranged row's variants, each a trial
     assert len(made) > 12 and len({v.spec.name for v in made}) == len(made)
     for _ in range(2):  #: entered again, counted once
@@ -164,6 +189,20 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
         assert f"SET VAR: {len(made)} variants entered, {len(made)} trials" in said
     register = tmp_path / "ladder" / "VAR.trials.jsonl"
     assert trials.count(register, ladder_sets.VAR.question) == len(made)
+    with pytest.raises(SystemExit, match="lab.transfer"):  #: set 2 before its study: refused
+        ladder_sets.main(env, ["transfer"], door, lambda: noon)
+    scored = [transfer.Row(r, None, (), "X on US", None, a) for r, a in TRANSFERRED]
+    page = transfer.report(transfer.Study(tuple(scored), 0, 0), 2)[1]
+    (tmp_path / transfer.FOLDER).mkdir(parents=True)
+    (study := tmp_path / transfer.FOLDER / f"{transfer.NAME}.json").write_text(json.dumps(page))
+    for _ in range(2):  #: set 2 told once, its counts and its table said
+        assert ladder_sets.main(env, ["transfer"], door, lambda: noon) == 0
+    assert len(phone) == 3 and phone[-1].startswith("set TRANSFER (PRE-REVIEW): 2 lines, 4 scores")
+    assert (
+        "SET TRANSFER: 3 rules, 1 scored PASS on a line, none goes forward (PRE-REVIEW"
+        in (phone[-1])
+        and str(study.with_suffix(".md")) in capsys.readouterr().out
+    )
     with pytest.raises(SystemExit, match="intraday"):
         ladder_sets.main(env, ["nonsense"])
 
@@ -171,9 +210,9 @@ def test_the_door_takes_intraday_and_variants_and_refuses_an_unknown_set(
 def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_withheld(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+    from test_lab_ladder import AAPL, EDGE, ISF, NOISE, SPY, VUSA, _door
 
-    from lab import ladder_pool
+    from lab.cell import Cell
 
     ran: list[object] = []
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
@@ -184,6 +223,10 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
             tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
         )
     assert not ran and not (tmp_path / "ladder").exists()
+    dollar, todo = _door({AAPL: EDGE, SPY: NOISE}), [Cell(rule[0], AAPL, START, END)]
+    pounds = {bar.day: Decimal("0.8") for bar in EDGE if bar != EDGE[50]}  #: a pound day missing
+    ladder_sets._pooled(lambda: dollar)(tmp_path, dollar, pounds, todo)
+    assert ran  #: its cell's named gap (`ladder.preflight`), never a refused set
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ladder.run(a[0], a[1](), *a[2:]))
     whole = _door({VUSA: EDGE, ISF: NOISE})
     said = ladder_sets.epon(
@@ -191,3 +234,20 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     )
     assert "NOT PUBLISHED: " in said
     assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
+
+
+def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stopped = f"{ladder_pool.STOPPED}: STOP"
+    said = ladder_sets.epon(
+        tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
+    )
+    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    monkeypatch.setattr(ladder.Kept, "get", lambda *_: {})  #: every cell kept from before
+    said = ladder_sets.epon(
+        tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
+    )  #: a pass stopped after an earlier whole one: its old rows are not this pass's table
+    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    _, notes = ladder_sets.survivors(["breakout_20_10"], [STAYS, LONDON], {"SP500": RECORD})
+    assert ladder_sets.survivorship_said(notes, 2).startswith("survivorship: 1 of 2 lines not")

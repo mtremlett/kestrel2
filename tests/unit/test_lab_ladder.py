@@ -18,7 +18,7 @@ from test_lab_rung import _walk
 
 from desk import keeper
 from desk.command import CAPITAL, POUND
-from desk.lines import LINES, Line
+from desk.lines import LINES, REFERENCE, Line
 from desk.orders import Settings
 from desk.store import Bar
 from lab import (
@@ -35,6 +35,9 @@ from lab import (
     rung_ci,
     rung_costs,
     rung_cpcv,
+    rung_fit,
+    rung_late,
+    rung_liquidity,
     rung_regimes,
     shuffle,
     stress,
@@ -48,11 +51,16 @@ from lab.cell import Cell
 from lab.reproduce import Fill
 from lab.rung import Answer
 
-VUSA, ISF, AAPL, SPY = (
-    next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL", "SPY")
+(SPY,) = (line for line in REFERENCE if line.symbol == "SPY")
+VUSA, ISF, AAPL = (
+    next(line for line in LINES if line.symbol == s) for s in ("VUSA", "ISF", "AAPL")
 )
-#: a breakout that goes on rising, planted from 2010 to past the window's end; and none
-EDGE, NOISE = _walk(1, 0.012, 0.012, days=3100), _walk(2, 0, 0, days=3100)
+#: a breakout that goes on rising, planted from 2010 to past the window's end; and none; each a
+#: deep line of a million shares a day, so the liquidity rung reads a market the desk can trade
+EDGE, NOISE = (
+    tuple(replace(bar, volume=1_000_000) for bar in _walk(seed, push, push, days=3100))
+    for seed, push in ((1, 0.012), (2, 0))
+)
 ROOM = Settings(CAPITAL)
 RULES = ("breakout_20_10", "trend_50_200")
 ISF_START = NOISE[0].day
@@ -120,34 +128,40 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
             verdict.key.rung(rung_regimes.__name__), verdict.trades, weather.trend(EDGE), ()
         ).answer.name,
         "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
+        "liquidity": rung_liquidity.RUNG.judge(verdict, EDGE, {})[0].name,
+        "fit": rung_fit.RUNG.judge(verdict, EDGE, {})[0].name,
+        "late": rung_late.RUNG.judge(verdict, EDGE, {})[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
+        "plateau": "PASS",  #: L17: the breakout carries no settings, NOT APPLICABLE
+        "reproduce": "PASS",  #: no author's figure: the same verdict on a re-run
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
     assert (won["trials"], one.luck.trials, won["trades"]) == (2, 2, len(verdict.trades))
     assert f"{verdict.t:.2f} standard errors above" in won["rungs"]["first"][1]
     assert "times 2 trials" in won["rungs"]["luck"][1] and all(w for _, w in won["rungs"].values())
     #: the planted edge passes every rung but its worst fold, too thin to say: so the one
-    #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence
+    #: verdict, over every named rung, is THIN. The noise fails; no rung is left in silence. Its
+    #: one rising line is held on the same days by every trend rule on paper: fit FAILS it (0.91)
     assert want == dict.fromkeys(want, "PASS") | {
+        "fit": "FAIL",
         "folds": "THIN",
         "regime": "THIN",
         "shuffle": "THIN",
     }
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce", "plateau", "unwired"}
-    #: the rungs built in modules the ladder does not yet judge are named, never left in silence
-    assert "rung_dsr" in won["unrun"]["unwired"] and "declare no RUNG" in won["unrun"]["unwired"]
+    assert won["unrun"] == {}  #: no rung module is off the path
+    assert won["rungs"]["reproduce"][1].startswith("no author's figure: judged on determinism")
+    assert won["rungs"]["plateau"][1].startswith("NOT APPLICABLE: breakout_20_10")
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 
 
 def test_a_planted_edge_is_judged_by_its_years_pooled_over_the_rules_lines_not_found_thin(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     """Sixteen lines with the edge planted in the last 2,400 days of each: a line alone makes
     two or three trades a year, too few to be heard, and the rule's sixteen together make over
     thirty. So the fold of each of the five years PASSES, and the one answer is every line's."""
-    monkeypatch.setattr(shuffle, "share", lambda *_: Decimal("0.01"))  #: a hundred runs each
     names = "3LGO 2MU SMGB IITU VHYG 5QQQ ISF VUSA SGLN VUAG EQQQ IB1T AAPL TSLA NVDA AMD".split()
     lines = [next(line for line in LINES if line.symbol == name) for name in names]
     walks = {line: _walk(n, 0.012, 0.012, days=3100)[-2400:] for n, line in enumerate(lines, 1)}
@@ -211,17 +225,21 @@ def test_a_run_skips_what_is_kept_and_judges_again_only_what_has_changed(
     assert "0 judged now, 2 kept from before, 1 could" in run(tmp_path, _door(book), {}, more)
     assert [row["trials"] for row in _rows(tmp_path)] == [2, 2, 2, 2, 3, 3, 3, 3]
     assert _rows(tmp_path)[-1]["error"].startswith("Stale") and "key" not in _rows(tmp_path)[-1]
-    #: its bars found, and no rate of exchange: the set refuses to start, naming the first day
-    #: unrated, and writes nothing (L20); the rates given, judged
+    #: its bars found, and the pound's rate missing on one planted day: a named gap in that
+    #: cell's reason, kept under its key, never a FAULT nor a refused set; the day filled, judged
     book |= {AAPL: EDGE, SPY: NOISE}
-    with pytest.raises(ValueError, match="refuses to start, first AAPL: no rate of pounds per"):
-        run(tmp_path, _door(book), {}, more)
-    assert len(_rows(tmp_path)) == 8
     pounds = {bar.day: Decimal("0.8") for bar in EDGE}
+    gap = pounds.pop(EDGE[50].day)
+    assert "2 kept from before, 1 could not" in run(tmp_path, _door(book), pounds, more)
+    row = _rows(tmp_path)[-1]
+    assert row["error"].startswith("ValueError: a gap in the pound's rates") and "key" in row
+    assert f"no rate of pounds per USD to price {EDGE[50].day}" in row["error"]
+    assert "rungs" not in row and len(_rows(tmp_path)) == 9
+    pounds[EDGE[50].day] = gap
     said = run(tmp_path, _door(book), pounds, more)
     #: the dollar line joins its rule's pooled folds, so the two pound lines are judged again too
     assert "3 judged now, 0 kept from before, 0 could" in said
-    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 11
+    assert _rows(tmp_path)[-1]["answer"] == "THIN" and len(_rows(tmp_path)) == 12
     #: a dearer dollar on one day is another price, in the folds of all three
     pounds[EDGE[50].day] = Decimal("0.9")
     assert "3 judged now, 0 kept" in run(tmp_path, _door(book), pounds, more)
@@ -362,7 +380,7 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     #: before it while fresh, none from a close that is no pound's; 2025-04-22, the day after
     #: Easter Monday, whose last close is five days old, has its rate
     step = keeper.DAY
-    at = [(date(2025, 4, 17), "1.25"), (date(2025, 4, 23), "2.5"), (date(2025, 4, 24), "1.6")]
+    at = [(date(2025, 4, 17), "1.25"), (date(2025, 4, 23), "3.5"), (date(2025, 4, 24), "1.6")]
 
     def ask(line: Line, before: date) -> list[Bar]:
         assert (line, before) == (POUND, ladder.END + step)
@@ -371,6 +389,10 @@ def test_the_set_is_every_published_rule_on_every_line_and_its_doors_are_the_des
     pounds = ladder.rates(ask)
     assert pounds[date(2025, 4, 22)] == Decimal("0.8") and date(2025, 4, 21) in pounds
     assert date(2025, 4, 24) not in pounds and pounds[date(2025, 4, 25)] == Decimal("0.625")
+    #: the pound above 2 dollars (2007) is inside the desk's one band (1 to 3): it has a rate
+    two = Decimal("2.05")
+    old = ladder.rates(lambda *_: [Bar(date(2007, 11, 1), two, two, two, two, 0)])
+    assert old[date(2007, 11, 2)] == Decimal("0.487805")
     with pytest.raises(SystemExit, match="KESTREL2_DATA names no data folder"):
         ladder_sets.main({})
 

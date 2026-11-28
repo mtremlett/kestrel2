@@ -48,7 +48,7 @@ PR, the train brings it up to date, and GitHub merges it when `check` is green o
 last commit. The operator does not approve merges. Main refuses a direct
 push, a force-push, a red merge and a stale branch; each was driven to prove it.
 
-**A guard** (`BUDGET.json`, `manifest.toml`, `tests/guards/`, `check.py`, `.github/`) may
+**A guard** (`BUDGET.json`, `manifest.toml`, `manifest/`, `tests/guards/`, `check.py`, `.github/`) may
 be tightened like any change. Loosening one is his alone: it waits for his words in chat,
 quoted in `docs/DECISIONS.md` before the commit; without them the answer is no.
 

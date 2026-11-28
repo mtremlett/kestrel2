@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Iterable
-from dataclasses import astuple
 from datetime import date
 from decimal import Decimal
+from operator import attrgetter
 from pathlib import Path
 
-from desk.book_parts import keep
+from desk.book_parts import Rows, add, keep, read_once
 from desk.broker import Fill
 from desk.handpark import is_foreign
 from desk.lines import Line
@@ -22,7 +22,7 @@ COLUMNS = ("execution_id", "order_id", "symbol", "quantity", "price", "day")
 
 
 def levels(root: Path) -> dict[str, Decimal]:
-    """THE STOPS THE DESK RESTED: each buy's stop level under "<buy>-stop", oldest first."""
+    """THE STOPS THE DESK RESTED, by buy ("<buy>-stop"): a history, not a register of live ones."""
     if not (path := root / STOPS).exists():
         return {}
     with path.open(newline="", encoding="utf-8") as kept:
@@ -34,44 +34,50 @@ def levels(root: Path) -> dict[str, Decimal]:
 
 def fills(root: Path) -> tuple[Fill, ...]:
     """Every fill the desk has recorded, in the order it learned of them; found ones are apart."""
-    rows = _ledger(root)
-    apart = {fill.execution_id for fill in rows if is_foreign(fill.order_id)}
-    return tuple(fill for fill in rows if fill.execution_id not in apart)
+    path = root / LEDGER
+    return read_once(path, _APART)[0] if path.exists() else ()
 
 
 def found(root: Path) -> tuple[Fill, ...]:
     """THE FILLS FOUND, not traded: on the account under an order id that is not the desk's own."""
-    return tuple(fill for fill in _ledger(root) if is_foreign(fill.order_id))
+    path = root / LEDGER
+    return read_once(path, _APART)[1] if path.exists() else ()
 
 
-#: each ledger as last read, under the file's (inode, mtime ns, size) then: SimCity asks for the
-#: fills some forty times a simulated day, and reading it whole each time hung the deep run; only
-#: the newest ledger is kept, so a night of a hundred worlds never holds a hundred ledgers
-_READ: dict[Path, tuple[tuple[int, int, int], tuple[Fill, ...]]] = {}
+#: the ledger read: the desk's fills, the found, and every row by its fill (_revision), as kept
+Apart = tuple[tuple[Fill, ...], tuple[Fill, ...], dict[str, Fill]]
 
 
-def _ledger(root: Path) -> tuple[Fill, ...]:
-    """Every row of the ledger file, the desk's and the found; read again only once it changed."""
-    if not (path := root / LEDGER).exists():
-        _READ.pop(path, None)
-        return ()
-    seen = path.stat()
-    stamp = (seen.st_ino, seen.st_mtime_ns, seen.st_size)
-    if (kept := _READ.get(path)) is None or kept[0] != stamp:
-        _READ.clear()
-        _READ[path] = kept = (stamp, _parse(path))
-    return kept[1]
+def _told_apart(kept: Apart, rows: list[list[str]]) -> Apart:
+    """The ledger's rows told apart once for every ask (read_once): the desk's, and the found;
+    a fill added (book_parts.add) is told apart alone, as the ledger keeps one row an execution."""
+    new = _fills(rows)
+    apart = {fill.execution_id for fill in new if is_foreign(fill.order_id)}
+    ours = tuple(f for f in new if f.execution_id not in apart)
+    named = {**kept[2], **{_revision(f.execution_id)[0]: f for f in new}}
+    return (*kept[0], *ours), (*kept[1], *(f for f in new if is_foreign(f.order_id))), named
 
 
-def _parse(path: Path) -> tuple[Fill, ...]:
-    """The ledger file read whole, every row a fill."""
-    with path.open(newline="", encoding="utf-8") as ledger:
-        rows = csv.reader(ledger)
-        if next(rows, None) != list(COLUMNS):
-            raise ValueError(f"{path}: not the desk's ledger")
-        return tuple(
-            Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows
-        )
+def _ledger(root: Path) -> dict[str, Fill]:
+    """The ledger by fill (_revision), each at the version kept; read again only once it changed."""
+    path = root / LEDGER
+    return read_once(path, _APART)[2] if path.exists() else {}
+
+
+def _body(rows: list[list[str]]) -> list[list[str]]:
+    if rows[:1] != [list(COLUMNS)]:
+        raise ValueError("not the desk's ledger")
+    return rows[1:]
+
+
+def _fills(rows: list[list[str]]) -> tuple[Fill, ...]:
+    """The ledger's rows, every row a fill."""
+    return tuple(
+        Fill(e, o, y, int(q), Decimal(p), date.fromisoformat(d)) for e, o, y, q, p, d in rows
+    )
+
+
+_APART = Rows(lambda rows: _told_apart(((), (), {}), _body(rows)), _told_apart)
 
 
 def _revision(execution_id: str) -> tuple[str, int]:
@@ -81,15 +87,26 @@ def _revision(execution_id: str) -> tuple[str, int]:
 
 
 def _record(root: Path, new: Iterable[Fill]) -> None:
-    """Add the fills not in the ledger; a corrected fill replaces its earlier version."""
+    """Add the fills not in the ledger; a corrected fill replaces its earlier version. Fills of
+    their own only are added at its end (book_parts.add), so the ledger read is grown by them."""
     kept = _ledger(root)
-    latest = {_revision(f.execution_id)[0]: f for f in kept}
-    for fill in new:
+    held = {fill.execution_id for fill in kept.values()}
+    fresh = [fill for fill in new if fill.execution_id not in held]
+    named = [_revision(fill.execution_id)[0] for fill in fresh]
+    if not fresh:
+        return
+    alone = len(set(named)) == len(named) and not kept.keys() & set(named)
+    if alone and add(root / LEDGER, COLUMNS, map(_row, fresh)):
+        return
+    latest = dict(kept)
+    for fill in fresh:
         name = _revision(fill.execution_id)[0]
         latest[name] = max(latest.get(name, fill), fill, key=lambda f: _revision(f.execution_id)[1])
-    if tuple(latest.values()) != tuple(kept):
-        keep(root / LEDGER, [COLUMNS, *(astuple(fill) for fill in latest.values())])
-        _READ.pop(root / LEDGER, None)  #: the one writer: the next read is of what it wrote
+    if tuple(latest.values()) != tuple(kept.values()):
+        keep(root / LEDGER, [COLUMNS, *map(_row, latest.values())])
+
+
+_row = attrgetter(*COLUMNS)  #: a fill as the ledger keeps it: its fields, never deep-copied
 
 
 def adopt(root: Path, line: Line, shares: int, price: Decimal, on: date) -> None:

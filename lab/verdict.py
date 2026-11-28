@@ -22,6 +22,7 @@ from lab import (
     market,
     plateau,
     reproduce,
+    rulebook,
     rung,
     rung_regimes,
     shuffle,
@@ -32,6 +33,7 @@ from lab import (
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
+from lab.published_epon import TESTED
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 from lab.verdict_parts import (
@@ -65,11 +67,10 @@ from lab.verdict_parts import (
 FOLDS = folds.YEARS
 #: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
 RESAMPLES = 1000
-#: Rungs that are built and that this set cannot yet be run through, each with why.
-UNRUN = {
-    "plateau": "neither its rule's variants nor its rule declared fixed were handed in",
-}
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
+#: The reproduce rung's other form (seat 215, 26 Nov): with no author's figure on file, the cell
+#: is run again on the same bars and code and must give the identical verdict (`_determined`).
+DETERMINED = "no author's figure: judged on determinism"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
 MIN_BARS = 200 + 252
@@ -93,6 +94,9 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
+#: The rungs graded soft: SOFT, and the declared regime and fit-with-the-book rungs, added
+#: after (`ladder_parts`); "fit" is `rung_fit.RUNG.name` (#2233), named here until it lands.
+GRADED = (*SOFT, rung_regimes.RUNG.name, "fit")
 #: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
 BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
@@ -151,22 +155,23 @@ def judge(
 ) -> dict[str, Any]:
     """Every rung's answer with its reason, the rungs not run with theirs, the verdict's.
     The folds are the rule's, pooled over its lines: `pooled` is asked only when they are read.
-    `first` the cell's first rung if run already; `surface` its rule at its settings, or
-    FIXED (`_plateaued`); `among` it among its rule's own lines (L18), else charged `count`."""
+    `first` the cell's first rung if run already; `surface` its rule at its settings, or FIXED,
+    else built here (`_plateaued`); `among` it among its rule's own lines (L18), else charged
+    `count`."""
     try:
         reproduce.settled(c.strategy, made)
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     verdict = first or ready(c, own, pounds, made)
-    unrun = UNRUN | ({} if made else {"reproduce": NO_FIGURE})
     settings = Settings(CAPITAL)
     (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
-        return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
-    if made:
-        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
-        rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
+        return _stopped(len(verdict.trades), {"first": rungs["first"]}, {})  #: a hard fail
+    said = _reproduced(c, own, pounds, verdict, made)  #: None: its author's figure is owed
+    unrun, rungs = ({}, rungs | {"reproduce": said}) if said else ({"reproduce": NO_FIGURE}, rungs)
+    if said and said[0] is Answer.FAIL:  #: a hard fail: a verdict unlike its own re-run
+        return _stopped(len(verdict.trades), rungs, unrun)
     rungs["folds"] = _folded(pooled)
     rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
     rungs["regime"] = _weathered(own, verdict, made)
@@ -175,7 +180,7 @@ def judge(
         return _stopped(len(verdict.trades), rungs, unrun)
     if (last := shuffled(c, own, settings, pounds, rungs, made, EASED)) is not None:
         rungs["shuffle"] = last
-    unrun = _plateaued(surface, rungs, unrun)
+    rungs["plateau"] = _plateaued(c, own, pounds, verdict, surface)
     answer = one_answer({name: said for name, (said, _) in rungs.items()}, one.yearly)
     return {
         "trades": len(verdict.trades),
@@ -194,20 +199,29 @@ def every(rungs: Judged) -> bool:
 
 
 def gates(rungs: Judged) -> bool:
-    """`every` for the one answer's cell: the SOFT rungs are left out, as their WEAK is the
-    scorecard's and never stops a cell going forward."""
-    return every({name: judged for name, judged in rungs.items() if name not in SOFT})
+    """`every` for the one answer's cell: a GRADED rung's WEAK is left out, as it is the
+    scorecard's and never stops a cell going forward; its FAIL still does."""
+    return every({n: (a, why) for n, (a, why) in rungs.items() if n not in GRADED or a not in WEAK})
 
 
 def _plateaued(
-    surface: plateau.Surface | plateau.Fixed | None, rungs: Judged, unrun: Mapping[str, str]
-) -> dict[str, str]:
-    """The rungs left unrun once plateau is judged into `rungs` where the cell's surface, or
-    its rule FIXED, is handed in; with neither, plateau stays UNRUN, with why."""
-    if surface is None:
-        return dict(unrun)
-    rungs["plateau"] = plateau.judged(surface)
-    return {name: why for name, why in unrun.items() if name != "plateau"}
+    c: Cell,
+    own: Sequence[Bar],
+    pounds: Rates,
+    first: Verdict,
+    surface: plateau.Surface | plateau.Fixed | None,
+) -> Pair:
+    """The plateau rung (L17) on the surface handed in, else on one built from the rule's
+    variants, each run on the cell's own line, window and bars; a FAULT where it cannot be."""
+
+    def tried(name: str) -> Verdict:
+        return ready(Cell(name, c.line, c.start, c.end), own, pounds, ())
+
+    try:
+        built = surface or plateau.at(c.strategy, rulebook.specs(), first, tried)
+        return plateau.judged(built)
+    except ValueError as cannot:  #: a fault in the test, said as one with its reason
+        return Answer.FAULT, f"the plateau could not be judged: {cannot}"
 
 
 def basket_answer(basket: Verdict, stressed: Answer) -> str:
@@ -419,9 +433,36 @@ def shuffled(
     share = shuffle.share(c, own, settings, pounds, made)
     return (
         Answer.PASS if share <= shuffle.SHARE else Answer.FAIL,
-        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
+        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {shuffle.said(share)}; "
         f"{shuffle.SHARE} or under passes",
     )
+
+
+def _reproduced(
+    c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict, made: Sequence[Reproduction]
+) -> Pair | None:
+    """The reproduce rung in the form that judged it: the author's figures, each reproduced
+    (`reproduce.settled` refused any that was not); with none on file, `_determined`, but only
+    for a rule no author's test binds (`published_epon.TESTED`): one that binds waits, None."""
+    if made:
+        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
+        return Answer.PASS, f"reproduced: {said}"
+    test = TESTED.get(c.strategy)
+    return None if test is not None and test.candidate else _determined(c, own, pounds, verdict)
+
+
+def _determined(c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict) -> Pair:
+    """The reproduce rung where no author's figure is on file (DETERMINED): the cell and its
+    first rung run again on the same bars and code, PASS only on the identical verdict."""
+    again = ready(c, own, pounds, ())
+    said = "the identical verdict" if again == verdict else "another verdict"
+    why = (
+        f"{DETERMINED}: run again on the same bars and code, it gave {said}, "
+        f"{len(again.trades)} trades at {_n(again.t)} standard errors"
+    )
+    if again == verdict:
+        return Answer.PASS, why
+    return Answer.FAIL, f"{why}, against {len(verdict.trades)} at {_n(verdict.t)} first"
 
 
 def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:

@@ -5,13 +5,14 @@ a venue the archive answers nothing for is a miss."""
 
 from __future__ import annotations
 
+import importlib
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, keeper_live, keeper_rotate, paper, venues
+from desk import archive, bars, keeper, keeper_live, keeper_rotate, paper, store, venues
 from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
 from desk.spans import Timed
@@ -301,7 +302,7 @@ def test_nothing_is_asked_on_a_day_no_venue_trades_nor_once_the_calls_time_is_sp
     monkeypatch.setattr(paper, "dial", no_gateway)
     assert keeper.main(tmp_path / "real", _at(9)) == 1  # the command itself, the archive away
     out, err = capsys.readouterr()
-    assert len(out.splitlines()) == 4 and "parked live, not traded" in out
+    assert len(out.splitlines()) == 5 and "roll-up: " in out and "parked live, not traded" in out
     assert err.count("MISSED: ") == 6 and "MISSED: US: daily" in err
     assert err.count("MISSED: stale: ") == 3  # nothing held: each line is staler than a session
 
@@ -391,3 +392,14 @@ def test_a_live_run_asks_the_two_lines_due_keeps_their_minutes_and_names_a_stale
     assert [len(h) for h in held] == [1, 1] and words.startswith("live: ")
     assert asked == [rota[0], rota[1]] and [s.split(":")[0] for s in stale] == ["L00"]
     assert keeper_live.due(rota, now + timedelta(minutes=10)) == tuple(asked)
+
+
+def test_a_change_to_any_store_rule_module_changes_the_rules_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    before, real = keeper.RULES, Path.read_bytes
+    parts = Path(str(store.__file__)).with_name("store_parts.py")
+    monkeypatch.setattr(Path, "read_bytes", lambda p: real(p) + (b"#" if p == parts else b""))
+    assert before != importlib.reload(keeper).RULES
+    monkeypatch.undo()
+    assert before == importlib.reload(keeper).RULES

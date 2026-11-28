@@ -4,27 +4,42 @@ each read from the saved bars and the ledger at a day's end."""
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import book, venues
+from desk import book, store_parts, venues
 from desk.lines import Line
 from desk.orders import pennies
 from desk.store import Bar
 
+NO_CLOSE_OWED = ": no close owed"  #: no comma: the record is a comma file; one home for the wording
 
-def worth(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal:
-    """What the book held at a day's end was worth, in pounds: each line at its close then,
-    at the rate kept for that very day."""
-    lines = {line.symbol: line for line in archive}
-    return sum(
-        (
-            shares * close(archive, lines[s], upto) * book.rate(root, lines[s].currency, upto)
-            for s, shares in book.positions(root, upto).items()
-        ),
-        Decimal(0),
-    )
+
+class CloseOwed(ValueError):
+    """A held line's close is owed: a session of its venue since its newest bar, not suspended."""
+
+
+def is_owed(mismatch: str) -> bool:
+    """Whether a record's mismatch names a line owed its close (not a book that differs)."""
+    return mismatch.endswith(NO_CLOSE_OWED)
+
+
+def worth(
+    root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date
+) -> tuple[Decimal, tuple[str, ...]]:
+    """What the lines held at a day's end that have their close were worth, in pounds: each at
+    its close then, at the rate kept for that very day. A held line owed its close is named
+    (NO_CLOSE_OWED) and left out, never priced by an older bar: the day's profit is withheld, and
+    the next record opens from the last that carried one. A missing rate still stops the day."""
+    lines, priced, refused = {line.symbol: line for line in archive}, [], []
+    for s, shares in book.positions(root, upto).items():
+        rate = book.rate(root, lines[s].currency, upto)
+        try:
+            priced.append(shares * close(archive, lines[s], upto) * rate)
+        except CloseOwed:
+            refused.append(s + NO_CLOSE_OWED)
+    return sum(priced, Decimal(0)), tuple(refused)
 
 
 def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decimal | None:
@@ -39,7 +54,10 @@ def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decim
         buy, line = buys[symbol], lines[symbol]
         if (stop := kept.get(f"{buy.order_id}-stop")) is None:
             return None
-        bars = [bar for bar in archive[line] if buy.day <= bar.day <= upto]
+        saved = archive[line]
+        bars = saved[
+            store_parts.upto(saved, buy.day - timedelta(days=1)) : store_parts.upto(saved, upto)
+        ]
         gaps = (before.close - after.open for before, after in zip(bars, bars[1:], strict=False))
         fall = max(buy.price - stop, *gaps, Decimal(0))
         heat += shares * fall * book.rate(root, line.currency, upto)
@@ -49,11 +67,12 @@ def heat(root: Path, archive: Mapping[Line, Sequence[Bar]], upto: date) -> Decim
 def close(archive: Mapping[Line, Sequence[Bar]], line: Line, upto: date) -> Decimal:
     """The line's close at a day's end: its newest bar's by then. A session of its venue
     since that bar, the line not suspended, is a bar owed: an error, never an older price."""
-    bars = [bar for bar in archive.get(line, ()) if bar.day <= upto]
+    saved = archive.get(line, ())
+    bars = saved[: store_parts.upto(saved, upto)]
     since = venues.sessions(line.venue, bars[-1].day, upto) if bars else (upto,)
     owed = [on for on in since if not bars or (on > bars[-1].day and on not in line.suspended)]
     if owed:
-        raise ValueError(f"{upto}: no close of {line.symbol} for {owed}, so the day has no record")
+        raise CloseOwed(f"{upto}: no close of {line.symbol} for {owed}, so the day has no record")
     return bars[-1].close
 
 
@@ -81,10 +100,11 @@ def fx_split(
     if not ledger or any((f.day, money.get(f.symbol)) not in kept for f in ledger):
         return None
     trips = book.round_trips(root, lines)
-    gain = book.currency_gain(root, lines, trips)
+    rate = book.pounds_per(root)
+    gain = book.currency_gain(lines, trips, rate)
     last = {line.symbol: bars[-1].close for line, bars in archive.items()}
     today = all((day, m) in kept for m in set(money.values()))
-    held = book.open_currency_gain(root, lines, last, day) if today else Decimal(0)
+    held = book.open_currency_gain(root, lines, last, day, rate) if today else Decimal(0)
     return gain, sum((t.gross for t in trips), Decimal(0)) - gain, held
 
 

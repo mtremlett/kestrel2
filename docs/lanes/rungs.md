@@ -496,3 +496,164 @@ then the break was removed:
 - Which merge first (#1844). Options: (a) bootstrap into ci, inside the claim; (b) other merges needing targets outside the claim; (c) wire a rung, changing golden verdicts. Took (a). Its tests stay in their own file (the map allows one test file per rung), and a FOLDED pin fails once anything in lab/ calls `rung_ci.bootstrap` (canon Part C), driven red by a planted caller.
 - Where the rule's set is judged (#1845). Options: (a) each set runner calls `deflated.judge_lines`; (b) `verdict.Pool` judges once per rule and hands each cell its judgement. Took (b). `family` stays beside `among` until the three outside callers pass `among`.
 - What "not published" means (#1865). Options: (a) write no table and delete a stale one; (b) write it with a `## NOT PUBLISHED` section and a red exit. Took (b): faults stay visible, the red exit still stops users, the pinned EPON table test keeps its heading. The pre-flight sits in `_pooled` (inside the claim), covering all three pooled doors.
+
+### 2026-11-23 — shuffle on hard gates, paper gate opened, full trial count, stop study renamed (#1869, #1876, #1895, #1901)
+- Standing ruling taken for him ("please always go with recommended to avoid waiting for me to attend"): rungs-blocks and rungs-fast-engine held (waits: operator); rungs-epon-first held while R-RUNGS-38 is open (the monthly line with its own calendar is desk files outside the claim); rungs-eponymous waits: operator.
+- What the shuffle waits on (#1869). Options: (a) the hard gates before it alone, (b) those plus yearly, (c) all of NAMED as before. Took (b): a yearly Sharpe over 2 is a hard stop whatever the rungs say, so skipping the shuffles there costs no verdict; (c) let a soft market rung kill cells through the back door.
+- The market test (#1869). Options: (a) keep FAIL, which held only because of the leak, (b) pin the one rule's exact answer. Took (b): on that fixture the folds are THIN, so THIN. A FAIL on any soft rung alone is pinned to FAIL through `one_answer`; nothing weakened.
+- Who may graduate to paper (#1876). Options: (a) only the desk's five, (b) the five and every eponymous rule. Took (b): the box names eponymous rules beside others, and his 22 Nov standing orders ask for every agreed paper strategy. Admitting a rule trades nothing by itself; the desk's mapping decides.
+- Reproduction unrun (#1876). Options: (a) refuse every unrun, (b) excuse it for all, (c) excuse it only where no author's test binds the rule. Took (c): (a) shuts every rule out for ever, (b) lets Faber through unreproduced.
+- Next step with no passed rule (#1895). Options: (a) wait, (b) the cap of ten side by side (no caller yet), (c) the full-trial-count check in the one gate. Took (c): a stale line judged at a smaller count would otherwise pass; no new module. A blind review found nothing blocking; its two non-blocking points (missing count read as 0, a null count raising TypeError) were fixed.
+- Which merge (#1901). Options: (a) a merge (dsr into deflated, etc.), needing R-RUNGS-29 and targets outside the claim; (b) rename the stop-rule study out of rung_. Took (b): smallest green step lowering the gate (six to five off-path); a pure rename, no blind review.
+
+### 2026-11-23 — each ladder cell among its own rule's lines, benchmark merged, promotion on the one rule (#1924, #1934, #1942)
+- Standing ruling taken for him ("please always go with recommended to avoid waiting for me to attend"): rungs-epon-first held while R-RUNGS-38 is open; nothing to act on.
+- What a basket is charged (#1924). Options: (a) the rule's ever-entered family (the count being deleted); (b) nothing, one look; (c) one look per basket the set judges. Took (c): a basket is picked from the set's baskets, so their count is its honest family, and it never grows with abandoned runs (L18, decision b).
+- Lines of one rule on different windows (#1924). Options: (a) refuse the set, so every cell of the rule errors; (b) align on the span of all windows. Took (b): the box asks for it.
+- rung_benchmark (#1934). Options: (a) wire it as a second excess-over-market judge; (b) merge it into market by deletion; (c) leave it. Took (b): plan decision e rules it, market does the same job on the path and also measures beta, and a second code path for one job is forbidden (canon A2, B2). Raw holding is still reported by lab/holding.py.
+- The declared regime rung in `every` (#1942). Options: (a) a hard gate, so one thin half kills a cell; (b) leave declared rungs out of `every`; (c) its WEAK is soft and its FAIL still stops. Took (c): the box scores regime with MAX_WEAK, and a FAIL must still stop a cell. `verdict.gates` now leaves out only a GRADED rung's WEAK; for `judge`'s own cell nothing changes, as `every` also needs PASS.
+- Promotion's yearly stop (#1942): read from the line's yearly rung (the line holds no Sharpe figure); a yearly rung that is not PASS is the stop. The review's blocking hole, the candidate never reading the line's `every`, is closed.
+- Scribe #1943 was closed on a wrong reading (#1952): #1924 landed as 2dc2522c (the train squash-merges, so GitHub shows it closed). Scribe #1954 restored with its fold. Options: (a) restore, (b) close again. Took (a): every folded PR is on main.
+
+### 2026-11-23 — missing pound day named, placebo dropped, pound read pinned (#1951, #1961, #1966)
+- Standing ruling taken for him ("please always go with recommended to avoid waiting for me to attend"): rungs-epon-first held while R-RUNGS-38 is open; the monthly line with its own calendar needs desk files outside any RUNGS claim, so it stays under that box's Remains.
+- A missing pound day (#1951). Options: (a) keep refusing the whole set (L20 as written), (b) name it in the cell's reason, (c) fill it inside the ladder. Took (b): the box asks for it, and the cell's key carries the rates, so the cell is judged again once the one writer mends the day. (c) is forbidden: mending happens at entry, never in a rung. Bar gaps still refuse the set. The pooled path (`ladder_sets._pooled`, line 275) still refuses: outside the claim.
+- The placebo rung (#1961). Options: (a) move the block method into shuffle.py (wider claim, a second method for one question); (b) delete the unwired duplicate, so shuffle is the one home of the timing question (canon A1.3, failure pattern 8); (c) leave it. Took (b): dead code, git keeps it. Lost: placebo kept each fortnight whole, where shuffle reorders single days. Net 299 lines deleted.
+- Pound read (#1966). Options: (a) end with no change, (b) pin the read half in a test inside the claim, (c) edit lab/ladder_sets.py anyway. Took (b): (c) breaks the claim (failure pattern 21), and (a) leaves "reads it from the stored DEXUSUK series" unproved.
+- Scribes #1952 and #1954: #1952 closed scribe #1943 on a misreading; #1954 restored the fold, as every PR it folds is on main (squash-merged).
+- rungs-pound-gap's claim gap (runner ops, 23 Nov, taken by his standing ruling "please always go with recommended to avoid waiting for me to attend"). Options: (a) keep `waits: operator`, (b) widen the box's files to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py. Took (b): the remaining line lives in lab/ladder_sets.py, and the wait was only for the claim.
+
+### 2026-11-23 — rung merges' claims named; scribe #1984 closed (#1974)
+- Rung merges (#1974). Options: (a) move rung_sample/rung_dsr and break tests outside the claim, (b) a second, weaker deflated rung on rung_dsr (a duplicate, canon A2), (c) name in the rung map the claim each merge needs. Took (c).
+- Scribe #1984 conflicted with main: #1976 had folded #1951, #1961 and #1966, and runner ops had already widened rungs-pound-gap to lab/ladder_sets.py and its tests. Options: (a) rebase #1984, (b) close it and fold only #1974 here. Took (b): one home per fact, no double rows.
+- Scribes #1965, #1976, #1987 (23 Nov): each restored over main by keeping main's text and adding only the fold main lacked (one home per fact); rungs-epon-first stays held on R-RUNGS-38 under his standing ruling ("please always go with recommended to avoid waiting for me to attend").
+
+### 2026-11-23 — pooled set names a missing pound day, dsr merged into deflated, last merges' claims named (#1992, #2010, #2020)
+- Standing ruling taken for him ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim gap acted on inside the widened claim; rungs-each-rung held (waits: operator) until runner ops widen its files (R-RUNGS-41).
+- Pooled pre-flight (#1992). Options: (a) call `ladder.preflight` from `_pooled.go` (one pre-flight for both set runners, canon A1.2); (b) duplicate the unrated filter in ladder_sets (a second code path, refused by A2). Took (a). The test sits inside the existing pooled-set test (unit-test lines guard).
+- Merging dsr (#2010). Options: (a) keep rung_dsr's caller API (trials, spread) as a new public function in deflated; (b) delete it and prove rung 7 through the functions `_deflated` already uses. Took (b): the API had no caller (A1.3, A4). The refusal of a bad count or spread moved to `best_by_luck`.
+- The re-issued dsr card (#2020). Options: (a) busy work inside the claim; (b) correct the rung map and say Waits. Took (b) (failure patterns 12 and 22): sample and retail merges break tests outside the claim; pattern 21 forbids drifting it. Request R-RUNGS-41 asks runner ops to widen the claim.
+
+### 2026-11-23 — survivorship bias per listed line (#2061)
+- Where several research lists name a line, the first in the mapping is used (options: first, or the worst bias; first is the simple one and deterministic). A first day before the record starts is clamped to `members.FIRST`, otherwise `members.on` raises.
+
+### 2026-11-23 — the sizing block registered (#2097)
+- Sizers live in their own registry `SIZES` beside `BLOCKS`, not inside `BLOCKS` as the box wrote. Options: (a) inside `BLOCKS`: turns `tests/unit/test_lab_fast.py::test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position` red, a file outside this claim, and wrong anyway (a sizer never fires, so it has no fast firing to match); (b) a sibling registry, one home for sizers, the spec reading both. Took (b).
+- A spec's size is optional and never ranged (no `lab.variants` change). Options: required (breaks every catalogue row, outside the claim) or optional. Took optional; a row without one is sized as today.
+- Runner ops' ruling, taken for him by his standing ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim gap needs lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py, outside this claim; left to the card that holds them.
+
+### 2026-11-23 — rungs-eponymous handed out with nothing to graduate
+- Read on the research store (23 Nov 21:5x): EPON.jsonl holds 0 PASS (FAIL 124,585, FAULT 318,066, THIN 57,489); the grid-transfer set's 43 PASS are PRE-REVIEW transfer scores, not the eleven rungs. Its after: link rungs-trustworthy is unticked. Options: (a) build the cap of ten on paper in lab/promotion.py now, with no caller; (b) record and hold. Took (b): uncalled code is dead code (canon A1.3, A4), and the gate a candidate passes is built (#127, #1256, #1876, #1895, #1942).
+- Runner ops' ruling, taken by his standing ruling ("please always go with recommended to avoid waiting for me to attend"): rungs-pound-gap's claim already holds lab/ladder_sets.py and its tests (PLAN); nothing left to act on.
+- Handed out again (23 Nov 22:2x, failure pattern 12): EPON.jsonl unchanged since 21 Nov (804,450 lines: 0 PASS, FAIL 124,585, FAULT 318,066, THIN 57,489, the rest load errors). Options: (a) `Waits: operator` (parks on him, against his 22 Nov ruling); (b) ask runner ops to hold a box whose after: link is open. Took (b).
+
+### 2026-11-24 — rung_sample and rung_retail folded; the bootstrap's wiring (#2140, #2151, #2161, #2173)
+- Where the stated rate lives (#2140): lab/luck imports lab/rung, so rung 1 cannot compute luck.tail at import without a cycle. Options: (a) STATED in rung.py by an import inside a function, (b) STATED in luck.py (not claimed), (c) `noise_band` in rung.py and STATED as the calibration test's constant, its only reader. Took (c): no cycle, no inline import, the constant is fixed at load before any monkeypatch, so the broken-copy test keeps its meaning.
+- Where retail lives (#2151): (a) give it a RUNG (impossible: the registry hands a rung only the first rung's verdict, retail needs the market's days), (b) lab/verdict.py (outside the claim, already the busiest module), (c) lab/basket.py beside its only caller. Took (c). Blind review skipped: a pure move, test bodies verbatim.
+- Where the bootstrap is wired (#2161): (a) a special case for ci in `ladder_parts._declared`; (b) widen `Rung.judge` to take the first verdict with the bars and rates, so ci answers on the interval and the block draw together; (c) carry bars and rates on `rung.Verdict`. Took (b): one interface, no special case, a Verdict stays the priced trades alone. #2173 landed it (R-RUNNER-503): a bootstrap FAIL on an interval PASS is DOUBT, not FAIL, by LAD-08/LAD-06; its entry is in docs/DECISIONS.md.
+- Runner ops' claim gap for rungs-pound-gap (lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), taken by his standing ruling "please always go with recommended to avoid waiting for me to attend": (a) edit those files in a rung card, (b) leave the box to its own card. Took (b): the files are already named in PLAN's claim, so the gap is met; one objective per session (A8). Same answer in #2140, #2151, #2161, #2141.
+
+### 2026-11-24 — the ladder's blind review; rungs-eponymous held again (#2174, #2141)
+- #2174: a read-only blind review of the whole ladder found no blocking defect (no look-ahead, uncosted result, fold off-by-one or failed cell counted as pass). Two small defects in lab/ladder_sets.py were fixed though not blocking, as they sit in the claim: a pass stopped by the runner's STOP crashed the table (now it returns the stop line and writes no table), and the survivorship line counted every line as uncorrected (now only those no list names). The row trial count against the count each answer is deflated by (ladder.py:356, `pool.among`) is left as is: a ruling on L18, not a bug.
+- #2141, how to hold rungs-eponymous (EPON.jsonl still 804,450 lines, 0 PASS, unchanged since 21 Nov; second hand-out, failure pattern 12). Options: (a) `Waits: operator` (parks paper work on him, against his 22 Nov ruling); (b) build the cap of ten on paper with no caller (dead code, A1.3); (c) record it and ask runner ops to hold a box whose after: link is open (R-RUNGS-42). Took (c).
+
+### 2026-11-26 — the rung gate reads waiting is empty; FOLDED pin deleted (#2183)
+- Runner's ruling "claim gap rungs-pound-gap needs lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py", taken by his standing ruling "please always go with recommended to avoid waiting for me to attend". Options: (a) edit lab/ladder_sets.py here, (b) record it met. Chose (b): rungs-pound-gap's files already name both and the box is ticked by #1992 (the pooled set runs `ladder.preflight`); nothing is owed.
+- FOLDED pin in the registry test. Options: (a) keep it, (b) fix its search string to `bootstrap(`, (c) delete it and pin the map instead. Chose (c): its own words say take it off FOLDED once wired, and wiring is proven by test_lab_rung_ci's behaviour test; a text search for a call is weaker (failure pattern 10), while the map pin keeps the docstring from drifting back to "unwired" (pattern 18).
+
+### 2026-11-26 — pooled-set pin; known-answer kit half built; rungs-pound-gap left (#2189, #2175)
+- Runner ops' claim-gap ruling for rungs-pound-gap (needs lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), taken by his standing ruling "please always go with recommended to avoid waiting for me to attend". Options: (a) build it in #2189, (b) leave it for a card whose claim names those files. Chose (b): the claim lacks the files and the session's objective was restoring #2189.
+- The known-answer kit's edge assertion (#2175). Options: a red test (refused), xfail (forbidden, pattern 4), pin today's state (taken: edge heard, not yet forward). Restored by a pure git mv, since only the name broke the lane guard. Tighten once L17 wires `plateau.of`.
+
+### 2026-11-26 — the whole-ladder blind review; rungs-pound-gap already met (#2218)
+- The claim gap rungs-pound-gap (runner ops, asked again 26 Nov: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py). Options: rebuild it, or record it met. Chose met: #1992 made `_pooled.go` call `ladder.preflight` (lab/ladder_sets.py:296), pinned by test_lab_ladder_sets.py:194. His words: "please always go with recommended to avoid waiting for me to attend".
+- How to detect a stopped pass. Options: compare the answer text inline; one constant both modules read; a typed return from `go`. Chose the constant `ladder_pool.STOPPED`: one home, smallest change; a typed result touches every `go` and its fakes (the debt in failure pattern 14).
+- The reviewer's three non-blocking findings. Options: fix here or record. Chose record: they change published counts and cache keys, not a verdict, and the first needs lab/verdict_parts.py, outside the claim.
+
+### 2026-11-26 — the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
+
+The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
+well. Once a sixth does, no shuffle left can change the answer, so the rung stops there instead
+of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
+Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
+of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
+is about 20 rules of mostly failing cells). The text changes: a FAIL's reason now says
+"its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
+is unchanged; a trial of under two trades, never shuffled, says "1 (under two trades: no shuffle
+run)". A FAIL's exact share is no longer recorded anywhere; nothing reads it. No threshold or
+answer changes. Proven by
+`tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
+(the early answer equals a full run's on a passing and a failing walk) and
+`test_five_as_good_passes_the_sixth_fails_and_stops_there` (the edge, ties and None scripted).
+
+### 2026-11-27 — set 1 publishes; the stress reason names untested episodes; secondary figure for RSI-2 (#2257, #2254, #2273, #2266)
+- Claim gap rungs-pound-gap (runner ops asked in #2254, #2256, #2257, #2266, #2273: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), under his standing words "please always go with recommended to avoid waiting for me to attend". Options: edit those files in a session whose claim lacks them (refused; failure pattern 21), or hand it on. Taken: hand it on; rungs-pound-gap is ticked on main (#1992), so runner ops only widens the card's claim if a session is still wanted. rungs-epon-first stays held until R-RUNGS-38 (#2273).
+- Survivorship note for set 1 (#2257). Options: (a) leave it off, (b) name every line "not corrected". Taken (b): set 1 trades each rule on its declared lines over the whole window, so saying none was corrected is the honest line.
+- Golden row change (canon B5, the desk approves, his 22 Nov ruling; #2254, recorded #2273): the fixture book's first row's stress reason changes from "...the limit is 2,000.00" to "...the limit is 2,000.00; untested: the 2008 crash". The fixture history starts after October 2007, so 2008 was never tested and the old text hid it; the answer (PASS) and every number stay.
+- Untested episodes are named, not turned into WEAK/THIN (#2254). Options: (a) name them, answer unchanged; (b) mark the rung WEAK when any episode is untested. Taken (a): it is what R-RUNNER-550 asks, and (b) is a rule change a line listed after 2008 would fail forever.
+- #2270 duplicated #2254 (#2273). Options: rebase it (leaving only the DECISIONS lines) or close it and carry the record in one clean change. Taken: close it.
+- RSI-2's stand-in replication (#2266). Options: Empirica Lab (the exact rule on SPY, 1993-2026), Backtrex (shorts, a stop, a 200-day exit), Loomi.Ai (also exits on RSI over 70), Trading Time Machine (Nasdaq 100, extra entry condition), Quant for Free (RSI under 5, S&P 1500). Taken: Empirica Lab, the only one running the rule as coded on a market the desk holds; the rest are named in `SECONDARY`'s docstring as rejected. Only printed numbers are filed (no computed per cents). Measure keys stay strings because `reproduce` imports `published_epon`; moving `Measure` to a shared module is later work. No blind review: no money path, no verdict code.
+
+### 2026-11-27 — the trials key sees the catalogue row; the regimes cut; the real shuffle in tests (#2262, #2278, #2256)
+- Trials hash (R-RUNNER-551, #2262): the catalogue row joins the rule hash only for rules made from a row (SpecRule, `row[settings]` variants), the tape key's own condition. Rejected: hashing every named row, which would recount Python rules whose row is not their code.
+- Regimes (R-RUNNER-552, #2278): a tradeless half is THIN only when the whole record traded (a whole with none stays FAULT). Options: change `rung.decide` (outside the claim) or map it in this rung. Taken: in the rung.
+- Real shuffle (R-RUNNER-548, #2256): options were editing ladder_sets files (refused) or handing on; handed on. A branch conflict (old whole-file line-ending rewrite of test_lab_ladder.py) was resolved by taking main's file and re-applying the two edits, so the diff carries only the change. Remains: the pooled test is slow (~18 min on a busy PC); a cheaper real shuffle needs lab/shuffle.py.
+
+### The ladder's hold stays until the speed work lands (his ruling, Fri 27 November 2026, 08:4x)
+
+Asked whether EPON should start on the rungs already landed, his words through the chat seat:
+"No, keep the hold". `job-ladder.hold` stays in the runner's state, and EPON waits on the
+critical path: E4 (#2226) and E5 (#2232) land first, `lab/ladder.py` is split so the new rungs
+stop waiting on one hub file (E16, E17), then E8, E11, E12 and E13 each in its own module and
+test, and the E20 blind review after E13. The check: the runner starts no ladder job while the
+hold file exists. Recorded by runner ops 241 for coordinator 240.
+
+### 2026-11-27 — the pool's tape test, variants proved by base, a catalogue row without Python, the Keltner tie, the phone summary (#2293, #2302, #2295, #2309, #2315, #2320, #2312)
+- Windows-red pool test (#2293). Options: (a) force "spawn" in the pool and rework every pool test that patches state; (b) warm the cell's units in-process in this one test; (c) leave it. Took (b): canon A3, smallest fix at the root. (a) is recorded as found, not fixed.
+- Claim gap rungs-pound-gap (#2293, #2302, #2315, #2320), under his standing "always go with recommended": already met on main (#1992, `_pooled.go` calls `ladder.preflight`); options widen or rebuild or verify; verified, nothing changed. rungs-epon-first stays held (waits: R-RUNGS-38).
+- Variant to base (#2302). Options: (a) `proven` reduces `rule[settings]` to its base, as `rulebook.row` does; (b) each variant its own publication. Took (a): the known answers prove the code, not the setting. #2302 had gone red on a Claim line carrying instruction text; corrected and re-run, not closed.
+- Catalogue row with no Python file (#2295). Used `rulebook._made`, the spec maker, not `rulebook.rules()`, which reads only the default catalogue and would drop a custom book's rows.
+- Zweig ratio bars (#2309). A session with no advance and no decline is left out: options were a 0.5 bar or a gap; left out so nothing is invented.
+- Keltner tie (#2315). The desk's block (Decimal division, buys at the tie) or the fast engine (exact sums, does not)? The fast engine, by "a close over the upper band" and canon B4; fix the desk's `_Keltner.see` at the source (A2). Extending the book parity test now with Keltner rows skipped was refused: a skipped row is a set-aside test (pattern 4).
+- No Telegram key when a set finishes (#2320). Options: (a) skip quietly; (b) say `telegram: NOT TOLD` and end 1; (c) crash before judging. Took (b), canon A4; the table is written first. A sqlite fault on the message record raises. The runner must pass TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID.
+
+### 2026-11-27 — R-GRID-9's GRID half handed back to GRID (R-RUNNER-565)
+- The daily audit (R-RUNNER-565): #2302 ticked R-GRID-9 whole, but only RUNGS's half (`published.proven` proves `rule[settings]` by its base rule) landed; `rulebook.specs()` carrying ranges is in GRID's lab/rulebook.py. Options: (a) leave the tick and let GRID find it, (b) build it here (another lane's file, pattern 21), (c) open GRID's half as its own request. Took (c), under his standing "please always go with recommended to avoid waiting for me to attend": one box per piece of work, so the runner's done list closes only what landed (pattern 22).
+- R-RUNNER-566 declined: the branch and claim guards are not RUNGS's files. R-RUNGS-46's wiring is met on main (#2226: `verdict.judge` builds the plateau itself); its tightening rides open #2232 and #2237, never rebuilt (pattern 16).
+
+### 2026-11-27 — the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
+
+### 2026-11-27 — claim gap rungs-pound-gap recorded as met, five times over (#2328, #2345, #2348, #2358, #2383, #2402, #2411, #2425, #2428)
+- Runner ops asked for rungs-pound-gap's claim to be widened to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py, and held rungs-epon-first on R-RUNGS-38. Options: (a) edit those files from an unrelated claim, which the check refuses and which builds the work twice (pattern 16); (b) record it as already met. Took (b), by his standing words "please always go with recommended to avoid waiting for me to attend": #1992 is on main (`_pooled.go` calls `ladder.preflight`), the box is ticked, and PLAN's files line already names both files. The STATUS line asking runner ops to widen it is dropped.
+
+### 2026-11-27 — known-answer kit: record the blockers, tighten nothing (#2328, #2402)
+- Tighten the edge assertion now? Options: (a) tighten here, (b) leave it to #2326 and file what blocks. Took (b) in #2328: #2326 holds the same file, and "goes forward" cannot pass while reproduce is unrun (`verdict_parts.goes` needs `unrun == {}`), so R-RUNGS-48 asks for reproduce judged on determinism or declared not applicable.
+- In #2402 (probe on the 6,200-day walks): fit FAILS (the planted rise follows any trend; supertrend_10_3 moves 0.91) and liquidity FAILS (the fixture's volume is 1), and 16 lines took over ten minutes. Options: (a) lengthen the walks and assert PASS, which cannot be green; (b) write the blockers in the kit's docstring. Took (b) by the stop rule (A8). The later crowd edge (L15b, Builder R2) answers it.
+- #2328's restore: red was `step (unit 2/5)` CANCELLED, not a test. Options: close, or bring up to date and re-run. Took the second (docstring-only change).
+
+### 2026-11-27 — catalogue rows pinned by fingerprint; deletion left to MONEY (#2345, #2383, #2425)
+- Proving identical trades once a twin is deleted. Options: (a) keep every Python file forever, against the box; (b) rely on each row's hand-written cases, too weak (a few bars, not the fixture's trades); (c) pin a 16-hex sha256 of each row's fixture decisions, taken while the twin matched. Took (c), a golden in B5's sense: a changed hash is a changed rule and needs its reason here.
+- Not deleting the files here, though the names fit this claim. Options: (a) delete the 19 and edit their importers (manifest/money.toml, desk/intraday.py, lab/rulebook.py, lab/ladder*.py, lab/published*.py, seven tests: all outside the claim, pattern 21); (b) land the in-claim step and name the rest. Took (b); MONEY's money-epon-room holds seven of them, and the zoo's eleven go only when it runs rows (R-RUNGS-51).
+- "Zweig waits on breadth data" (#2425). Options: leave waiting, or treat parity as met. Met: the row reads ratio bars from `lab.spec.ratio_bars`, so parity on the fixture needs no breadth store; real breadth data matters only to judging on real prices (R-RUNNER-557). No id ticked: the box also says the Python files are deleted.
+
+### 2026-11-27 — Keltner exact ties: the fast engine is right (#2348, #2411)
+- At an exact tie which engine is right? The fast engine, which works in whole numbers and says "not beyond"; the desk's `_Keltner` divides by 3 in decimals and rounds a tie into a fire. Strict "over/under the band" must not depend on rounding at the 26th decimal (B4). Copying the rounding into the fast engine was rejected; the fix is in lab/blocks.py (R-RUNGS-49).
+- Land the full-fixture parity with Keltner left out? No: a special case for a test input (A3). #2411 lands the check with the desk's rounding pinned in `DESK_ROUNDS`, a list that can only shrink, and leaves rungs-fast-engine open, since the two engines do not yet match. Variants run on the first series only (walk 36 ties too; all series take 54 s).
+
+### 2026-11-27 — set 2 published from the grid's study file (#2358)
+- Options: (a) call `lab.transfer.main` from the ladder door, which needs store and folders the runner chooses and writes the study from a second place; (b) read its finished results file. Took (b): one writer of the study (GRID's); the ladder publishes and tells (LAD-09). "Goes forward" for set 2 is always none: the study is PRE-REVIEW, a PASS there is counted, never promoted (B6).
+
+### 2026-11-28 — a stale market under a basket is a named FAULT (#2428)
+- A market with bars ending before the basket's last sale. Options: (a) drop the retail rung silently (pattern 10); (b) judge only to the market's last bar, a different trial; (c) FAULT the retail rung naming the gap. Took (c): it fails loudly, keeps the rule from going forward, and the table is still written.
+- A market the keeper refuses (`keeper.Stale`) counts as one holding no bars, caught narrowly in `_against`, never broadly. Pound-gap's claim widening stays runner ops' (one objective, A8).

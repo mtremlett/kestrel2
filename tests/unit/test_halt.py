@@ -163,7 +163,7 @@ def test_each_morning_one_list_names_every_blocker_and_every_signal_it_blocked(
     listed = halt.morning(tmp_path, MON)
     assert list(listed) == list(Blocker), "a blocker left off the list"
     assert listed[Blocker.HALT] == (held,) and listed[Blocker.BROKER] == (part,)
-    assert [len(blocked) for blocked in listed.values()] == [1, 1, 1, 0, 0, 0, 1]
+    assert [len(blocked) for blocked in listed.values()] == [1, 1, 1, 0, 0, 0, 1, 0]
     assert halt.stopped(tmp_path, MON) == 2, "what the switch and a halt refused, not counted"
     words = halt.listed(tmp_path, MON)
     #: three signals: the line that was not read is listed, and is no signal
