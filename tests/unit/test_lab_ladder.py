@@ -317,7 +317,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert [row["answer"] for row in _rows(tmp_path)[-2:]] == ["THIN", "FAIL"]
     holed = NOISE[:4] + NOISE[5:]  #: the market missing Tuesday 5 January 2010, a session
     with pytest.raises(
-        ValueError, match="^1 gap in the set's inputs.* ISF has no bar on 2010-01-05"
+        folds.Gaps, match="^1 gap in the set's inputs.* ISF has no bar on 2010-01-05"
     ):
         ladder.run(tmp_path / "holed", _door({VUSA: EDGE, ISF: holed}), {}, todo)
     assert not (tmp_path / "holed").exists()  #: refused before its register or a row
