@@ -270,10 +270,10 @@ def test_every_open_request_has_its_own_box() -> None:
     assert not loose, f"requests inside another's line; give each its own `- [ ]` line: {loose}"
 
 
-def _open_work(plan: str) -> dict[str, list[str]]:
-    """Each lane's open boxes, as the runner reads its books (`slots.boxes`): every item under
-    `### The <lane> lane's book` up to the next heading, at any depth, its wrapped lines
-    joined; a box with boxes under it is an umbrella, not work."""
+def _open_work(plan: str, mark: str = " ") -> dict[str, list[str]]:
+    """Each lane's open boxes (mark "x": its ticked ones), as the runner reads its books
+    (`slots.boxes`): every item under `### The <lane> lane's book` up to the next heading, at
+    any depth, its wrapped lines joined; a box with boxes under it is an umbrella, not work."""
     work: dict[str, list[str]] = {}
     for book in re.finditer(r"^### The ([a-z]+) lane's book.*$", plan, re.MULTILINE):
         rest = plan[book.end() :]
@@ -282,7 +282,7 @@ def _open_work(plan: str) -> dict[str, list[str]]:
         work[book[1]] = [
             " ".join(item[3].split())
             for item, after in zip(items, [*items[1:], None], strict=True)
-            if item[2] == " " and not (after and len(after[1]) > len(item[1]))
+            if item[2] == mark and not (after and len(after[1]) > len(item[1]))
         ]
     return work
 
@@ -314,6 +314,28 @@ def test_every_open_box_names_its_check() -> None:
         "note, the test that proves it, in a file the box may change (a test it will write is "
         f"named before it exists): {unproven}"
     )
+
+
+def test_every_ticked_box_names_a_test_that_exists() -> None:
+    """A TICK IS ITS CHECK (chat 326, 28 Nov): a ticked box's `check:` names a test function
+    this tree defines. paper-collect-callers (#2498) and paper-running-move (#2502) were ticked
+    naming tests no file held, so money-time-gaps and money-small, waiting on them, would
+    start on work nobody proved (failure pattern 3). A drives: check is the runner's to run."""
+    plan = (ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")
+    missing = []
+    for lane, boxes in _open_work(plan, "x").items():
+        for text in boxes:
+            fields = _box_fields(text)
+            for check in (c for c in fields.get("check", []) if c.startswith("tests/")):
+                path, _, name = check.partition("::")
+                source = (
+                    (ROOT / path).read_text(encoding="utf-8") if (ROOT / path).is_file() else ""
+                )
+                if not re.search(rf"^\s*(?:async )?def {re.escape(name)}\(", source, re.MULTILINE):
+                    missing.append(f"{lane}: {(fields.get('id') or ['?'])[0]} {check}")
+    assert (
+        not missing
+    ), f"a ticked box's check is a test this tree defines; untick or write it: {missing}"
 
 
 def test_a_runner_box_changes_only_the_runner_and_a_box_elsewhere_never_does() -> None:

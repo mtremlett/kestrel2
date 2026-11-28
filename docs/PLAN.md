@@ -378,7 +378,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       from the stored series, and a planted missing day is a named gap, never a FAULT
       Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Built (#1902, #1910): `python -m desk.backfill POUND` fills the sessions with no rate from FRED's DEXUSUK (Source.FED_NOON, unjudged, one writer); a day the Fed gives none is named on stderr, exit 1. The ladder's half is RUNGS's own (rungs-pound-gap); lab/universe_history should import the FRED URL from desk/backfill (one home) box, rungs-pound-gap
       {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py, desk/backfill.py, tests/unit/test_backfill.py}
-- [x] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
+- [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
       from one vendor feed, bought only when a strategy needs it, after the A-GATE. Tier C:
@@ -484,7 +484,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Also (#1916): `keeper_live.polled_round` asks a rota's next `rate` lines for one-minute bars, counts requests and pacing refusals for `pace`; not yet in keeper.main (the rate must persist between runs). Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
       Built (#2307, #2321): the polled 5-minute round asks 27 lines (LINES plus five watch-only US names in `lines.WATCHED`, never traded) and each polled round opens its own gateway client id (227 to 229).
       {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-29; check: tests/unit/test_keeper_live.py::test_the_polled_round_counts_every_request_and_paces_by_keeper_pace}
-- [x] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
       London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
@@ -556,7 +556,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
-- [x] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
+- [ ] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
       fourth time after #1813, #2400, #2410): nobody can tell a hang from a slow night, because `within` keeps the
       last three frames of one thread, and the runner's own dump of every thread (15 s before its 6 h limit) never
       fires behind SimCity's 7,200 s. At the limit, every thread's whole stack is named, so the
@@ -1065,12 +1065,12 @@ his PC with the desk's own client id (222), never 4001.
       each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
       never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set (#1896)
       {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
-- [x] The step's two ledger reads hand the book what it needs to halt on a gapped stop (for money-time-gaps, its
+- [ ] The step's two ledger reads hand the book what it needs to halt on a gapped stop (for money-time-gaps, its
       28 Nov ending: the book's collect takes the lines, the settings and a tell, and halts buying on a stop sold past
       the gap loss, but the step's ledger update and the recovery after a restart still pass none): each records the
       day's rates first and passes them, so a gapped stop halts buying whichever caller finds it. Edits only
       {id: paper-collect-callers; files: desk/running.py, desk/running_parts.py, tests/unit/test_running.py; check: tests/unit/test_running.py::test_the_steps_ledger_and_recovery_hand_collect_the_lines_settings_and_tell}
-- [x] The step's fixtures carry a real move (for money-small, its 28 Nov ending: a thin-trade flag in the day's buy
+- [ ] The step's fixtures carry a real move (for money-small, its 28 Nov ending: a thin-trade flag in the day's buy
       flags every fixture buy, since their flat bars give no expected gain, and the step's tests then count one note
       too many): the fixtures of the step's tests give each line bars with a move and a volume, so a buy's expected
       gain clears twice its cost and no fixture buy is flagged; no behaviour changes today

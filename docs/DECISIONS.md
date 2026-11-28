@@ -3006,3 +3006,14 @@ drive check outside the RUNNER book fails the new test as it failed the old patt
 `test_a_runner_box_changes_only_the_runner_and_a_box_elsewhere_never_does` RED on a RUNNER box naming
 `desk/day.py`, on a RUNNER box with no check (with `test_every_open_box_names_its_check`), and on a
 RUNGS box planted with a `drives:` check; green on the book as written.
+
+## 28 Nov - a ticked box's check is a test this tree defines (coordinator 324, chat 326's finding)
+Five ticked boxes named a `check:` test that no file on main defines: data-tiers, data-collector,
+money-deep-stack, paper-collect-callers (#2498) and paper-running-move (#2502). money-time-gaps and
+money-small wait on the last two, so they would start on 29 Nov on work nobody proved (failure
+pattern 3). Options: leave them and trust the PRs (no: a tick is its check, his 27 Nov "the box is the
+card"); have each lane write the test (yes, by unticking: the runner hands an open box out again with
+its named check); a guard for every ticked box (yes: the root, since nothing read a ticked box's
+check). Tightened, not loosened: `test_every_ticked_box_names_a_test_that_exists` RED on main 3a59883d
+listing exactly those five, green with them unticked; `_open_work` reads ticked boxes by its new mark
+argument, so the books are parsed once.
