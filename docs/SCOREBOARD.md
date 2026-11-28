@@ -275,6 +275,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2379 zoo-own-side built and reverted on blind review (mixed lines need per-side stops and holders); no box ticked. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2440 money-deep-stack ticked: deep SimCity's hang now leaves full-stack evidence at 7,200 s. |
 
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2464 R-RUNNER-482 SimCity scenario for records kept before the FX columns built, green and red driven. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2474 R-RUNNER-438 first step: per-world allowance, 1 contract test; the speed remains. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2479 money-side-stops ticked: the pretend broker rests the desk's and the zoo's stop apart. |
 ### DATA
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |
