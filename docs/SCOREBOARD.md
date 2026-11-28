@@ -782,6 +782,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2477 paper-side-stops: its box check now resolves to a passing test. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2489 paper-rehearsal-wait: shut-market wait 5 s to 3 s; planted Friday of 313 orders ends inside its time. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2497 paper-supervisor-simcity ticked: the supervisor's kill-and-restart proved through SimCity, no operator action. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2496 nogo-line-names-cause built in part: a stalled account read ends NO-GO naming it, with the step tally; the early-stopped count remains, box open. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2498 paper-collect-callers done: both ledger reads halt buying on a gapped stop. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2502 paper-running-move ticked, tests only: the step's fixture buys clear their cost. |
 
 ### GRID
 
@@ -1271,5 +1274,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | money-small: expected_gain built and census-covered; the buy-path flag waits on two fixtures (#2447). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-570 ticked: SimCity's 17 incidents split, one module each (#2454). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | O95 rungs-sets ticked (R-RUNGS-34 met); a gap-refused set exits WAITS (3) for the greenkeeper's fill; R-RUNGS-52 closed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | O95 I12/I13: R-RUNGS-48 (reproduce judged on determinism, #2226) and R-RUNGS-33 (variant names resolve, #1655/#1700) closed as met; rungs-b5 waits on nothing. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | Chat seat 295: Fable design items 11, 10, 9, 12, 4, 7, 3(a), 3(b)A live through a green go-live (17:06, 254/254); go-live gate rebuilt (per-HEAD records, stall check, live checkout); 3(b)B, item 5, item 8 and the runner's own book with builders. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | holding-overnight ticked: the first rung prices a one-night holding named by the rule's own spec row; default path unchanged (#2513). |

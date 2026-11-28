@@ -228,9 +228,10 @@ def gaps(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str
     return tuple(g for c, bars in cells for g in market.gaps(c.line, bars, rates, c.start, c.end))
 
 
-class Gaps(ValueError):
+class Gaps(Exception):
     """A set refused by its pre-flight: its inputs have gaps, which the one writer mends; the set
-    waits for that fill, never judged around it (L20)."""
+    waits for that fill, never judged around it (L20). No ValueError: no cell's `FAILED` takes
+    a set's wait for its own fault."""
 
 
 def preflight(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None:
