@@ -13,10 +13,12 @@ import pytest
 from desk import messenger
 from desk.lines import LINES, Line
 from lab import (
+    folds,
     history_bars,
     intraday,
     ladder,
     ladder_kept,
+    ladder_parts,
     ladder_pool,
     ladder_sets,
     members,
@@ -219,7 +221,7 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     monkeypatch.setattr(ladder_pool, "run", lambda *a: ran.append(a))  #: the pool never begun
     rule = ["trend_50_200"]
     holed = _door({VUSA: EDGE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
-    with pytest.raises(ValueError, match="refuses to start, first ISF has no bar on 2010-01-05"):
+    with pytest.raises(folds.Gaps, match="refuses to start, first ISF has no bar on 2010-01-05"):
         ladder_sets.epon(
             tmp_path, holed, {}, [VUSA], rules=rule, go=ladder_sets._pooled(lambda: holed)
         )
@@ -235,6 +237,26 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     )
     assert "NOT PUBLISHED: " in said
     assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
+
+
+def test_epon_publishes_with_under_one_percent_faults(tmp_path: Path) -> None:
+    """L20: set EPON's table is published while at most 1% of its cells FAULT: the fixture's
+    set, none of its cells a FAULT, is published; the set's own door publishes 1 FAULT in 100
+    cells and withholds 2, naming the rung and its share."""
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    book = _door({VUSA: EDGE, ISF: NOISE})
+    said = ladder_sets.epon(
+        tmp_path, book, {}, [VUSA, ISF], rules=["breakout_20_10"], go=ladder.run
+    )
+    table = (tmp_path / "ladder" / "sets" / "EPON.md").read_text("utf-8")
+    assert "NOT PUBLISHED" not in said + table and "| breakout_20_10 | " in table
+    sound = {"rungs": {"first": ["PASS", "judged"], "folds": ["PASS", "judged"]}}
+    fault = {"rungs": {"first": ["PASS", "judged"], "folds": ["FAULT", "no years"]}}
+    one = [fault] + [sound] * 99
+    assert ladder_parts.faults(one) == (["FAULT: 1 of 100 cells at rung folds: no years"], True)
+    stop, shown = ladder_parts.faults([fault, *one[:-1]])
+    assert not shown and stop[-1] == "NOT PUBLISHED: 2 of 100 cells FAULT"
 
 
 def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a_crash(
@@ -260,6 +282,29 @@ def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a
     assert said.err.startswith("ladder: the set waits for the store's next fill: ")
     assert "refuses to start, first ISF has no bar on 2010-01-05" in said.err
     assert not phone and not said.out and not (tmp_path / "ladder").exists()  #: no register
+
+
+def test_only_a_gap_refusal_waits_and_no_cell_takes_it_for_its_own_fault(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    from lab.cell import Cell
+
+    def planted(*_: object) -> str:
+        raise ValueError("a planted fault")
+
+    monkeypatch.setattr(ladder_sets, "_judged", planted)
+    with pytest.raises(ValueError, match="a planted fault"):  #: a fault ends the command as one
+        ladder_sets.main({"KESTREL2_DATA": str(tmp_path)}, [], lambda _: len)
+
+    def holed(*_: object) -> dict[str, Any]:
+        raise folds.Gaps("a planted gap")
+
+    monkeypatch.setattr(verdict, "judge", holed)  #: a gap met inside a cell's rungs
+    todo, whole = [Cell("breakout_20_10", VUSA, START, END)], _door({VUSA: EDGE, ISF: NOISE})
+    with pytest.raises(folds.Gaps, match="a planted gap"):  #: the set waits, never judged around it
+        ladder.run(tmp_path, whole, {}, todo)
 
 
 def test_each_finished_set_writes_its_results_file_and_summary(tmp_path: Path) -> None:

@@ -657,3 +657,9 @@ and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
 ### 2026-11-28 — a stale market under a basket is a named FAULT (#2428)
 - A market with bars ending before the basket's last sale. Options: (a) drop the retail rung silently (pattern 10); (b) judge only to the market's last bar, a different trial; (c) FAULT the retail rung naming the gap. Took (c): it fails loudly, keeps the rule from going forward, and the table is still written.
 - A market the keeper refuses (`keeper.Stale`) counts as one holding no bars, caught narrowly in `_against`, never broadly. Pound-gap's claim widening stays runner ops' (one objective, A8).
+
+### 2026-11-28 — the overnight holding lives in the rule's spec row (#2513)
+- Where the holding lives. Options: (a) a `judge` argument, (b) the rule's own spec row, read by the rung. Took (b): one home for the fact (pattern 8); (a) was the restored branch's choice and a blind review showed it silently ignored at every caller.
+- Land although the box note said "held until the EPON re-run has finished". Options: wait, or land. Took land: additive, no catalogue row names `overnight`, so every existing verdict is priced by the unchanged path.
+- The planted-stop return (G2) for overnight trades is a sale at the stop's level next morning: conservative, one model for every trade; revisit when row 101 is judged.
+- Runner ops' claim-gap order for rungs-pound-gap (`lab/ladder_sets.py`) taken by his standing ruling "always go with recommended"; those files are outside this claim, nothing changed (the box is ticked, #1992).
