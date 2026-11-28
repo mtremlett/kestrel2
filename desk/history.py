@@ -13,7 +13,7 @@ import time
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import BinaryIO, TypeVar, cast
 
@@ -99,6 +99,15 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     )
 
 
+def _volume(text: str, fields: list[str]) -> int:
+    """A bar's volume in whole shares: the broker's -1 (no trades counted, the pound's) is none,
+    and a decimal (shares traded in parts) the nearest whole share, half to even; any other text
+    is refused, the message named."""
+    if text == "-1":
+        return 0
+    return int(paper.number(text, fields).to_integral_value(ROUND_HALF_EVEN))
+
+
 def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     """The bars of an answer of the broker's, those from since and before day."""
     body = fields[5:]
@@ -114,7 +123,7 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
         taken = date(int(stamp[:4]), int(stamp[4:6]), int(stamp[6:8]))
         if since <= taken < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Bar(taken, o, h, low, c, max(int(volume), 0)))
+            found.append(Bar(taken, o, h, low, c, _volume(volume, fields)))
     return tuple(found)
 
 
@@ -132,7 +141,7 @@ def _candles(fields: list[str], day: date, since: date) -> tuple[Candle, ...]:
         start = datetime.fromtimestamp(int(stamp), UTC)
         if since <= start.date() < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Candle(start, o, h, low, c, max(int(volume), 0), "ibkr"))
+            found.append(Candle(start, o, h, low, c, _volume(volume, fields), "ibkr"))
     return tuple(found)
 
 
