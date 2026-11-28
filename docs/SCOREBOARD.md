@@ -783,6 +783,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2489 paper-rehearsal-wait: shut-market wait 5 s to 3 s; planted Friday of 313 orders ends inside its time. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2497 paper-supervisor-simcity ticked: the supervisor's kill-and-restart proved through SimCity, no operator action. |
 
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2496 nogo-line-names-cause built in part: a stalled account read ends NO-GO naming it, with the step tally; the early-stopped count remains, box open. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2498 paper-collect-callers done: both ledger reads halt buying on a gapped stop. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2502 paper-running-move ticked, tests only: the step's fixture buys clear their cost. |
 ### GRID
 
 | date | scenes | desk lines | lab lines | test lines | guards | check | what moved |

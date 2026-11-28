@@ -1065,12 +1065,12 @@ his PC with the desk's own client id (222), never 4001.
       each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
       never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set (#1896)
       {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
-- [ ] The step's two ledger reads hand the book what it needs to halt on a gapped stop (for money-time-gaps, its
+- [x] The step's two ledger reads hand the book what it needs to halt on a gapped stop (for money-time-gaps, its
       28 Nov ending: the book's collect takes the lines, the settings and a tell, and halts buying on a stop sold past
       the gap loss, but the step's ledger update and the recovery after a restart still pass none): each records the
       day's rates first and passes them, so a gapped stop halts buying whichever caller finds it. Edits only
       {id: paper-collect-callers; files: desk/running.py, desk/running_parts.py, tests/unit/test_running.py; check: tests/unit/test_running.py::test_the_steps_ledger_and_recovery_hand_collect_the_lines_settings_and_tell}
-- [ ] The step's fixtures carry a real move (for money-small, its 28 Nov ending: a thin-trade flag in the day's buy
+- [x] The step's fixtures carry a real move (for money-small, its 28 Nov ending: a thin-trade flag in the day's buy
       flags every fixture buy, since their flat bars give no expected gain, and the step's tests then count one note
       too many): the fixtures of the step's tests give each line bars with a move and a volume, so a buy's expected
       gain clears twice its cost and no fixture buy is flagged; no behaviour changes today
@@ -1098,7 +1098,7 @@ his PC with the desk's own client id (222), never 4001.
       passed'); a failed step is told by its first fault's message, not its class alone. The account left as
       found stays unproven, so it stays NO-GO. The tally counts only the steps that ran: a rehearsal stopped early
       at step 10 of 199 reads '9 of 199 steps passed, 190 not run', never '198 of 199' (O105/O109, coordinator 318,
-      28 Nov: #2496 landed with its blind review BLOCKED on this, so the box stays open)
+      28 Nov: #2496 landed with its blind review BLOCKED on this, so the box stays open; #2496 built the stalled-read line and the 'N of M' tally, but the check named below does not exist yet. Remains: the early-stopped count and that test)
       {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_an_early_stopped_rehearsal_counts_only_the_steps_it_ran}
 
 ## Phase 4 — the ladder
