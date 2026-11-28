@@ -39,6 +39,7 @@ from http.client import HTTPException
 from pathlib import Path
 
 from desk import (
+    bar_rounds,
     book,
     clearance,
     gateway,
@@ -51,7 +52,9 @@ from desk import (
     paper,
     placing,
     pnl,
+    rounds,
     running,
+    running_notes,
     venues,
 )
 from desk import day as days
@@ -63,13 +66,17 @@ from desk.keeper import Broker
 from desk.lines import LINES
 from desk.messenger_parts import SMTP, Mail
 from desk.orders import Settings
-from desk.running import DAY, VENUES, ZOO_ON, Desk
+from desk.running import ZOO_ON
+from desk.running_notes import DAY, VENUES, Desk
 from desk.trading_hours import trading
 
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
+RUN_SECONDS = 3300  #: a rehearsal's own limit: the runner ends it at 3600 s, its cancel unrun
+#: The longest one step can take at the rehearsal's account: its orders' waits and the knock.
+STEP_BOUND = paper.MAX_ORDERS * placing.SHUT_SECONDS + paper.SECONDS
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
@@ -152,7 +159,7 @@ def _account(root: Path, now: datetime, door: paper.Door) -> str:
 def _prices(desk: Desk, today: date) -> str:
     """The lines with a bar of the session before today, on each venue that trades today."""
     saved = desk.held(today)
-    fits = [running._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
+    fits = [rounds._fit(saved, v, today) for v in VENUES if venues.sessions(v, today, today)]
     fit, out = sum(len(lines) for lines, _, _ in fits), [s for _, left, _ in fits for s in left]
     if not fits:
         return "no market trades today"
@@ -210,14 +217,14 @@ def _moments(on: date) -> list[datetime]:
 
 def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) -> list[str]:
     """What a rehearsed day left that a good day does not, each thing in words."""
-    root, kept = desk.root, running.notes(desk.root)
+    root, kept = desk.root, running_notes.notes(desk.root)
     done, told = {note.what for note in kept}, {d.name for d in messenger.deliveries(desk.root)}
     wrong = [
         f"{VENUES[venue]}'s round of orders was not made"
         for venue in VENUES
-        if venues.sessions(venue, on, on) and running.ORDERS.format(venue) not in done
+        if venues.sessions(venue, on, on) and running_notes.ORDERS.format(venue) not in done
     ]
-    wrong += [note.words for note in kept if note.what == running.UNCLEAN]
+    wrong += [note.words for note in kept if note.what == running_notes.UNCLEAN]
     daily = (messenger.MORNING.name, messenger.EVENING.name)
     wrong += [f"the {name} message was not written" for name in daily if f"{name} {on}" not in told]
     if [record.day for record in days.records(root)] != [on]:
@@ -232,17 +239,28 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) ->
 
 def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
     """A step at each moment, as the day's: one that fails is named and the next carries on; the
-    run stops, named, if a market comes near by the clock."""
-    failed = list[str]()
+    run stops, named, if a market comes near by the clock or its own time (RUN_SECONDS) is spent."""
+    failed, began = list[str](), clock()
     for at in moments:
+        if (clock() - began).total_seconds() + STEP_BOUND > RUN_SECONDS:
+            failed.append(f"{at:%H:%M} UTC stopped, the rehearsal's {RUN_SECONDS} s were spent")
+            break
         if near := trading(clock()):
             failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
             break
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding
-            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
+            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}: {fault}")
     return failed
+
+
+def _changes(found: Found, before: paper.Account, door: placing.Shut) -> list[str]:
+    """How the account differs from as found; a stalled last read leaves it unproven, so NO-GO."""
+    try:
+        return found.changes(before, paper.whole(door))
+    except NAMED as why:
+        return [f"the account read after the run stalled: {why}"]
 
 
 def rehearse(
@@ -257,7 +275,11 @@ def rehearse(
     stops at once.
     A step that fails is counted and the next carries on; then the desk's own orders still
     working are cancelled and the account is read again, whatever happened."""
-    today, before = now.date(), paper.whole(paper.Door(paper.DESK))
+    today = now.date()
+    try:
+        before = paper.whole(paper.Door(paper.DESK))
+    except NAMED as why:
+        return False, f"REHEARSAL NO-GO: the account read before the run stalled: {why}."
     open_now = trading(now)
     barred = (
         f"{' and '.join(open_now)} trade now, soon or just ended, and an order it sent could fill"
@@ -278,15 +300,16 @@ def rehearse(
         frozenset(h.name for h in before.holdings if h.shares),
         frozenset(o.broker_id for o in before.orders),
     )
-    door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
+    door = placing.Shut(paper.DESK, found)  #: the account found is not the rehearsal's to see
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)
     left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
-    if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):
+    if wrong := _amiss(desk, on, left, _changes(found, before, door)):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
-        return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"
-    words = " ".join(note.words for note in running.notes(desk.root))
+        tally = f" ({len(moments) - len(failed)} of {len(moments)} steps passed)"
+        return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}{tally}"
+    words = " ".join(note.words for note in running_notes.notes(desk.root))
     orders, sent = words.count(" shares done"), words.count(": the broker says ")
     counts = (on, len(moments), len(failed), orders, sent, len(said), UNSENT * (not sent))
     return True, GO.format(*counts)
@@ -299,10 +322,10 @@ def hourly(desk: Desk, now: datetime) -> None:
     def words() -> str:
         known = gateway.known(now, door=desk.door)  #: the Gateway's state is read first
         if since := running.down_since(desk.root, known, now):
-            return pnl.down(now, since) + running.zoo_hour(desk.root, now, down=True)
+            return pnl.down(now, since) + bar_rounds.zoo_hour(desk.root, now, down=True)
         daily = desk.held(today)[0]
         told = pnl.told(desk.root, desk.hot, daily, desk.rates(today), desk.room.capital, now)
-        return told + running.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
+        return told + bar_rounds.zoo_hour(desk.root, now)  #: the zoo's hour, in this message alone
 
     messenger.hourly(desk.root, now, words, desk.post)
 

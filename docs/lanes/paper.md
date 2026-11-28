@@ -635,3 +635,24 @@ Options: pass `market` to size(), which would refuse the buy (emergency rule) in
 
 ### 2026-11-27 — the Gateway-down time is kept in a file at the data root (#2347)
 Options: derive it from notes, or change the step's return. Chose a small mark file (first moment found down, cleared when the Gateway answers): the smallest change, touching only claimed files.
+
+### 2026-11-28 — conformance settles its own earlier orders, refusing if one will not end (#2369)
+Options: ignore a leftover order of client 223 and send, or refuse the run. Chose refuse, per B1 and "fail loudly"; settle reads the account the run already reads once, so no extra gateway read. A desk order (client 222) is never touched.
+
+### 2026-11-28 — conformance mirrors the desk on a gap through the stop (#2381)
+Options: keep a private lower-of price rule (the duplicate the audit named) or pass the close and today's last five-minute bar to `orders.size`. Chose the desk's: a gap through the signal's stop makes the plan refuse by the desk's own emergency rule.
+
+### 2026-11-28 — the watcher reads the supervisor's lock, not its receipts (#2434)
+Options: keep the lock design (the system's word, independent of the supervisor's own files) or judge by receipts (the supervisor's own health already does that). Lock chosen, since the point is independence; the test takes the box's check name though. His standing ruling: "please always go with recommended".
+
+### 2026-11-28 — paper-side-stops ticked on its gate (coordinator 311)
+Options: keep the box open until the paper door also has per-side set, move and cancel, or tick it on its gate. Its gate is a gateway tape with two stops on one ticker where the zoo's is cancelled and the desk's still rests. `test_two_stops_on_one_ticker_rest_apart_by_side` passes on main (#2476, #2477). Ticked, because the door now reads each side's stops by its own client id (desk 222, zoo 223), and the interface's per-side cancel landed in money-side-stops (#2479, `cancel_stop(symbol, zoo=)`). Left open, the box was never handed out (the runner calls it met) and never ticked, and PAPER idled with nothing it could start. Per-side counts and holders stay in zoo-own-side.
+
+### 2026-11-28 — the rehearsal's shut-market wait is 3 s (#2469, #2489)
+Options: a longer job timeout or skipping the send (both rejected by the card); give the wait to the rehearsal account's door (one send path, one home per wait), chosen. Seconds: 5 s overran, since a whole Friday of 313 orders cost about 10-11 s each; 2 s feared a slow gateway handshake failing before any send; 3 s chosen, the same as the handshake wait, so no lower. The step loop stops at 3300 s (300 s of margin to the runner's 3600 s kill), cancels its own and names the stop. Live doors keep 120 s. His standing ruling: "please always go with recommended".
+
+### 2026-11-28 — a side is the placing client id (#2476)
+Options: the order ref prefix (a hand list, pattern 18) or the client id (desk 222, the zoo's 223), the only thing the gateway tells apart. Client id chosen. His 13 Nov: "always go with recommended".
+
+### 2026-11-28 — recovery takes its collect as a required argument (#2498)
+Options: a default collect for `recover` (a caller could forget it and a gapped stop would not halt buying) or a required argument handed by the caller. Required chosen, so every ledger read goes through the one `running._collect`, which records the day's rates and then calls `book.collect` with the lines, the settings and a tell. paper-watcher, held back for lack of `desk/` room, is runner ops' claim gap: a deletion card of 100+ desk/ lines, taken on his "always go with recommended".

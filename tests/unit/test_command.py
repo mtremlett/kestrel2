@@ -34,8 +34,10 @@ from desk import (
     listing,
     messenger,
     paper,
+    placing,
     pnl,
     running,
+    running_notes,
     venues,
 )
 from desk.lines import LINES, Line
@@ -111,7 +113,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
         _run(tmp_path, MON.replace(hour=9, minute=5))
     desk = tmp_path / "desk"
-    (note,) = running.notes(desk)
+    (note,) = running_notes.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8") and not messenger.deliveries(desk)
     assert ASKED and {home for home, _ in ASKED} == {tmp_path}
@@ -161,7 +163,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
         "(kept before); halts: "
         "none in force.\n"
     )
-    assert clearance.checks(desk)[-1].found == () and not running.notes(desk)
+    assert clearance.checks(desk)[-1].found == () and not running_notes.notes(desk)
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8")  # the pound is kept
     called = halt.call(desk, MON, "a crash")  # a halt: ready, and said at the front
     assert _run(tmp_path, MON, "--preflight", **KEYS) == 0
@@ -201,7 +203,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
     fast_store(tmp_path / keeper.HOT, 51)
 
-    def step(desk: running.Desk, now: datetime) -> None:
+    def step(desk: running_notes.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))
         whole(desk, now)
 
@@ -222,7 +224,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     )
     (scratch,) = (tmp_path / "desk" / "rehearsals").iterdir()
     assert [record.day for record in day.records(scratch)] == [FRI]
-    assert [note.what for note in running.notes(scratch)] == ["orders LSE", "orders US"]
+    assert [note.what for note in running_notes.notes(scratch)] == ["orders LSE", "orders US"]
     assert [path.name for path in (tmp_path / "desk").iterdir()] == ["rehearsals"]
     # a step that fails is named and the next carries on, as in the day: one bad reading at
     # London's open and it is GO all the same, saying so; every reading bad, and it is not
@@ -262,6 +264,61 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
 
 
+def test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch)
+    fast_store(tmp_path / keeper.HOT, 51)
+    reads, whole = [0], paper.whole
+    monkeypatch.setattr(running, "step", lambda *_: None)
+
+    def stall(door: paper.Door | None = None) -> paper.Account:
+        reads[0] += 1
+        if reads[0] == stalls[0]:
+            raise TimeoutError("no answer in 30 s")
+        return whole(door)
+
+    stalls = [1]
+    monkeypatch.setattr(paper, "whole", stall)
+    assert _run(tmp_path, SUNDAY, "--rehearse") == 1
+    assert capsys.readouterr().out == (
+        "REHEARSAL NO-GO: the account read before the run stalled: no answer in 30 s.\n"
+    )
+    reads[0], stalls[0] = 0, 3  #: the cancel reads once between
+    assert _run(tmp_path, SUNDAY + timedelta(seconds=1), "--rehearse") == 1
+    line = capsys.readouterr().out
+    assert "the account read after the run stalled: no answer in 30 s" in line
+    assert "199 of 199 steps passed" in line
+
+
+def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    ticks, steps = iter(range(0, 10_000_000, 600)), list[datetime]()
+    monkeypatch.setattr(running, "step", lambda _desk, at: steps.append(at))
+    moments = command._moments(FRI)
+    desk = command._desk(tmp_path, Mock(), tmp_path)
+    clock = lambda: SUNDAY + timedelta(seconds=next(ticks))  # noqa: E731 - ten minutes a call
+    failed = command._live(desk, moments, clock)
+    spent = f"the rehearsal's {command.RUN_SECONDS} s were spent"
+    assert 0 < len(steps) < len(moments) and failed == [
+        f"{moments[len(steps)]:%H:%M} UTC stopped, {spent}"
+    ]
+
+
+def test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A Friday: 313 orders, each its wait and 6 s more (5 s ran out at 17:50), three 30 s dials;
+    every step runs, so the run ends by itself and the cancel after it (rehearse) finds none."""
+    moments = command._moments(FRI)
+    cost = (313 * (placing.SHUT_SECONDS + 6) + 3 * 30) / len(moments)
+    now = [SUNDAY]
+    monkeypatch.setattr(running, "step", lambda *_: now.append(now[-1] + timedelta(seconds=cost)))
+    desk = command._desk(tmp_path, Mock(), tmp_path)
+    assert command._live(desk, moments, lambda: now[-1]) == []
+
+
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -294,7 +351,7 @@ def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_st
     for said, end in cases.items():
         answers[tp.ACCOUNT], answers[tp.FILLS] = account, [*real, END]
 
-        def step(desk: running.Desk, now: datetime, end: Said = end) -> None:
+        def step(desk: running_notes.Desk, now: datetime, end: Said = end) -> None:
             whole(desk, now)
             if (now.hour, now.minute) == (22, 0):
                 answers[tp.ACCOUNT] = end

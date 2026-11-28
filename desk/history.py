@@ -13,7 +13,7 @@ import time
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import BinaryIO, TypeVar, cast
 
@@ -27,8 +27,6 @@ PACING = 11.0  #: seconds the pull slows after the broker says pacing (its small
 ASK, BARS, NEWS, ID = 20, "17", "4", 9001
 #: A bar's fields in the answer: its day, open, high, low, close, volume, the average and a count.
 WIDTH = 8
-#: The primary exchange the broker lists a London line under; a US line is routed by SMART.
-PRIMARY = {"LSE": "LSEETF", "US": ""}
 #: The pound in dollars is asked as a forex pair (GBP.USD at IDEALPRO), of the midpoint: it has no
 #: trades, and the broker gives its bars no volume (-1), kept as none.
 CASH = (0, "GBP", "CASH", "", 0, "", "", "IDEALPRO", "", "USD")
@@ -78,7 +76,8 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     span = (day - since).days
     length = f"{span} D" if span <= 365 else f"{span // 365 + 1} Y"
     end = f"{day:%Y%m%d} 00:00:00 UTC"
-    contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", PRIMARY[line.venue], line.currency)
+    primary = listing.PRIMARY[line.venue]
+    contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", primary, line.currency)
     if line == POUND:
         contract = CASH
     return paper.message(
@@ -99,6 +98,15 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     )
 
 
+def _volume(text: str, fields: list[str]) -> int:
+    """A bar's volume in whole shares: the broker's -1 (no trades counted, the pound's) is none,
+    and a decimal (shares traded in parts) the nearest whole share, half to even; any other text
+    is refused, the message named."""
+    if text == "-1":
+        return 0
+    return int(paper.number(text, fields).to_integral_value(ROUND_HALF_EVEN))
+
+
 def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
     """The bars of an answer of the broker's, those from since and before day."""
     body = fields[5:]
@@ -114,7 +122,7 @@ def _bars(fields: list[str], day: date, since: date) -> tuple[Bar, ...]:
         taken = date(int(stamp[:4]), int(stamp[4:6]), int(stamp[6:8]))
         if since <= taken < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Bar(taken, o, h, low, c, max(int(volume), 0)))
+            found.append(Bar(taken, o, h, low, c, _volume(volume, fields)))
     return tuple(found)
 
 
@@ -132,7 +140,7 @@ def _candles(fields: list[str], day: date, since: date) -> tuple[Candle, ...]:
         start = datetime.fromtimestamp(int(stamp), UTC)
         if since <= start.date() < day:
             o, h, low, c = (paper.number(p, fields) for p in given)
-            found.append(Candle(start, o, h, low, c, max(int(volume), 0), "ibkr"))
+            found.append(Candle(start, o, h, low, c, _volume(volume, fields), "ibkr"))
     return tuple(found)
 
 

@@ -228,12 +228,19 @@ def gaps(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> tuple[str
     return tuple(g for c, bars in cells for g in market.gaps(c.line, bars, rates, c.start, c.end))
 
 
+class Gaps(Exception):
+    """A set refused by its pre-flight: its inputs have gaps, which the one writer mends; the set
+    waits for that fill, never judged around it (L20). No ValueError: no cell's `FAILED` takes
+    a set's wait for its own fault."""
+
+
 def preflight(cells: Iterable[tuple[Cell, Sequence[Bar]]], rates: Rates) -> None:
-    """The set runner's pre-flight (L20): a set whose inputs have a gap refuses to start, naming
-    how many and the first, so the gap is mended at entry by the one writer, never in a rung."""
+    """The set runner's pre-flight (L20): a set whose inputs have a gap refuses to start
+    (`Gaps`), naming how many and the first, so the gap is mended at entry by the one writer,
+    never in a rung."""
     if found := gaps(cells, rates):
         many = f"{len(found)} gap" + ("s" if len(found) > 1 else "")
-        raise ValueError(f"{many} in the set's inputs: the set refuses to start, first {found[0]}")
+        raise Gaps(f"{many} in the set's inputs: the set refuses to start, first {found[0]}")
 
 
 def published(faults: int, cells: int) -> bool:

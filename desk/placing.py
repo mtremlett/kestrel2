@@ -20,7 +20,7 @@ and of a line's stop before a sale; by `settle`, of a stop only once its replace
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -37,6 +37,13 @@ from desk.placing_parts import OVER
 from desk.placing_parts import Stop as Stop
 
 MARKET = ("MKT", "", "", "DAY")  #: an order's kind: at the market, no price, for the day
+SHUT_SECONDS = 3  #: the fill wait of a rehearsal's account: the market is shut, nothing can fill
+
+
+@dataclass(frozen=True)
+class Shut(paper.Door):
+    """The door of a rehearsal, the markets shut: an order sent through it is given SHUT_SECONDS
+    to fill, not paper.FILL_SECONDS (the one wait for each door, here)."""
 
 
 class NotCancelled(Exception):
@@ -99,14 +106,19 @@ def _place(
     return number, None, tuple(notices)
 
 
-def _withdrawn(report: Report) -> Report:
+def _wait(door: paper.Door) -> int:
+    """How long an order sent through this door is given to fill."""
+    return SHUT_SECONDS if isinstance(door, Shut) else paper.FILL_SECONDS
+
+
+def _withdrawn(report: Report, wait: int) -> Report:
     """An order the desk cancelled after its wait, told as the desk's own act: it went at the
     market (MARKET) and was not filled within the door's wait. What the broker then says of it
     follows; an order the broker ends itself keeps the broker's own words (Paper.report)."""
     if report.reason is None:
         return report
     why = f"{report.order_id}: withdrawn by the desk: not filled at the market within "
-    why += f"{paper.FILL_SECONDS} seconds"
+    why += f"{wait} seconds"
     broker = report.reason.removeprefix(f"{report.order_id}: ")
     if broker.startswith("the broker says "):
         why += f"; {broker}"
@@ -205,7 +217,7 @@ class Paper:
         try:
             number, last, notices = paper.dial(
                 lambda wire, send: _place(wire, send, listed, order, self._door, times),
-                paper.FILL_SECONDS,
+                _wait(self._door),
             )
             silent = last is None
             if silent:
@@ -215,7 +227,7 @@ class Paper:
             if (
                 silent and last in GONE
             ):  #: the broker found it working, and cancelled it for the desk
-                report = _withdrawn(report)
+                report = _withdrawn(report, _wait(self._door))
             moved = sum(fill.quantity for fill in report.fills)
             held, stops = on(paper.read(self._door), listed, self._door)
             if held != was + moved or (last == "Filled" and abs(moved) != order.quantity):

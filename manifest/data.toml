@@ -30,6 +30,7 @@
 "desk/collector.py" = "the free collector: once a day the free vendors' price second opinions, macro series, earnings dates and timestamped news, each answer kept raw and its facts in the one store"
 "desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
 "desk/store_scope.py" = "the keeper's judging scoped to the window the desk decides on: store.judge, but a fault dated before that window is named on its own day and never parks the line"
+"desk/keeper_round.py" = "the keeper's judging of a round: answers judged by the one store and kept, each line's newest-bar source named, the lines a call owes, and the pound's closes"
 "desk/keeper_rotate.py" = "the keeper's record of a venue's last refresh, and the order it asks the broker in: the yardstick before all, then the lines not asked on the last call, so a line the broker refuses never starves the others"
 "desk/keeper_receipt.py" = "the keeper's dated receipt: a file a day, a line for each call that did anything, saying which newest bars arrived, their span, moment and source, and surviving a kill between the line and the record of what was seen"
 "desk/keeper_live.py" = "the keeper's live day: a venue's five-minute round from the paper gateway into the short database, and the archive's past days backfilled beneath it"
@@ -39,3 +40,4 @@
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
 "lab/headstart_hours.py" = "the old Stooq store's hourly bars as a head start: read-only, each named by its start in UTC, vouched for by its day, cleaned by the one store and let into the history database under their own source"
 "lab/headstart_matrix.py" = "the old Stooq matrices' 15-minute, 30-minute and hourly arrays as a head start: read-only, named by their start in UTC, vouched for by their day, cleaned by the one store and let into the two databases under their own source"
+"desk/weather.py" = "the market weather recorded before it acts: each line's realised volatility, one reading a day from the closes up to that day, kept in a file nothing that trades reads"

@@ -26,6 +26,7 @@ from lab import (
     deflated,
     folds,
     ladder,
+    ladder_kept,
     ladder_parts,
     ladder_sets,
     market,
@@ -316,7 +317,7 @@ def test_every_trial_is_counted_before_any_is_run_and_the_count_never_begins_aga
     assert [row["answer"] for row in _rows(tmp_path)[-2:]] == ["THIN", "FAIL"]
     holed = NOISE[:4] + NOISE[5:]  #: the market missing Tuesday 5 January 2010, a session
     with pytest.raises(
-        ValueError, match="^1 gap in the set's inputs.* ISF has no bar on 2010-01-05"
+        folds.Gaps, match="^1 gap in the set's inputs.* ISF has no bar on 2010-01-05"
     ):
         ladder.run(tmp_path / "holed", _door({VUSA: EDGE, ISF: holed}), {}, todo)
     assert not (tmp_path / "holed").exists()  #: refused before its register or a row
@@ -419,7 +420,7 @@ def test_superseded_lines_compact_to_one_per_cell_and_a_stop_mid_rewrite_leaves_
     file = tmp_path / "set.jsonl"
     old = [{"cell": [k], "n": n} for n, k in enumerate("abaab")]
     file.write_bytes(b"".join(json.dumps(r).encode() + b"\n" for r in old))
-    before = ladder.Kept(file)
+    before = ladder_kept.Kept(file)
     last = {k: before.get(k) for k in before.at}
     whole = file.read_bytes()
 
@@ -432,6 +433,6 @@ def test_superseded_lines_compact_to_one_per_cell_and_a_stop_mid_rewrite_leaves_
     assert file.read_bytes() == whole  #: a stop mid-rewrite: the old file whole
     monkeypatch.undo()
     before.compact()
-    after = ladder.Kept(file)
+    after = ladder_kept.Kept(file)
     assert after.lines == 2 and {k: after.get(k) for k in after.at} == last
     assert file.read_bytes().count(b"\n") == 2

@@ -104,6 +104,7 @@ def test_the_fast_engine_has_a_firing_for_every_block_that_needs_no_position() -
         "darvas_stop",
         "breadth_thrust",  # on ratio bars, not price bars: the fast engine serves none
     }
+    assert fast.Shared(_walk(1, 30)).fires("every_close", {}).all()  #: row 101's every close
 
 
 def test_rows_on_one_line_share_one_working_of_a_block() -> None:

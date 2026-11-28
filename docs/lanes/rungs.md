@@ -633,3 +633,33 @@ cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer chang
 cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
 `tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
 and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
+
+### 2026-11-27 — claim gap rungs-pound-gap recorded as met, five times over (#2328, #2345, #2348, #2358, #2383, #2402, #2411, #2425, #2428)
+- Runner ops asked for rungs-pound-gap's claim to be widened to lab/ladder_sets.py and tests/unit/test_lab_ladder_sets*.py, and held rungs-epon-first on R-RUNGS-38. Options: (a) edit those files from an unrelated claim, which the check refuses and which builds the work twice (pattern 16); (b) record it as already met. Took (b), by his standing words "please always go with recommended to avoid waiting for me to attend": #1992 is on main (`_pooled.go` calls `ladder.preflight`), the box is ticked, and PLAN's files line already names both files. The STATUS line asking runner ops to widen it is dropped.
+
+### 2026-11-27 — known-answer kit: record the blockers, tighten nothing (#2328, #2402)
+- Tighten the edge assertion now? Options: (a) tighten here, (b) leave it to #2326 and file what blocks. Took (b) in #2328: #2326 holds the same file, and "goes forward" cannot pass while reproduce is unrun (`verdict_parts.goes` needs `unrun == {}`), so R-RUNGS-48 asks for reproduce judged on determinism or declared not applicable.
+- In #2402 (probe on the 6,200-day walks): fit FAILS (the planted rise follows any trend; supertrend_10_3 moves 0.91) and liquidity FAILS (the fixture's volume is 1), and 16 lines took over ten minutes. Options: (a) lengthen the walks and assert PASS, which cannot be green; (b) write the blockers in the kit's docstring. Took (b) by the stop rule (A8). The later crowd edge (L15b, Builder R2) answers it.
+- #2328's restore: red was `step (unit 2/5)` CANCELLED, not a test. Options: close, or bring up to date and re-run. Took the second (docstring-only change).
+
+### 2026-11-27 — catalogue rows pinned by fingerprint; deletion left to MONEY (#2345, #2383, #2425)
+- Proving identical trades once a twin is deleted. Options: (a) keep every Python file forever, against the box; (b) rely on each row's hand-written cases, too weak (a few bars, not the fixture's trades); (c) pin a 16-hex sha256 of each row's fixture decisions, taken while the twin matched. Took (c), a golden in B5's sense: a changed hash is a changed rule and needs its reason here.
+- Not deleting the files here, though the names fit this claim. Options: (a) delete the 19 and edit their importers (manifest/money.toml, desk/intraday.py, lab/rulebook.py, lab/ladder*.py, lab/published*.py, seven tests: all outside the claim, pattern 21); (b) land the in-claim step and name the rest. Took (b); MONEY's money-epon-room holds seven of them, and the zoo's eleven go only when it runs rows (R-RUNGS-51).
+- "Zweig waits on breadth data" (#2425). Options: leave waiting, or treat parity as met. Met: the row reads ratio bars from `lab.spec.ratio_bars`, so parity on the fixture needs no breadth store; real breadth data matters only to judging on real prices (R-RUNNER-557). No id ticked: the box also says the Python files are deleted.
+
+### 2026-11-27 — Keltner exact ties: the fast engine is right (#2348, #2411)
+- At an exact tie which engine is right? The fast engine, which works in whole numbers and says "not beyond"; the desk's `_Keltner` divides by 3 in decimals and rounds a tie into a fire. Strict "over/under the band" must not depend on rounding at the 26th decimal (B4). Copying the rounding into the fast engine was rejected; the fix is in lab/blocks.py (R-RUNGS-49).
+- Land the full-fixture parity with Keltner left out? No: a special case for a test input (A3). #2411 lands the check with the desk's rounding pinned in `DESK_ROUNDS`, a list that can only shrink, and leaves rungs-fast-engine open, since the two engines do not yet match. Variants run on the first series only (walk 36 ties too; all series take 54 s).
+
+### 2026-11-27 — set 2 published from the grid's study file (#2358)
+- Options: (a) call `lab.transfer.main` from the ladder door, which needs store and folders the runner chooses and writes the study from a second place; (b) read its finished results file. Took (b): one writer of the study (GRID's); the ladder publishes and tells (LAD-09). "Goes forward" for set 2 is always none: the study is PRE-REVIEW, a PASS there is counted, never promoted (B6).
+
+### 2026-11-28 — a stale market under a basket is a named FAULT (#2428)
+- A market with bars ending before the basket's last sale. Options: (a) drop the retail rung silently (pattern 10); (b) judge only to the market's last bar, a different trial; (c) FAULT the retail rung naming the gap. Took (c): it fails loudly, keeps the rule from going forward, and the table is still written.
+- A market the keeper refuses (`keeper.Stale`) counts as one holding no bars, caught narrowly in `_against`, never broadly. Pound-gap's claim widening stays runner ops' (one objective, A8).
+
+### 2026-11-28 — the overnight holding lives in the rule's spec row (#2513)
+- Where the holding lives. Options: (a) a `judge` argument, (b) the rule's own spec row, read by the rung. Took (b): one home for the fact (pattern 8); (a) was the restored branch's choice and a blind review showed it silently ignored at every caller.
+- Land although the box note said "held until the EPON re-run has finished". Options: wait, or land. Took land: additive, no catalogue row names `overnight`, so every existing verdict is priced by the unchanged path.
+- The planted-stop return (G2) for overnight trades is a sale at the stop's level next morning: conservative, one model for every trade; revisit when row 101 is judged.
+- Runner ops' claim-gap order for rungs-pound-gap (`lab/ladder_sets.py`) taken by his standing ruling "always go with recommended"; those files are outside this claim, nothing changed (the box is ticked, #1992).

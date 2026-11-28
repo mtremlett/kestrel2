@@ -27,9 +27,16 @@ LISTED, LISTED_END, STEPS = "10", "52", "93"  #: the answers, by the gateway's o
 UNKNOWN = "200"  #: the gateway's notice that it lists nothing under a name
 ROUTE = "SMART"  #: where the desk's orders will go: the broker's own router
 #: The broker's names for the exchanges of each of the desk's venues, each seen from the
-#: gateway on one of the desk's lines. A line listed on any other is unlisted until its
-#: exchange is named here.
-EXCHANGES = {"LSE": frozenset({"LSEETF"}), "US": frozenset({"NASDAQ", "ARCA"})}
+#: gateway on one of the desk's lines (London's shares on LSE, New York's on NYSE and BATS: the
+#: research list's, 28 Nov). A line listed on any other is unlisted until its exchange is named.
+EXCHANGES = {
+    "LSE": frozenset({"LSEETF", "LSE"}),
+    "US": frozenset({"NASDAQ", "ARCA", "NYSE", "BATS"}),
+}
+#: The exchange a line is asked under, by its venue: London's fund board, where the desk's own
+#: London lines list (a share asked there came back as itself on LSE: 255 kept on 28 Nov);
+#: a US line is left to SMART.
+PRIMARY = {"LSE": "LSEETF", "US": ""}
 SHAPE = "a listing of a shape the desk does not read: {}"
 #: What the broker may multiply a currency's prices by: pounds alone are also priced in pence.
 UNITS = {"GBP": (1, 100), "USD": (1,)}
@@ -91,10 +98,9 @@ class Unlisted:
 def _contracts(wire: BinaryIO, send: paper.Send, number: str, line: Line) -> list[list[str]] | str:
     """Every contract the broker lists under the line's name and currency, as it sent them;
     or its own words when it says it lists none."""
-    #: from the instrument master: the venue's one exchange (none where it has two), the
-    #: currency and the ISIN, so the broker is never left to guess the line from its symbol
-    venue = EXCHANGES[line.venue]
-    primary = next(iter(venue)) if len(venue) == 1 else ""
+    #: from the instrument master: the venue's exchange to ask under, the currency and the
+    #: ISIN, so the broker is never left to guess the line from its symbol
+    primary = PRIMARY[line.venue]
     kind, isin = ("ISIN", line.isin) if line.isin else ("", "")
     #: with an ISIN the security type is left empty: the ISIN names the thing, the type may not
     asked = (

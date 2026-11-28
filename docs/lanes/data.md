@@ -738,3 +738,44 @@ One owner for reading old hours rather than a second reader. Deleting the origin
 
 ### 2026-11-27 — a write the store refuses lifts no withdrawn mark (DATA, O12)
 690 correction rows (538 days; AAPL, SPY, QQQ, MSTR, 3 on most others) show IBKR's daily bars rewritten as `archive`, prices alike, the archive's volume: the old job copy (5a2d74f0, without #2361) re-cleaned a held IBKR bar under a withdrawn mark as fresh, every such row before 19:02, none since. Main's writer refuses the archive over any IBKR day, marked or not, now pinned by a withdraw-table row. The same reading found a second fault: the refused day's mark was lifted anyway, so an IBKR bar the judge drops (a zero close) was served again. Options: A, let the archive take a withdrawn IBKR day (breaks IBKR first, refused); B, lift the mark for every day given (the rule until now); C, only a bar that lands, or the judge's own restore, lifts a mark (chosen: one judgement, IBKR first, nothing deleted). Pinned by `test_the_withdraw_rule_table`'s two new rows, both driven red with the archive filter removed.
+
+### 2026-11-28 — the polled round's five extra names are watch-only US lines (DATA, #2307)
+
+Decided: `lines.WATCHED` (MSFT, AMZN, GOOGL, META, AVGO, ISINs checked) beside LINES, `POLLED_LINES` = 27. Options: more LSE lines; add to LINES (rejected: makes them tradeable and ranked). No ticker list lives in the keeper. Evidence: test_keeper_pace.py red on main, green now.
+
+### 2026-11-28 — a polled round is its own gateway client (DATA, #2321)
+
+Decided: client ids 227, 228, 229 for the 5, 15 and 60 minute rounds. Option: reuse 226 (refused: two conversations on one id are refused by the gateway). Evidence: test_keeper_pace.py red without the keeper change.
+
+### 2026-11-28 — the archive yields to a held IBKR day at the writer (DATA, #2361)
+
+Decided: the one writer leaves a held IBKR daily bar when the ARCHIVE writes that day and writes no correction row. Options: a rank per line or day (rejected by the request); a rank for every source (wider than asked). BACKFILL already fills only where none is held. The 682 existing correction rows stay: repairing them is a separate job.
+
+### 2026-11-28 — a roll-up bar follows its restated days (DATA, #2453)
+
+Decided: the writer upserts a held bar of its OWN roll-up source when values differ; identical values write nothing; a pulled bar stays. Options: delete and re-roll in the keeper (rejected: two paths). Reason: derived data follows its source (B3).
+
+### 2026-11-28 — an empty comparison does not prove an old store deletable (DATA, #2408)
+
+Decided: `lab.headstart check` names a store 'deletable on his yes' only if every comparison matched with nothing missing, something was compared, and the restore drill read back clean; otherwise 'KEEP: not proven'. Options: count empty as proven (rejected: nothing compared proves nothing; fail loudly). Nothing is deleted; the yes is his.
+
+### 2026-11-28 — the list of rollable files is one JSON in the data home (DATA, #2409)
+
+Decided: `desk.quality rolloff-rows` writes rolloff_rows.json atomically so the runner reads one stable file. Option: stdout only (rejected).
+
+### 2026-11-28 — the archive adapter lives in desk/archive.py; 1h waits (DATA, #2438, #2439, #2461)
+
+Decided: `archive.five_pull` answers 5m, 15m, 30m and London 1h cells; the adapter sits in archive.py because the one-price-door guard lets only the writers read outside the databases. A US 1h cell is refused with its reason: the archive's US hour starts at :30, the store's mark is the UTC hour. Options: (a) re-anchor US 1h to the UTC hour (misdates bars, touches desk/spans.py outside the claim); (b) refuse loudly (chosen); (c) fill US 1h from the broker only (next); or roll 1h up from 5m (recommended for 4h and 1wk).
+
+### 2026-11-28 — data in tiers: no placeholder for Tier B (DATA, #2267)
+
+Decided: Tier B (vendor not bought, after the A-GATE) raises NotImplementedError; overflow goes to London's 15-minute broker feed or Tier C. Option: a placeholder feed (refused by A5, a fake). Allowance priority: held, signalled, watched. The module line is in manifest/data.toml.
+
+
+### 2026-11-28 — market weather starts with realised volatility (DATA, #2470)
+
+Decided: volatility first (strongest published evidence), as the box says; window 20 days (a trading month), the same std as `risk.volatility` (one home); storage a jsonl per line in a folder the caller names. Option: a database table (heavier, needs the writer), rejected for a recorded-only layer.
+
+### 2026-11-28 — keeper split named by what it owns (DATA, #2462)
+
+Decided: the split module is `keeper_round` (the round's judging), not parent plus suffix (`keeper_parts` fails the fragment-name guard, pattern 6); `_kept_in` and `pound_closes` are re-exported from `desk.keeper` rather than editing other lanes' files. Option: edit those callers (rejected, outside the claim).
