@@ -1374,7 +1374,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       one holding model, no second engine: a spec field holding ('next_open' the default, 'overnight') read by
       lab/spec.py; 'overnight' buys at close[t] and sells at open[t+1] (Friday to Monday one trade), costs whole
       by orders.charges, no stop while the market is shut. Gate, written first, in the contract test: hand-worked
-      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named lab/cell.py, GRID's: a part that needs it is a GRID box this one waits for)
+      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named GRID's cell module: a part that needs it is a GRID box this one waits for)
       {id: holding-overnight; files: lab/rung.py, lab/spec.py, tests/unit/test_lab_rung.py, tests/unit/test_lab_spec*.py; check: tests/unit/test_lab_rung.py::test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open}
 - [ ] Row 101's overnight baseline through the ladder (card holding-overnight-row101, R-RUNNER-375, part 2 of 3):
       [overnight_baseline] in lab/catalogue.toml (row 101 of set-catalogue.md, source named), buy every close and
