@@ -11,7 +11,7 @@ from typing import cast
 import pytest
 
 from desk import eponymous_keltner_channel_trend
-from lab import ladder, published, published_epon, reproduce
+from lab import ladder_epon, published, published_epon, reproduce
 from lab.published import Published
 from lab.published_epon import EPONYMOUS_PUBLISHED, SECONDARY, TESTED, Printed, Replication, Search
 
@@ -24,7 +24,7 @@ def _fresh() -> None:
 
 
 def test_each_rule_on_file_is_proven_on_its_cases_and_names_its_source() -> None:
-    names = ladder.eponymous()
+    names = ladder_epon.eponymous()
     assert len(names) == 20 and set(EPONYMOUS_PUBLISHED) == set(names)
     for name in EPONYMOUS_PUBLISHED:
         assert published.proven(name) is EPONYMOUS_PUBLISHED[name]
