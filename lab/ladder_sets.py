@@ -429,8 +429,7 @@ def main(
     try:
         said = transferred(home) if argv == ["transfer"] else _judged(home, argv)
     except folds.Gaps as gaps:  #: no table, no phone: the set waits for the store's next fill
-        tag = {"first": ladder.FIRST, "leveraged": LEV}.get(argv[0] if argv else "", EPON).tag
-        sys.stderr.write(f"ladder: set {tag} waits for the store's next fill: {gaps}{NL}")
+        sys.stderr.write(f"ladder: the set waits for the store's next fill: {gaps}{NL}")
         raise SystemExit(WAITS) from None
     sys.stdout.write(said + NL)
     phone = told(home, said, now(), partial(door, env))
