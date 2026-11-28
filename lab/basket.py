@@ -39,8 +39,10 @@ rung's verdict alone) is not given (rungs-each-rung: no rung module off the ladd
 
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
+from datetime import date
 from decimal import Decimal
 from statistics import fmean, stdev
 from typing import Any
@@ -115,15 +117,24 @@ class Against:
 
 def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
     """The basket's days and its market's, paired, over the market's bars from the basket's first
-    buy to its last sale; the market has no bar on a trade's day: refused."""
+    buy to the bar its last sale is booked to; a sale on a day the market is shut lands on its
+    next bar, and one after its last bar is refused."""
+    open_on = [b.day for b in against.bars]
+
+    def booked(day: date) -> date:
+        """The market's first bar on or after a sale's day: a London line on a US proxy sells
+        on a UK bank holiday with New York open, and its pounds land on ISF's next bar."""
+        at = bisect_left(open_on, day)
+        if at == len(open_on):
+            raise ValueError(f"{against.line.symbol} has no bar on or after {day}, a day of a sale")
+        return open_on[at]
+
     first = min(p.held[0] for p in basket.trades)
-    last = max(p.held[1] for p in basket.trades)
+    last = max(booked(p.held[1]) for p in basket.trades)
     bars = [b for b in against.bars if first <= b.day <= last]
     sold = {b.day: Decimal(0) for b in bars}
     for p in basket.trades:
-        if p.held[1] not in sold:
-            raise ValueError(f"{against.line.symbol} has no bar on {p.held[1]}, a day of a sale")
-        sold[p.held[1]] += (p.gross - p.costs.total) / CAPITAL
+        sold[booked(p.held[1])] += (p.gross - p.costs.total) / CAPITAL
     marks = [b.close * rung.rate(against.line, against.rates, b.day) for b in bars]
     market = [float(now / was - 1) for was, now in zip(marks, marks[1:], strict=False)]
     return [float(sold[b.day]) for b in bars[1:]], market
@@ -131,15 +142,22 @@ def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
 
 def grade(basket: Verdict, against: Against) -> tuple[Answer, str] | None:
     """The rung's answer on a pooled basket while EASED (None while not); a basket the first rung
-    could not judge gives that answer, which it inherits."""
+    could not judge gives that answer, which it inherits; a market whose bars end before the last
+    sale (or that holds none) is stale: the rung is FAULT, naming its last bar and the sale."""
     if not verdict.EASED:
         return None
     if basket.answer in (Answer.FAULT, Answer.THIN):
         return basket.answer, "the first rung found too few trades, or none, to set beside it"
+    end = against.bars[-1].day if against.bars else "nowhere, none held"
+    sold = max(p.held[1] for p in basket.trades)
+    if not against.bars or against.bars[-1].day < sold:  #: stale: the rung's gap, never a crash
+        return Answer.FAULT, f"{against.line.symbol}'s bars end {end}, before a sale on {sold}"
     return judge(*days(basket, against))
 
 
 NAME = ("BASKET", "all lines pooled")  #: the line and the venue of a basket's cell in the table
+#: A basket is judged on its pooled first rungs only, so its pass is no pass of the whole ladder.
+UNRUN = {"ladder": "a basket is its lines' trades pooled: a line goes forward on its own rungs"}
 
 
 def pool(lines: Sequence[Verdict]) -> Verdict:
@@ -186,7 +204,7 @@ def row(
         "trials": looks,
         "trades": len(basket.trades),
         "rungs": verdict.reported(rungs),
-        "unrun": verdict.UNRUN,
+        "unrun": UNRUN,
         "every": verdict.every(rungs),
         "answer": verdict.basket_answer(basket, stressed),
     }

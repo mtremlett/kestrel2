@@ -42,13 +42,14 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
 from math import comb
-from types import MappingProxyType, ModuleType
+from types import ModuleType
 
 from desk import orders
 from desk.broker import Pretend
 from desk.lines import Line
 from desk.orders import Charges, Leg, Settings
 from desk.orders import Refused as Declined
+from desk.store import NO_RATES as NO_RATES  #: a pound line's, which reads no rate
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
 from lab import cell, published, reproduce
@@ -62,7 +63,6 @@ T_PASS = Decimal(2)
 MISS = 0.001
 #: Pounds per unit of a line's currency, for each day it trades.
 Rates = Mapping[date, Decimal]
-NO_RATES: Rates = MappingProxyType({})  #: a pound line's, which reads no rate
 
 
 class Answer(enum.IntEnum):

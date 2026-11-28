@@ -359,7 +359,9 @@ def test_a_zoo_buy_of_a_line_the_desk_holds_stays_refused_until_shares_have_owne
 ) -> None:
     """A line's owner is its last buyer (book.side), not per share: a zoo buy of the desk's line
     would hand it the whole line, and the zoo's sale would sell the desk's shares (blind review,
-    23 Nov). So it stays refused until the book counts each side's shares (zoo-own-side)."""
+    23 Nov; again 27 Nov: the broker keeps one stop per line under the newest buy's id, and
+    day._holders is the last buyer, so a mixed line moves the desk's stop and lets the zoo's
+    yield sell its shares). It stays refused until stops and holders are per side (zoo-own-side)."""
     line = next(ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa)
     broker = Pretend({line: BARS[A]}, {})
     broker.open(MON)

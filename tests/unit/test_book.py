@@ -3,16 +3,19 @@ the gate reads, built from every fill. Scene 4 holds the gate's refusal and a cr
 
 from __future__ import annotations
 
+import csv
 from collections.abc import Callable, Iterable
 from dataclasses import astuple, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
+from typing import IO, Any
 from unittest.mock import Mock
 
 import pytest
 
-from desk import book, book_parts, halt
+from desk import book, book_parts, book_parts2, halt
 from desk.broker import Broker, Crash, Fault, Fill, Pretend
 from desk.halt import Blocker, Stopped
 from desk.lines import STAMP_DUTY, Line
@@ -101,9 +104,64 @@ def test_the_ledger_is_opened_once_until_it_is_written_never_twice_a_call(
     assert all(book.fills(tmp_path) == tuple(planted) for _ in range(40))
     assert log.count(book.LEDGER) == 1, f"{log.count(book.LEDGER)} opens for 40 asks"
     book._record(tmp_path, [replace(planted[0], execution_id="y-0")])
-    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 2, "its write unseen"
+    #: the desk's own fill is added, its reading grown by it (book_parts.add): never opened again
+    assert len(book.fills(tmp_path)) == 2001 and log.count(book.LEDGER) == 1, "its write unseen"
     book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, astuple(planted[1])])
-    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 3, "another's"
+    assert book.fills(tmp_path) == (planted[1],) and log.count(book.LEDGER) == 2, "another's"
+
+
+def test_a_record_added_to_is_read_as_if_read_whole_and_one_of_another_header_is_not_added_to(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A FILE THE DESK ADDS ROWS TO (book_parts.add) keeps its reading grown by the rows alone
+    (a Rows), the very reading the file read whole gives; any other reading of it is read again."""
+    path, header = tmp_path / "kept.csv", ("name", "words")
+    rows = book_parts.Rows(lambda r: tuple(map(tuple, r)), lambda k, r: (*k, *map(tuple, r)))
+
+    def size(kept: Path) -> int:
+        return len(kept.read_bytes())
+
+    assert book_parts.add(path, header, [("a", "plain")]), "none yet is written with its header"
+    log, was = list[str](), Path.open
+    monkeypatch.setattr(Path, "open", lambda *a, **k: log.__iadd__([a[0].name]) and was(*a, **k))
+    assert book_parts.read_once(path, rows) == (header, ("a", "plain")) and log == ["kept.csv"]
+    assert book_parts.read_once(path, size) == len(path.read_bytes())
+    for more in ([("b", 'a "quoted", comma')], [("c", "two\nlines"), ("d", "")], []):
+        assert book_parts.add(path, header, more)
+        opened = len(log)
+        assert book_parts.read_once(path, rows) == rows(path), f"grown is not read whole: {more}"
+        assert len(log) == opened + 1, "the grown reading was read again: only the whole was"
+        assert book_parts.read_once(path, size) == len(path.read_bytes()), "another's kept"
+    before = path.read_bytes()
+    assert not book_parts.add(path, ("other", "header"), [("e", "x")]), "added under another"
+    assert path.read_bytes() == before and len(book_parts.read_once(path, rows)) == 5
+    #: a ledger another hand wrote with its last row unended (blind review, 27 Nov): added to, the
+    #: new fill would run on into it; it is written whole instead, and reads whole
+    ledger = tmp_path / book.LEDGER
+    CRLF = bytes([13, 10])
+    ledger.write_bytes(",".join(book.COLUMNS).encode() + CRLF + b"C1.01,o1,A,25,171.5,2025-11-10")
+    book._record(tmp_path, [Fill("C2.01", "o2", "A", 5, Decimal(1), TUE)])
+    assert book_parts.read_once(ledger, book_parts2._APART)[0] == book_parts2._APART(ledger)[0]
+    assert [f.execution_id for f in book.fills(tmp_path)] == ["C1.01", "C2.01"], "run on"
+
+
+def test_the_zoo_side_reads_the_fills_once_a_buy_never_once_a_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The side figure of a buy over 300 held lines asks for the fills once (pattern 26)."""
+    names = [f"L{n}" for n in range(300)]
+    ids = ("d-zoo_a-1", "d-rule-1")
+    planted = [Fill(f"x-{n}", ids[n % 2], s, 1, Decimal(5), MON) for n, s in enumerate(names)]
+    book_parts.keep(tmp_path / book.LEDGER, [book.COLUMNS, *map(astuple, planted)])
+    asked, real = list[int](), book.fills
+
+    def counted(root: Path) -> tuple[Fill, ...]:
+        asked.append(1)
+        return real(root)
+
+    monkeypatch.setattr(book, "fills", counted)
+    mine = book.side(tmp_path, dict.fromkeys(names, 1), "d-rule-2")
+    assert len(mine) == 150 and len(asked) == 1, f"{len(asked)} reads of the fills, not one"
 
 
 def test_a_desk_that_died_mid_send_has_what_it_left_working_cancelled_before_it_sends_again(
@@ -165,20 +223,21 @@ def test_while_the_book_is_not_the_brokers_nothing_is_bought_and_no_such_line_so
     broker.inject("A", 3)
     assert book.reconcile(tmp_path, broker) == ("A", "E")
     with pytest.raises(Refused, match=r"o-3: .*\['A', 'E'\]"):
-        _send(tmp_path, broker, "o-3", SIX[3])
+        _send(tmp_path, broker, "o-3", A)  #: a line that differs is refused, the others trade
+    assert _send(tmp_path, broker, "o-9", SIX[3]).filled == 10, "D agrees: one line never stops all"
     with pytest.raises(Refused, match="s-0: .*not the broker's"):
         book.send(tmp_path, broker, Sale("s-0", A, 10), ROOM)
     assert book.send(tmp_path, broker, Sale("s-1", SIX[1], 10), ROOM).filled == 10, "B agrees"
-    assert broker.submitted() == ("o-0", "o-1", "o-2", "s-1"), "sent while the books differ"
+    assert broker.submitted() == ("o-0", "o-1", "o-2", "o-9", "s-1"), "sent while the books differ"
     broker.inject("E", -7)
     broker.inject("A", -3)
-    assert _send(tmp_path, broker, "o-3", SIX[3], 1).filled == 1, "the books agree again"
+    assert _send(tmp_path, broker, "o-3", SIX[5], 1).filled == 1, "the books agree again"
     broker.open(TUE)  #: A's stop sells it: the ledger learns of it before the books are compared
     assert book.reconcile(tmp_path, broker) == () and "A" not in book.positions(tmp_path)
     broker.cancel_stop("C")
     assert book.reconcile(tmp_path, broker) == ("C",), "a held line with no stop resting"
     with pytest.raises(Refused, match=r"o-4: .*\['C'\]"):
-        _send(tmp_path, broker, "o-4", SIX[4])
+        _send(tmp_path, broker, "o-4", SIX[2])
     assert book.send(tmp_path, broker, Sale("s-2", SIX[2], 10), ROOM).filled == 10, "unprotected"
     broker.inject("D", -1)  #: all of D sold by hand and its stop cancelled: only the book has it
     broker.cancel_stop("D")
@@ -264,7 +323,7 @@ def test_while_a_halt_is_in_force_no_buy_is_sent_a_sale_goes_and_a_refusal_names
     book.turn(tmp_path / "calm", book.Switch.ON, at, "his word")
     for desk, blocker in ((tmp_path / "calm", Blocker.KILL), (tmp_path / "new", Blocker.BOOK)):
         with pytest.raises(Stopped) as refusal:
-            _send(desk, broker, "o-4", SIX[3])
+            _send(desk, broker, "o-4", Line("E", "LSE", "GBP", 1))
         assert refusal.value.blocker is blocker
     with pytest.raises(Stopped, match="long only") as refusal:  #: and the gate
         book.send(tmp_path / "bare", Pretend(WEEK, {}), Sale("s-9", A, 10), ROOM)
@@ -317,7 +376,7 @@ def test_any_broker_stands_behind_the_send_path_its_rows_read_once_and_never_add
         book.send(tmp_path, door, Sale("s-1", A, 10), ROOM)
     door.rows = [("A", 10), ("A CFD", 3)]  #: another product under A's name is not the line
     with pytest.raises(Refused, match=r"o-2: .*\['A CFD'\]"):
-        _send(tmp_path, door, "o-2", SIX[1])
+        _send(tmp_path, door, "o-2", Line("A CFD", "LSE", "GBP", 1))
     assert book.send(tmp_path, door, Sale("s-2", A, 10), ROOM).filled == 10, "A's shares agree"
     assert door.read == 6, "the broker's holdings read more than once for an order"
     door.rows = []
@@ -356,6 +415,34 @@ def test_every_entry_of_the_brokers_is_the_books_own_shares_or_it_is_named(
     assert book.differences(held, iter(entries)) == tuple(book.Difference(*n) for n in named)
 
 
+def test_the_round_trips_and_interest_carried_on_each_day_are_those_summed_afresh(
+    tmp_path: Path,
+) -> None:
+    """THE SUMS CARRIED ON (book._summed): asked each day, as SimCity asks, the round trips and
+    the interest taken on from the day before are those summed from nothing, to the last digit,
+    through a fill learned late, dated days back, and a fill corrected in place."""
+    days = [MON + timedelta(days=n) for n in range(40) if (MON + timedelta(days=n)).weekday() < 5]
+    fill = partial(Fill, symbol="A", price=Decimal(50))
+    Sums = list[tuple[Decimal, tuple[book.RoundTrip, ...]]]
+    first, carried, afresh = days[0], Sums(), Sums()
+    for n, on in enumerate(days):
+        book.record_rates(tmp_path, on, {"GBP": Decimal(1)})
+        made = [fill(f"x-{n}.01", f"b-{n}", quantity=10, day=on)]
+        made += [fill(f"y-{n}.01", f"b-{n - 1}", quantity=-10, day=on)] if n % 2 else []
+        made += [fill(f"z-{n}.01", f"b-{n}", quantity=1, day=days[n - 3])] if n % 7 == 6 else []
+        made += (
+            [fill(f"x-{n - 1}.02", f"b-{n - 1}", quantity=10, day=days[n - 1])] if n == 9 else []
+        )
+        book._record(tmp_path, made)
+        for sums in (carried, afresh):
+            if sums is afresh:
+                book._SUMS.clear()
+            asked = book.interest(tmp_path, SIX, Decimal(90_000), Decimal("0.04"), first, on)
+            sums.append((asked, book.round_trips(tmp_path, SIX)))
+    assert carried == afresh and carried[-1][1], "a sum carried on is not the sum afresh"
+    assert len({str(asked) for asked, _ in carried}) == len(days), "the interest stood still"
+
+
 def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_every_cost(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -387,14 +474,20 @@ def test_a_round_trip_pairs_each_sale_with_the_buys_it_closes_in_pounds_after_ev
     #: the 10 dollar shares bought at 50 and 0.8 sold at 50 and 0.75: 25 pounds lost to the currency
     assert book.currency_gain((share, dollar), trips, book.pounds_per(tmp_path)) == Decimal(-25)
     #: the rates are read once for all the trips, never once a trip: SimCity asks every day,
-    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406)
-    kept, rates_read = book_parts.rates_kept, list[Path]()
+    #: and its deep run hung two hours on one read per trip (22 Nov 19:29, book.py:406); counted
+    #: where they are read, the file opened, the rates written whole just before by another hand
+    #: (a day's own rates are added to the reading, never read again: book_parts.add), so one
+    #: read is owed
+    path = tmp_path / book_parts.RATES
+    book_parts.keep(path, [*csv.reader(path.read_text(encoding="utf-8").splitlines())])
+    was: Callable[..., IO[Any]] = Path.open
+    rates_read = list[Path]()
 
-    def counted_rates(root: Path) -> dict[tuple[date, str], Decimal]:
-        rates_read.append(root)
-        return kept(root)
+    def counted_rates(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
+        rates_read.extend([path] if path.name == book_parts.RATES else [])
+        return was(path, *args, **kwargs)
 
-    monkeypatch.setattr(book_parts, "rates_kept", counted_rates)
+    monkeypatch.setattr(Path, "open", counted_rates)
     pounds = book.pounds_per(tmp_path)
     assert book.currency_gain((share, dollar), trips * 20, pounds) == Decimal(-500)
     assert (
@@ -472,3 +565,42 @@ def test_a_trade_is_told_with_its_strategy_and_the_bar_its_signal_read(tmp_path:
     assert (story.strategy, story.held, story.bar) == ("rsi", 0, friday)
     with pytest.raises(ValueError, match="no bar before"):
         book.told(trips, {A: WEEK[A]})
+
+
+def test_a_fill_the_broker_reports_and_the_send_path_never_recorded_is_booked_by_the_next_reconcile(
+    tmp_path: Path,
+) -> None:
+    """R-RUNNER-533 (SMGB, 25 Nov): the desk's and the zoo's orders filled at the broker, no fill
+    reached the ledger, and every later send refused 'the book is not the broker's'."""
+    broker = Pretend(WEEK, {})
+    broker.open(MON)
+    for name in ("o-1", "zoo-bollinger-2"):  #: placed at the broker, the send path never saw them
+        broker.place(Order(name, A, 5, *map(Decimal, (50, 1, 45))))
+    assert book.positions(tmp_path) == {}, "nothing booked before the reconcile"
+    assert book.reconcile(tmp_path, broker) == (), "the book is the broker's once it has collected"
+    assert book.positions(tmp_path) == {"A": 10} and book.fills(tmp_path) == broker.fills()
+    assert _send(tmp_path, broker, "o-3", n=1).filled == 1, "the next send is not refused"
+
+
+class _Gapped:
+    def __init__(self, *told: Fill) -> None:
+        self.told = told
+
+    def fills(self) -> tuple[Fill, ...]:
+        return self.told
+
+    def cancel(self) -> tuple[str, ...]:
+        return ()
+
+
+@pytest.mark.parametrize(("price", "stands_down"), [(45, False), (44, True)])
+def test_a_stop_filled_past_its_level_beyond_the_gap_loss_stands_the_desk_down_at_collect(
+    tmp_path: Path, price: int, stands_down: bool
+) -> None:
+    buy = Fill("1.1.01", "o-1", "A", 10, Decimal(50), MON)
+    sale = Fill("2.1.01", "o-1-stop", "A", -10, Decimal(price), TUE)  #: limit 5% of 1,000 = 50
+    told: list[str] = []
+    book.record_rates(tmp_path, MON, {"GBP": Decimal(1)})
+    stub: Broker = _Gapped(buy, sale)  # type: ignore[assignment]  # a stub broker
+    book.collect(tmp_path, stub, SIX, Settings(Decimal(1000)), lambda *w: told.extend(w))
+    assert bool(halt.in_force(tmp_path)) is stands_down and bool(told) is stands_down

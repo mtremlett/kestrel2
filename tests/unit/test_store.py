@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 
-from desk import store, venues
+from desk import store, store_parts, venues
 from desk.lines import Line
 from desk.store import Bar, Refused
 
@@ -329,7 +329,8 @@ def test_the_newest_bar_a_pound_step_from_the_day_before_is_kept_a_hundredfold_o
     (R-RUNNER-487); a normal move is kept, a bar of 100 times the day before is still refused."""
     clean = _bars(US, LONG)
     kept, _, reasons = _priced((*clean[:-1], _scaled(clean[-1], 1 / POUND)), US)
-    assert reasons == [] and len(kept) == len(clean)
+    assert len(kept) == len(clean) and any("unconfirmed" in r for r in reasons)  # R-RUNNER-492:
+    # kept, and the line parked until a later bar confirms it
     kept, faults, reasons = _priced((*clean[:-1], _scaled(clean[-1], Decimal(100))), US)
     assert len(kept) == len(clean) - 1 and any("wrong unit" in f for f in faults) and reasons
 
@@ -401,3 +402,28 @@ def test_bars_before_the_day_a_line_starts_are_dropped_with_a_fault_each() -> No
 def test_the_csv_store_is_gone_and_judge_is_the_one_door() -> None:
     gone = ("prepare", "read", "shelve", "faults", "_bar", "_FAULT", "_write", "HISTORY")
     assert not [name for name in gone if hasattr(store, name)]
+
+
+class _Counted(dict[date, Decimal]):
+    """The pound's closes, counting each walk over all of them (a sort is one)."""
+
+    walks = 0
+
+    def __iter__(self):  # type: ignore[no-untyped-def]  # dict's own, counted
+        _Counted.walks += 1
+        return super().__iter__()
+
+
+def test_the_pound_on_a_day_is_found_without_walking_every_close_held() -> None:
+    """Sorting every close for each bar judged cost 4.3 of SPY's 6.6 seconds (27 Nov), and the
+    morning keeper ran out of its 240 seconds: the newest close at most RATE_AGE old is found
+    by its days alone."""
+    clean = _bars(US, LONG)
+    rates = _Counted({b.day: POUND for b in clean})
+    assert _run(clean, US, rates) == _run(clean, US, dict(rates))
+    assert _Counted.walks <= 2
+    friday = clean[-1].day
+    assert store_parts.pound_on(rates, friday + timedelta(1)) == POUND  # Saturday: Friday's
+    assert store_parts.pound_on(rates, friday + store_parts.RATE_AGE) == POUND
+    assert store_parts.pound_on(rates, friday + store_parts.RATE_AGE + timedelta(1)) is None
+    assert store_parts.pound_on(rates, clean[0].day - timedelta(1)) is None  # before the first

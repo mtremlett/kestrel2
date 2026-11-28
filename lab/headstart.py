@@ -23,7 +23,9 @@ counted as having none yet. A source held already is not read again. Indicators 
 
 from __future__ import annotations
 
+import hashlib
 import os
+import shutil
 import sqlite3
 import sys
 from collections import Counter
@@ -40,6 +42,7 @@ from desk.bars import EPOCH, Five, Source
 from desk.bars_parts import B
 from desk.compare import doubt
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import STRETCH, Bar, Refused
 from lab.headstart_parts import (  # noqa: F401  # the readers, still reached as lab.headstart.<name>
     MARKET as MARKET,
@@ -90,6 +93,7 @@ from lab.headstart_parts import (
 DAYS = "SELECT ts, close FROM ohlcv WHERE ticker = ? AND timeframe = '1d'"
 RAW = "*/5_*_txt*.zip"  #: where Stooq's five-minute zips lie: a dated folder each
 _ADJUSTED = "that are the adjusted form of the store's as-traded bars: not taken"
+AFTER_ALL = datetime(9000, 1, 1, tzinfo=UTC)  #: after every bar
 IMPORT = "| IMPORT |"  #: how a row of the data register naming a store to read in begins
 
 
@@ -150,6 +154,105 @@ def adopt(
                 round_.five(line, raw), verdict.met, len(verdict.differ), tuple(faults)
             )
     return adopted
+
+
+@dataclass(frozen=True)
+class Tally:
+    """One line's five-minute bars of an old store set beside the one store's, by moment."""
+
+    old: int  #: bars the old store gave
+    held: int  #: of them, moments the one store holds a bar for
+    same: bool  #: the checksum of those held bars equals the checksum of the old bars there
+    missing: tuple[datetime, ...]  #: the moments of old bars the one store holds none for
+
+
+def _sum(given: Iterable[Five | Timed]) -> str:
+    rows = (
+        f"{b.start:%Y%m%d%H%M} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given
+    )
+    return hashlib.sha256("".join(rows).encode()).hexdigest()
+
+
+def compare(path: Path, answers: Mapping[Line, Iterable[Five] | Refused]) -> dict[Line, Tally]:
+    """For each line an old store gave, its bars beside the one store at path: counts, a checksum
+    of the prices at the moments both hold, and the moments only the old store holds, named."""
+    tallies: dict[Line, Tally] = {}
+    for line, given in answers.items():
+        if isinstance(given, Refused):
+            continue
+        have = {bar.start: bar for bar in bars.five(path, line, EPOCH, AFTER_ALL)}
+        tallies[line] = _tally(sorted(given, key=lambda bar: bar.start), have)
+    return tallies
+
+
+def _tally(old: Sequence[Five], have: Mapping[datetime, Five | Timed]) -> Tally:
+    both = [bar for bar in old if bar.start in have]
+    same = _sum(both) == _sum(have[bar.start] for bar in both)
+    return Tally(len(old), len(both), same, tuple(b.start for b in old if b.start not in have))
+
+
+def compare_hours(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds hourly bars of, them beside the one store's hourly bars at
+    path: counts, a checksum of the prices at the moments both hold, the moments only the old one
+    holds. A line the one store holds no hourly bar of: all missing."""
+    from lab import headstart_hours  # imports this module
+
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = headstart_hours.hours(line, where)
+        except (OSError, ValueError):  # this line's hours are not in that old store
+            continue
+        try:
+            have = {
+                b.start: b for b in bars.timed(path, line, headstart_hours.SPAN, EPOCH, AFTER_ALL)
+            }
+        except LookupError:
+            have = {}
+        tallies[line] = _tally(sorted(old, key=lambda bar: bar.start), have)
+    return tallies
+
+
+def _daily_sum(given: Iterable[Bar]) -> str:
+    rows = (f"{b.day:%Y%m%d} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given)
+    return hashlib.sha256("".join(rows).encode()).hexdigest()
+
+
+def compare_days(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds daily rows of, them beside the one store's daily bars at
+    path: counts, a checksum of the prices on the days both hold, the days only the old one
+    holds (each as midnight UTC). A line the one store holds nothing of: all missing."""
+    from lab import headstart_days  # imports this module
+
+    _, read = headstart_days.form(where)
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = sorted(read(line, where), key=lambda bar: bar.day)
+        except (OSError, ValueError, sqlite3.Error):  # this line is not in that old store
+            continue
+        try:
+            have = {bar.day: bar for bar in bars.daily(path, line)}
+        except LookupError:
+            have = {}
+        both = [bar for bar in old if bar.day in have]
+        same = _daily_sum(both) == _daily_sum(have[bar.day] for bar in both)
+        gone = tuple(datetime.combine(b.day, time(), UTC) for b in old if b.day not in have)
+        tallies[line] = Tally(len(old), len(both), same, gone)
+    return tallies
+
+
+def drill(path: Path, scratch: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """The restore drill: the one store's databases copied to scratch under their own names, and
+    each line's whole five-minute history read back from the copy, beside the original's."""
+    scratch.mkdir(parents=True)
+    for file in filter(Path.is_file, bars.files(path).values()):
+        shutil.copy2(file, scratch / file.name)
+    held = {}
+    for line in lines:
+        with suppress(LookupError):  # the store never held this line's five-minute bars
+            held[line] = bars.five(path, line, EPOCH, AFTER_ALL)
+    return compare(scratch / path.name, held)
 
 
 def imports(register: Path) -> tuple[Path, ...]:
@@ -227,6 +330,39 @@ def planned(register: Path, path: Path) -> tuple[list[Reader], list[str], list[s
     return sorted(todo, key=lambda one: list(Source).index(one[1])), skipped, unread
 
 
+def checked(register: Path, path: Path, scratch: Path) -> str:
+    """Every old store the register tags IMPORT, set beside the one store at path, per line:
+    counts, checksum, the first moments missing; then the restore drill in scratch. Nothing is
+    written but the drill's copy, nothing deleted."""
+    off = dict[str, int]()
+    for where in imports(register):
+        how = reader(where)
+        found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
+        with suppress(ValueError):  # a store of no daily form has no daily rows to compare
+            found["1d"] = compare_days(path, where)
+        found["1h"] = compare_hours(path, where)
+        off[where.name] = not any(found.values())  # nothing compared proves nothing
+        for span, tallies in found.items():
+            for line, tally in tallies.items():
+                off[where.name] += not tally.same or bool(tally.missing)
+                named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
+                counts = f"old {tally.old}, held {tally.held}"
+                match = "match" if tally.same else "DIFFER"
+                row = f"{where.name}: {line.symbol} {span}: {counts}; {match}; missing {named}"
+                sys.stdout.write(row + "\n")
+    restored = drill(path, scratch)
+    drilled = sum(not t.same or bool(t.missing) for t in restored.values()) + (not restored)
+    bad = sum(off.values()) + drilled
+    for name, count in off.items():
+        fate = "deletable on his yes" if not count and not drilled else "KEEP: not proven"
+        sys.stdout.write(f"{name}: {fate}\n")
+    said = (
+        f"headstart check: {bad} lines differ or miss bars; drill read back {len(restored)} lines"
+    )
+    sys.stdout.write(said + "\n")
+    return said
+
+
 def main(register: Path, path: Path, day: date) -> str:
     """Every old store the register tags IMPORT into the fast store at path, met with the
     archive's five-minute bars up to day (which enter first) and vouched for by its daily bars
@@ -251,6 +387,11 @@ def main(register: Path, path: Path, day: date) -> str:
 if __name__ == "__main__":
     DATA = Path(os.environ.get("KESTREL2_DATA") or sys.exit("headstart: KESTREL2_DATA is unset"))
     REGISTER, TODAY = DATA.parent / "kestrel2_notes" / "data_register.md", datetime.now(UTC).date()
+    if sys.argv[1:] == ["check"]:
+        import tempfile
+
+        checked(REGISTER, DATA / bars.LIVE, Path(tempfile.mkdtemp()) / "restore")
+        sys.exit()
     try:
         main(REGISTER, DATA / bars.LIVE, TODAY)
         from lab import (

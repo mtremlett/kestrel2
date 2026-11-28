@@ -11,6 +11,7 @@ from decimal import ROUND_HALF_EVEN, Decimal
 from typing import Any
 
 from desk.bars_parts import NOTE
+from desk.bars_schema import Source
 
 HOLDING = (
     "SELECT at, open, high, low, close, volume, source FROM bar"
@@ -37,6 +38,30 @@ def same(held: Sequence[str | int], given: Row) -> bool:
     return prices == [Decimal(p) for p in given[:4]] and held[4] == given[4]
 
 
+def _holding(
+    held: sqlite3.Connection, key: tuple[str, str, str], ats: Sequence[int]
+) -> dict[int, tuple[Any, ...]]:
+    """The rows held for a line's span between the first and last of the days given, marked
+    withdrawn or not."""
+    lo, hi = min(ats, default=0), max(ats, default=0)
+    return {r[0]: r for r in held.execute(HOLDING, (*key, lo, hi))}
+
+
+def _barred(source: str, now: dict[int, tuple[Any, ...]]) -> set[int]:
+    """The days a write from `source` may not take: the archive never replaces a day the broker
+    holds (B3: IBKR first, the archive fills gaps only), withdrawn or not."""
+    if source != Source.ARCHIVE.value:
+        return set()
+    return {at for at, r in now.items() if r[6] == Source.IBKR.value}
+
+
+def barred(
+    held: sqlite3.Connection, source: str, key: tuple[str, str, str], ats: Sequence[int]
+) -> set[int]:
+    """Of the days given, those a daily write from `source` may not take (see `_barred`)."""
+    return _barred(source, _holding(held, key, ats)) & set(ats)
+
+
 def restated(
     held: sqlite3.Connection,
     source: str,
@@ -45,9 +70,12 @@ def restated(
     rows: list[tuple[Any, ...]],
 ) -> list[tuple[Any, ...]]:
     """The rows of a daily write that change something. A held day whose prices or volume differ
-    is copied into `correction`; one the same under the same source is not written at all."""
-    ats = [at for at, _ in prices]
-    now = {r[0]: r for r in held.execute(HOLDING, (*key, min(ats, default=0), max(ats, default=0)))}
+    is copied into `correction`; one the same under the same source is not written at all. The
+    archive never replaces a day the broker holds (B3: IBKR first, the archive fills gaps only)."""
+    now = _holding(held, key, [at for at, _ in prices])
+    barred = _barred(source, now)
+    prices = [(at, p) for at, p in prices if at not in barred]
+    rows = [r for r in rows if r[3] not in barred]
     moved = [(at, price) for at, price in prices if at in now and not same(now[at][1:6], price)]
     held.executemany(NOTE, ((source, *key, at, *price) for at, price in moved))
     return [

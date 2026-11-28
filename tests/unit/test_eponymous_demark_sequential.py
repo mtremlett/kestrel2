@@ -3,6 +3,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from desk import eponymous_demark_sequential
 from desk.eponymous_demark_sequential import decide
 from desk.store import Bar
 from desk.strategy import Action
@@ -35,3 +36,10 @@ def test_buys_the_thirteenth_countdown_bar_and_sells_the_ninth_sell_setup_bar() 
 def test_waits_for_the_full_setup_and_countdown() -> None:
     assert _trades(list(range(300, 280, -1))) == {}  # setup done, countdown only at 8
     assert _trades(list(range(300, 292, -1))) == {}  # eight setup bars, no setup
+
+
+def test_declares_no_holding_period_and_says_why() -> None:
+    # his ruling 21 Nov: the sale is the rule's own sell logic alone, no time stop; stated
+    assert "Holding period: none" in eponymous_demark_sequential.__doc__
+    rules = eponymous_demark_sequential.EPONYMOUS.values()
+    assert all(r.declared.hold is None for r in rules)

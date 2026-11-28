@@ -1,5 +1,5 @@
-"""The keeper's roll: the live day's one-minute and five-minute bars copied unchanged into the
-long database, each with its source."""
+"""The keeper's roll: the live day's bars of every span copied unchanged into the long database,
+each with its source."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
-from desk import bars, keeper
+from desk import bars, keeper, keeper_live
 from desk.bars import Five, Source
 from desk.lines import Line
 from desk.spans import Timed
@@ -23,13 +23,15 @@ def test_a_roll_leaves_the_long_database_holding_the_live_bars_with_their_source
     with bars.writing(hot, Source.IBKR) as kept:
         kept.timed(line, "1m", (Timed("1m", now, price, price, price, price, 1),))
         kept.five(line, (Five(now, price, price, price, price, 1),))
+        for span in ("15m", "30m"):  # every span the live store holds, none listed
+            kept.timed(line, span, (Timed(span, now, price, price, price, price, 1),))
     assert keeper.main(tmp_path, now, ["--roll"]) == 0
     assert keeper.main(tmp_path, now, ["--roll"]) == 0  # again: the same bars, not more
     found = []
     for file in (hot, bars.files(hot)[bars.DAILY]):
         with closing(sqlite3.connect(file)) as held:
             found.append(held.execute("SELECT * FROM bar ORDER BY span").fetchall())
-    assert found[0] == found[1] and len(found[0]) == 2 and found[0][0][-1] == Source.IBKR.value
+    assert found[0] == found[1] and len(found[0]) == 4 and found[0][0][-1] == Source.IBKR.value
 
 
 def test_a_round_writes_the_hour_the_five_minute_bars_complete_and_no_partial_span(
@@ -70,3 +72,33 @@ def test_a_round_leaves_each_rolled_span_as_fresh_as_its_base(tmp_path: Path) ->
     for span, length in (("15m", 15), ("30m", 30), ("1h", 60)):
         got = bars.timed(hot, line, span, open_, ends)
         assert got[-1].start + timedelta(minutes=length) == ends  # the base's last bar is in it
+
+
+def test_every_keeper_round_leaves_its_newest_five_minute_bar_in_the_long_database(
+    tmp_path: Path,
+) -> None:
+    now, price = datetime(2026, 11, 16, 10, 5, tzinfo=UTC), Decimal(5)
+    line, newest = Line("BBB", "LSE", "GBP", 1), datetime(2026, 11, 16, 10, tzinfo=UTC)
+    planted = (Five(newest, price, price, price, price, 1),)
+    keeper.keep(tmp_path, now, [line], lambda _line, _day: (), lambda _line, _at: planted)
+    with closing(sqlite3.connect(bars.files(tmp_path / keeper.HOT)[bars.DAILY])) as long:
+        seen = long.execute("SELECT COUNT(*) FROM bar WHERE span = ?", (bars.FIVE,)).fetchone()
+    assert seen == (1,)
+
+
+def test_a_round_rolls_only_the_week_kept_hot_and_the_nightly_roll_everything(
+    tmp_path: Path,
+) -> None:
+    """Every round copied the whole live store (2.5 million rows on 27 Nov) and the keeper ran out
+    of its 240 seconds 10 times in 27: a round copies the week, the nightly `--roll` the rest."""
+    hot, now, price = tmp_path / keeper.HOT, datetime(2026, 11, 16, 10, tzinfo=UTC), Decimal(5)
+    line, old = Line("BBB", "LSE", "GBP", 1), now - keeper_live.RECENT - timedelta(minutes=15)
+    with bars.writing(hot, Source.IBKR) as kept:
+        kept.timed(
+            line, "15m", (Timed("15m", at, price, price, price, price, 1) for at in (old, now))
+        )
+    long = bars.files(hot)[bars.DAILY]
+    keeper_live.roll(hot, now - keeper_live.RECENT)
+    assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [now]
+    assert keeper.main(tmp_path, now, ["--roll"]) == 0  # the nightly job: nothing older is lost
+    assert [b.start for b in bars.timed(long, line, "15m", old, now + timedelta(1))] == [old, now]

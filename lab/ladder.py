@@ -16,23 +16,8 @@ verdict is the one rule over those six: no folds, or an author's figure not repr
 none; a worst fold too thin to say holds it at THIN. A rung not yet runnable is named on every
 line (UNRUN). Nothing goes to paper before all eleven.
 
-THE RUNG MAP (L2): the plan's eleven rungs and easing 4's twelfth, each `n name: module, test`.
-A row's names differ:
-`first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test; (unbuilt) marks a file
-not yet there; after the dash, what is owed. BUILT: its module declares a RUNG, so the ladder
-judges by it; every other row owes `no RUNG` first (the test holds the two to agree).
- 1 sample size, effective trades: lab/rung.py, tests/unit/test_lab_calibration.py - no RUNG; merged
- 2 costs charged: lab/rung_costs.py, tests/unit/test_lab_rung_costs.py
- 3 a confidence interval: lab/rung_ci.py, tests/unit/test_lab_rung_ci.py
- 4 excess after market risk, by size: lab/market.py, tests/unit/test_lab_rung_beta.py - no RUNG
- 5 two regime windows: lab/rung_regimes.py, tests/unit/test_lab_rung_regimes.py
- 6 benchmark excess: lab/market.py, tests/unit/test_lab_market.py - no RUNG; rung_benchmark merged
- 7 deflated Sharpe: lab/deflated.py, tests/unit/test_lab_deflated.py - no RUNG; rung_dsr merged
- 8 purged cross-validation: lab/rung_cpcv.py, tests/unit/test_lab_rung_cpcv.py
- 9 placebo, days shuffled: lab/shuffle.py, tests/unit/test_lab_shuffle.py - no RUNG; blocks dropped
-10 walk-forward folds: lab/folds.py, tests/unit/test_lab_folds.py - no RUNG; the ladder runs `pool`
-11 block bootstrap: lab/rung_ci.py, tests/unit/test_lab_rung_bootstrap.py - wired: holds ci's PASS
-12 retail, basket beside market: lab/basket.py, tests/unit/test_lab_basket.py - no RUNG; merged
+The rung map, and its count of rungs built, are `lab/ladder_map.py`'s (R-RUNNER-571): a new rung
+adds its row there, never here.
 
 RARE LARGE LOSSES (G2, R-RUNNER-103). The first rung counts ONE MORE trade the rule did not make: a
 loss at its own stop, the least any judged trade would have made, in the standard errors and all
@@ -78,6 +63,7 @@ from desk.strategy import STRATEGIES, Rule
 from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
+from lab.ladder_map import rungs_built as rungs_built  #: its callers' name (R-RUNNER-571)
 from lab.ladder_parts import (
     FAILED,
     RUNGS,
@@ -124,14 +110,6 @@ def cells() -> tuple[Cell, ...]:
         for name in published.PUBLISHED
         for line in STRATEGIES[name].declared.universe
     )
-
-
-def rungs_built() -> tuple[int, int]:
-    """The map's rungs the ladder judges by (their module declares a RUNG), and the map's rungs."""
-    paragraph = (__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
-    rows = [line for line in paragraph.splitlines() if line.lstrip()[:1].isdigit()]
-    mods = {r.split("lab/")[1].split(".py")[0] for r in rows if ".py (unbuilt)" not in r}
-    return sum(hasattr(importlib.import_module(f"lab.{m}"), "RUNG") for m in mods), len(rows)
 
 
 def names(c: Cell) -> list[str]:
@@ -379,7 +357,9 @@ def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
     every = rulebook.eponymous(folder)
     python = tuple(n for n, make in every.items() if not _needs_data(make))
     return python + tuple(
-        n for n in rulebook.specs(book, folder) if n not in python and not _needs_data(every[n])
+        n
+        for n, spec in rulebook.specs(book, folder).items()
+        if n not in python and not _needs_data(every.get(n) or rulebook._made(spec))
     )
 
 

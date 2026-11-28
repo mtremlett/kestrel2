@@ -264,7 +264,7 @@ class Paper:
     def _before(self, listed: Listing, order: Order | Sale) -> tuple[Decimal, Stop | None]:
         """A line before an order goes: the shares the account holds of it and the one stop of
         the desk's own it is under, or None. Refused: two stops open on it, or one the broker
-        is not holding; and WHILE ANY OTHER ORDER IS OPEN AT THE BROKER, on any line, anyone's.
+        is not holding; and while another order is open at the broker ON THIS LINE, anyone's.
         A SALE GOES ONLY WHEN NO STOP RESTS UNDER THE SAME SHARES (R-MONEY-17): the line's stop
         is cancelled first (not tied at the broker, both could sell); if it ended another way
         meanwhile, the stop is put back for the shares held, Refused; if it sold, Unprotected."""
@@ -279,9 +279,17 @@ class Paper:
             said = [f"{o.ref} ({o.state})" for o in stops]
             where = f"the desk's own stops on {listed.line.symbol} are not settled: {said}"
             raise Refused(f"{order_id}: not sent, {where}")
-        idle = [f"{o.ref} ({o.state})" for o in told.unsettled + told.others if o.state not in OVER]
-        if idle:
-            raise Refused(f"{order_id}: not sent, orders are still open at the broker: {idle}")
+        apart = {x.contract for x in self._listings.values() if isinstance(x, Listing)}
+        apart.discard(listed.contract)  # another line of the desk's: its orders refuse it alone
+        shut = [
+            o
+            for o in told.unsettled + told.others
+            if o.state not in OVER and o.contract not in apart
+        ]
+        if idle := [f"{o.ref} ({o.state})" for o in shut]:
+            raise Refused(
+                f"{order_id}: not sent, open at the broker on {listed.line.symbol}: {idle}"
+            )
         if isinstance(order, Sale) and kept:
             ours = rests[0]
             try:

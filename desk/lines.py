@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
@@ -86,6 +87,13 @@ class Line:
         if self.isin is not None and not valid_isin(self.isin):
             raise ValueError(f"{self.symbol}: {self.isin!r} is not an ISIN with a good check digit")
         self._records()
+
+    def holes(self, days: Collection[date], first: date, last: date) -> list[date]:
+        """THE ONE RULE OF A HOLE (R-RUNGS-40): each session of the line's venue from first to
+        last, read from the one calendar, on which it holds no bar (days) and is not suspended.
+        The hover, the greenkeeper and the ladder's pre-flight (`lab/market.py` gaps) read it."""
+        held = frozenset(days) | self.suspended
+        return [d for d in venues.sessions(self.venue, first, last) if d not in held]
 
     def _records(self) -> None:
         if any(not r.is_finite() or r <= 0 or r == 1 for _, r in self.splits):
@@ -221,6 +229,22 @@ LINES = tuple(
 #: readable as reference series, never traded (R-PAPER-16). They sit in LINES only until the
 #: callers that still take them from there (conformance, the Mansfield rule) move to this.
 REFERENCE = tuple(line for line in LINES if line.retail is False)
+
+
+#: Five more US lines, watched and never traded (not in LINES, so no caller can buy, rank or
+#: rehearse them): the polled round needs 27 lines to reach its floor (desk.keeper.POLLED).
+WATCHED = tuple(
+    Line(symbol, "US", "USD", 1, NO_TAX, None, None, underlying=symbol, source=name, isin=isin)
+    for symbol, name, isin in (
+        ("MSFT", "Microsoft Corp.", "US5949181045"),
+        ("AMZN", "Amazon.com Inc.", "US0231351067"),
+        ("GOOGL", "Alphabet Inc.", "US02079K3059"),
+        ("META", "Meta Platforms Inc.", "US30303M1027"),
+        ("AVGO", "Broadcom Inc.", "US11135F1012"),
+    )
+)
+#: Every line the keeper's polled rounds ask: the traded lines, the references, the watched.
+POLLED_LINES = (*LINES, *WATCHED)
 
 
 #: The pound in dollars at the archive, kept as a reference series (never traded), and the band

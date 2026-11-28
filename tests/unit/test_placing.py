@@ -17,6 +17,7 @@ from test_reports import AAPL, BOUGHT, BUY, CUT, DONE, END, FEE, IITU, LISTED, S
 
 from desk import book, kill, paper, placing
 from desk.broker import Broker, Disconnected, Fill, Report
+from desk.listing import Listing
 from desk.orders import Order, Refused, Sale
 
 ID, DATED, VUSA = "20261113-rsi2-IITU", date(2026, 11, 13), replace(SMGB, symbol="VUSA")
@@ -388,14 +389,31 @@ def test_nothing_is_sent_without_a_drill_a_clean_day_a_ready_gateway_and_the_sto
     # two; and no other order open at the broker, the desk's own on any line or anyone else's
     late = _order("7", "SELL STP", f"{ID}-stop", "PendingSubmit")
     more = [_order("8", "BUY MKT", "a", "Submitted", client=c) for c in ("222", "31")]
-    far = (*PROTECTED[3:5], _but(more[0][0], 2, "265598"), more[0][1])  # its own, on another line
-    whys = ["stops on IITU are not settled: .*-stop .P"] * 2 + ["open at the broker: .'a .Subm"] * 2
-    for rest, why in zip((late, (*PROTECTED[3:5], *CHILD), far, more[1]), whys, strict=True):
+    whys = ["stops on IITU are not settled: .*-stop .P"] * 2 + [
+        "open at the broker on IITU: .'a .S"
+    ]
+    for rest, why in zip((late, (*PROTECTED[3:5], *CHILD), more[1]), whys, strict=True):
         for order in either:
             sent = _gateway(monkeypatch, [], _account([HELD], *rest))
             with pytest.raises(Refused, match=why):
                 _paper(ready).place(order)
             assert sent == [b"", ACCOUNT]
+    # an order open on ONE line refuses that line alone (R-RUNNER-568): Tuesday's conformance
+    # stop on SMGB (PreSubmitted, client 31) leaves IITU's buy and sale to go, and refuses SMGB's
+    iitu = LISTED["IITU"]
+    assert isinstance(iitu, Listing)
+    smgb = replace(iitu, line=SMGB, contract="999")
+    both, stop = (
+        placing.Paper({**LISTED, "SMGB": smgb}, ready, lambda: AT, paper.Door(paper.DESK)),
+        (_order("5", "SELL STP", "conf3", "PreSubmitted", client="31")),
+    )
+    shut = _account([HELD], _but(stop[0], 2, "999"), stop[1])
+    for order in either:
+        _gateway(monkeypatch, shut)
+        assert both._before(iitu, order)[0] == 26  # noqa: SLF001
+    _gateway(monkeypatch, shut)
+    with pytest.raises(Refused, match=r"on SMGB: .*conf3 .PreSubmitted"):
+        both._before(smgb, replace(BUY_IT, line=SMGB))  # noqa: SLF001
     monkeypatch.setattr(paper, "dial", Mock(side_effect=ConnectionRefusedError))
     with pytest.raises(Disconnected, match="port is closed"):  # never received: sent next time
         _paper(ready).place(BUY_IT)

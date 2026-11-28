@@ -54,7 +54,6 @@ from datetime import date
 from decimal import Decimal, localcontext
 from statistics import fmean
 
-from desk import venues
 from desk.lines import Line
 from desk.store import Bar
 from desk.strategy import ARITHMETIC
@@ -117,16 +116,16 @@ def judge(
 
 
 def gaps(line: Line, bars: Sequence[Bar], rates: Rates, first: date, last: date) -> tuple[str, ...]:
-    """A rung's input checked before it is judged (L20), oldest first: each session of the line's
-    venue inside its bars from first to last, read from the one calendar, with no bar and no
-    suspension; and each bar there with no rate of pounds to price it by. Empty: it is whole."""
+    """A rung's input checked before it is judged (L20), oldest first: each hole inside its bars
+    from first to last, by the one rule (`Line.holes`, which the greenkeeper reads too); and
+    each bar there with no rate of pounds to price it by. Empty: it is whole."""
     days = [bar.day for bar in bars if first <= bar.day <= last]
     if not days:
         return ()
-    held, said = set(days), list[tuple[date, str]]()
-    for day in venues.sessions(line.venue, days[0], days[-1]):
-        if day not in held and day not in line.suspended:
-            said.append((day, f"{line.symbol} has no bar on {day}, a session of {line.venue}"))
+    said = [
+        (day, f"{line.symbol} has no bar on {day}, a session of {line.venue}")
+        for day in line.holes(days, days[0], days[-1])
+    ]
     for day in days:
         try:
             rung.rate(line, rates, day)

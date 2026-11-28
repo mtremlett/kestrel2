@@ -4,18 +4,22 @@ strategy, and what a worse night would do, in pounds after every cost.
 A rule can pass every rung on a history that was kind to it. Before any money follows it, the
 desk asks what it lost when the market broke, in scenarios named here before any result.
 
-THE EPISODES are stretches of the history itself. The 2020 crash: from the first session
-after the market's high of 19 February to its low of 23 March. The flash crashes: 6 May 2010,
-with the morning after, since London had shut before New York fell; and 24 August 2015. The
-crash of 2008 lies before the history the desk holds, and is not here: no number is made up
-for it. A strategy's cost in an episode is what the first rung's own priced trades
-(`lab/rung.py`) made from the close before it to its last close, in pounds, each close at
-its own day's rate of exchange: a trade bought within it is counted from the pounds it took,
-and one sold within it to the pounds it brought, less every cost of both its legs, as the
-market's rung counts them on the day of the sale (`lab/market.py`). The stop is in it as the
-broker works it: a day that falls through the stop and closes back up has sold the shares at
-the stop. Out of the market throughout, the rule lost nothing there, and that is said as a
-result: standing aside in a crash is a thing a rule does.
+THE EPISODES are stretches of the history itself, each named by the American market, the
+world's, for every venue. The 2008 crash: from the first session after the S&P 500's closing
+high of 9 October 2007 to its closing low of 9 March 2009, the whole fall of the worst market
+of modern times (London's own low, 3 March 2009, lies inside it; its high of June 2007 before
+it). The 2020 crash: from the first session after the market's high of 19 February to its low
+of 23 March. The flash crashes: 6 May 2010, with the morning after, since London had shut
+before New York fell; and 24 August 2015. A line whose bars do not reach back through 2008
+has not been through it, and is untested there (below). A strategy's cost in an episode is
+what the first rung's own priced trades (`lab/rung.py`) made from the close before it to its
+last close, in pounds, each close at its own day's rate of exchange: a trade bought within it
+is counted from the pounds it took, and one sold within it to the pounds it brought, less
+every cost of both its legs, as the market's rung counts them on the day of the sale
+(`lab/market.py`). The stop is in it as the broker works it: a day that falls through the
+stop and closes back up has sold the shares at the stop. Out of the market throughout, the
+rule lost nothing there, and that is said as a result: standing aside in a crash is a thing a
+rule does.
 
 UNTESTED IS NOT SURVIVED. An episode the rule was not shown able to trade through whole
 shows nothing, and is given as untested (`made` is None), never as nothing lost. It is tested
@@ -87,6 +91,7 @@ class Episode:
 
 #: Named before any result, oldest first.
 EPISODES = (
+    Episode("the 2008 crash", date(2007, 10, 10), date(2009, 3, 9)),
     Episode("the flash crash of May 2010", date(2010, 5, 6), date(2010, 5, 7)),
     Episode("the flash crash of August 2015", date(2015, 8, 24), date(2015, 8, 24)),
     Episode("the 2020 crash", date(2020, 2, 20), date(2020, 3, 23)),
@@ -143,7 +148,8 @@ class Stressed:
 
     def judged(self) -> tuple[Answer, str]:
         """PASS when the worst scenario cost no more than STRESS_LIMIT of the capital, FAIL
-        above it; THIN when no scenario was tested. The reason names scenario, pounds, limit."""
+        above it; THIN when no scenario was tested. The reason names scenario, pounds, limit,
+        and every episode untested, so a pass never hides one."""
         costs = self._costs()
         if not costs:
             return Answer.THIN, "no scenario was tested: the line was not shown through one"
@@ -151,7 +157,8 @@ class Stressed:
         with localcontext(ARITHMETIC):
             limit = STRESS_LIMIT * self.capital
         answer = Answer.PASS if pounds <= limit else Answer.FAIL
-        return answer, f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        why = f"worst: {name} lost {pounds:,.2f} pounds; the limit is {limit:,.2f}"
+        return answer, why + (f"; untested: {', '.join(self.untested)}" if self.untested else "")
 
 
 def judge(window: Cell, bars: Sequence[Bar], settings: Settings, rates: Rates) -> Stressed:

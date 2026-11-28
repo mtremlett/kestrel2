@@ -30,10 +30,10 @@ quiet read the account as this desk's own; it ends flat in its own lines, and a 
 found changed at its end is named a FIRST-LIGHT FAULT. It never begins within five minutes of
 a desk round, or in one (ROUNDS): the desk's round has the account.
 
-NOTHING IS DONE, code 0: the market is not in continuous trading, or the rejection's is shut
-today, or a desk round is near. NOTHING IS SENT, code not 0, unless the gateway is ready, both
-desks' kill switches off, this one's drilled, and the account QUIET of this desk's own: nothing
-of its own held, no order of its own open."""
+NOTHING IS DONE, code 0: the market is not in continuous trading, or a desk round is near.
+NOTHING IS SENT, code not 0, unless the gateway is ready, both desks' kill switches off,
+this one's drilled, and the account QUIET of this desk's own: nothing of its own held,
+no order of its own open."""
 
 from __future__ import annotations
 
@@ -81,6 +81,9 @@ from desk.conformance_parts import (
     Side as Side,
 )
 from desk.conformance_parts import (
+    Unsettled as Unsettled,
+)
+from desk.conformance_parts import (
     _leave as _leave,
 )
 from desk.conformance_parts import (
@@ -95,6 +98,9 @@ from desk.conformance_parts import (
 from desk.conformance_parts import (
     pretend as pretend,
 )
+from desk.conformance_parts import (
+    settle as settle,
+)
 from desk.ended import action, reasons
 from desk.lines import LINES, Line
 from desk.listing import Listing
@@ -105,6 +111,7 @@ MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
 CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.DESK
 ROOT, HEAD = "conformance", ("at", "step", "real", "pretend", "it said")
 WHOLE = "the run"
+LEFT_OVER = "an earlier run's order settled"  #: its row: what it left at the broker, cancelled
 ABOVE, WAITS = Decimal("1.05"), 30  #: a stop this far above the price paid; its seconds to sell
 Wait = Callable[[float], None]  #: what lets a second pass
 NOTHING, BARRED = "CONFORMANCE {}: nothing done, {}.", "CONFORMANCE {} NOT BEGUN, nothing sent: "
@@ -162,13 +169,11 @@ def why(now: datetime) -> tuple[bool, str]:
     return True, "\n".join(said) or "CONFORMANCE WHY: no order was cancelled today"
 
 
-def _barred(
-    root: Path, market: str, refused: Line, now: datetime, door: paper.Door
-) -> tuple[bool, str] | None:
+def _barred(root: Path, market: str, now: datetime, door: paper.Door) -> tuple[bool, str] | None:
     """Why no run is begun now, and whether that is all well; None when one may begin."""
-    venue, today, hours = MARKETS[market], now.date(), venues.open_at(MARKETS[market], now)
-    if hours is None or now >= hours.close or not venues.sessions(refused.venue, today, today):
-        return True, NOTHING.format(market, f"{VENUES[venue]} is shut, or the rejection's market")
+    venue, hours = MARKETS[market], venues.open_at(MARKETS[market], now)
+    if hours is None or now >= hours.close:  #: the refusal sends nothing: no calendar gates it
+        return True, NOTHING.format(market, f"{VENUES[venue]} is shut")
     if tape.round_at(now, tape.LEAD):
         return True, NOTHING.format(market, "a desk round runs 08:00-08:30 and 14:30-15:00")
     known, killed = (
@@ -219,6 +224,30 @@ def _moved(door: paper.Door, held: Mapping[str, Decimal]) -> str:
     return f" FIRST-LIGHT FAULT: the desk's holdings changed: {'; '.join(moved)}." * bool(moved)
 
 
+def _plain(
+    listed: Mapping[Line, Listing],
+    fits: tuple[str, int, bool],
+    busy: set[str],
+    held: Mapping[str, Decimal],
+) -> list[Line]:
+    """The venue's plain lines open to retail that the desk neither holds nor has an order on."""
+    return [
+        line
+        for line in listed
+        if (line.venue, line.leverage, line.retail) == fits
+        if listed[line].contract not in busy and paper.own(line) not in held
+    ]
+
+
+def _told(
+    counts: tuple[object, ...], seed: int | None, failed: list[str], rows: Sequence[Sequence[str]]
+) -> str:
+    """The run's one line: steps done, its soak's seed, what failed and the account's state."""
+    state = NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND  #: the last step's row
+    said = DONE.format(*counts) + SEEDED.format(seed) * (seed is not None)
+    return said + AMISS.format("; ".join(failed), state) * bool(failed)
+
+
 def trade(
     root: Path,
     market: str,
@@ -231,28 +260,30 @@ def trade(
     now, refused = clock(), next(line for line in LINES if line.retail is False)
     seed, home = (int(now.timestamp()) if seeded else None), root.parent
     door = paper.Door(CLIENT)  #: this run's own client; its apart set once the desk's share is read
-    if barred := _barred(root, market, refused, now, door):
+    if barred := _barred(root, market, now, door):
         return barred
     today, fits = now.date(), (MARKETS[market], 1, True)  #: the venue's own, plain, open to retail
     kill.drill(root, now)  #: no order on a day the switch was not seen to work: raised if broken
     listings = listing.read(LINES, door)
-    held, busy = tape.share(paper.whole(door))
+    account = paper.whole(door)
+    held, busy = tape.share(account)
     door = replace(door, apart=paper.Apart(frozenset(held)))  #: the desk's share is not this run's
+    broker = placing.Paper(listings, root, clock, door)
+    try:  #: what its earlier runs left at the broker is settled before anything is sent
+        settled = settle(root, broker, door, account)
+    except Unsettled as unsettled:
+        return False, f"{BARRED.format(market)}{unsettled}"
     if found := (*(clearance.check(root, now, door).found or ()), *book.positions(root)):
         return False, f"{BARRED.format(market)}the paper account is not quiet: {'; '.join(found)}"
     listed = {x.line: x for x in listings.values() if isinstance(x, Listing)}
-    plain = [
-        line
-        for line in listed
-        if (line.venue, line.leverage, line.retail) == fits
-        if listed[line].contract not in busy and paper.own(line) not in held
-    ]
+    plain = _plain(listed, fits, busy, held)
     run = plan(plain, refused, today, command.rates(home, today), f"{now:%H%M}", home, seed)
-    beside, broker = pretend(run), placing.Paper(listings, root, clock, door)
+    beside = pretend(run)
     fall = _raised(broker, root, listed[run.second.line], wait, door)
     side = Side(root, broker, lambda: clearance.check(root, clock(), door).found, fall)
     record = root / f"trades-{market}-{now:%Y%m%d-%H%M}.csv"
     rows, differ, note = _noted(root, record, run, beside, clock, door)
+    rows += [(clock().isoformat(), LEFT_OVER, words, "", "") for words in settled]
     try:
         failed = live(side, run, note)
     except BaseException:  #: whatever stopped the run, the account is still put back
@@ -263,12 +294,8 @@ def trade(
     ]
     note(WHOLE, f"{FAILED}at: {'; '.join(failed)}" if failed else "whole")
     counts = (market, len(beside) - len(failed), len(beside), run.second.line.symbol, record)
-    state = NOT_AS_FOUND if rows[-2][2].startswith(FAILED) else AS_FOUND  #: the last step's row
     fault = _moved(door, held)
-    said = DONE.format(*counts) + SEEDED.format(seed) * seeded
-    return not (failed or fault), said + AMISS.format("; ".join(failed), state) * bool(
-        failed
-    ) + fault
+    return not (failed or fault), _told(counts, seed, failed, rows) + fault
 
 
 def main(
