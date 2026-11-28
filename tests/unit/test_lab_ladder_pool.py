@@ -187,8 +187,11 @@ def test_a_change_re_runs_only_its_own_specs_and_the_set_table_says_rungs_built(
 def test_a_stale_market_publishes_a_named_gap_never_a_crash(tmp_path: Path) -> None:
     """ISF's bars end before VUSA's last sale: the basket's retail rung names the gap, and the
     set's table is written all the same (#2293)."""
-    stale = _door({VUSA: EDGE, ISF: NOISE[:-400]})
-    said = ladder_sets.epon(tmp_path, stale, {}, [VUSA], CLOCK, ["breakout_20_10"], ladder.run)
+    stale, rule = _door({VUSA: EDGE, ISF: NOISE[:-400]}), ["breakout_20_10"]
+    said = ladder_sets.epon(tmp_path, stale, {}, [VUSA], CLOCK, rule, ladder.run)
     table = next((tmp_path / ladder.FOLDER / "sets").glob("*.md")).read_text("utf-8")
     assert "rungs built:" in table and "1 judged now" in said
     assert f"ISF's bars end {NOISE[-401].day}" in table
+    ladder_sets.epon(tmp_path / "no", _door({VUSA: EDGE}), {}, [VUSA], CLOCK, rule, ladder.run)
+    table = next((tmp_path / "no" / ladder.FOLDER / "sets").glob("*.md")).read_text("utf-8")
+    assert "ISF's bars end nowhere, none held" in table  #: a market the keeper refuses

@@ -143,13 +143,14 @@ def days(basket: Verdict, against: Against) -> tuple[list[float], list[float]]:
 def grade(basket: Verdict, against: Against) -> tuple[Answer, str] | None:
     """The rung's answer on a pooled basket while EASED (None while not); a basket the first rung
     could not judge gives that answer, which it inherits; a market whose bars end before the last
-    sale is a stale one, and the rung is FAULT, naming its last bar and the sale (#2293)."""
+    sale (or that holds none) is stale: the rung is FAULT, naming its last bar and the sale."""
     if not verdict.EASED:
         return None
     if basket.answer in (Answer.FAULT, Answer.THIN):
         return basket.answer, "the first rung found too few trades, or none, to set beside it"
-    end, sold = against.bars[-1].day, max(p.held[1] for p in basket.trades)
-    if end < sold:  #: a stale market: the rung's named gap, never the set's crash
+    end = against.bars[-1].day if against.bars else "nowhere, none held"
+    sold = max(p.held[1] for p in basket.trades)
+    if not against.bars or against.bars[-1].day < sold:  #: stale: the rung's gap, never a crash
         return Answer.FAULT, f"{against.line.symbol}'s bars end {end}, before a sale on {sold}"
     return judge(*days(basket, against))
 
