@@ -2992,7 +2992,6 @@ an administrator console (his hand, not his answer: no session elevates or enter
 hard line on credentials); the install receipt (`test_the_install_receipt_proves_both_tasks_started_at_boot`)
 ticks paper-supervisor-windows; only then the runner's JOBS step is retired, as a runner order. Until
 then the runner's stand-in stays the one scheduler and the supervisor is not started by hand.
-
 ## 28 Nov - the runner lane's book (design item 8, O113; Fable design builder A10, O89 L7)
 His aim, 28 Nov: the build runs on its own. Seats cannot start builders without his typed turn, so the
 runner's own remaining work becomes boxes the runner hands out itself. Options: (a) keep runner work in
