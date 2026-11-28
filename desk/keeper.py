@@ -33,10 +33,12 @@ from desk import (
     venues,
 )
 from desk.bars import Five
-from desk.keeper_parts import _due, _held, _kept_in, pound_closes
 from desk.keeper_rotate import Kept, order
 from desk.keeper_rotate import load as _kept
 from desk.keeper_rotate import record as _record
+from desk.keeper_round import _due, _held
+from desk.keeper_round import _kept_in as _kept_in  # re-exported: store_scope tests
+from desk.keeper_round import pound_closes as pound_closes  # re-exported: desk.backfill
 from desk.lines import ADJUSTED, LINES, POLLED_LINES, POUND, REFERENCE, YARDSTICK, Line
 from desk.store import Bar, Refused
 

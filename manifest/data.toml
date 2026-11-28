@@ -30,7 +30,7 @@
 "desk/collector.py" = "the free collector: once a day the free vendors' price second opinions, macro series, earnings dates and timestamped news, each answer kept raw and its facts in the one store"
 "desk/keeper.py" = "the store's keeper: one command that does whatever the store is owed when it is called, each venue's daily bars refreshed from the archive and its five-minute round taken in its hours, and the door the daily bars are read through"
 "desk/store_scope.py" = "the keeper's judging scoped to the window the desk decides on: store.judge, but a fault dated before that window is named on its own day and never parks the line"
-"desk/keeper_parts.py" = "the keeper's judging of a round: answers judged by the one store and kept, each line's newest-bar source named, the lines a call owes, and the pound's closes"
+"desk/keeper_round.py" = "the keeper's judging of a round: answers judged by the one store and kept, each line's newest-bar source named, the lines a call owes, and the pound's closes"
 "desk/keeper_rotate.py" = "the keeper's record of a venue's last refresh, and the order it asks the broker in: the yardstick before all, then the lines not asked on the last call, so a line the broker refuses never starves the others"
 "desk/keeper_receipt.py" = "the keeper's dated receipt: a file a day, a line for each call that did anything, saying which newest bars arrived, their span, moment and source, and surviving a kill between the line and the record of what was seen"
 "desk/keeper_live.py" = "the keeper's live day: a venue's five-minute round from the paper gateway into the short database, and the archive's past days backfilled beneath it"

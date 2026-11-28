@@ -1,4 +1,4 @@
-"""keeper_parts - THE KEEPER'S JUDGING OF A ROUND: answers judged by the one store and kept, with
+"""keeper_round - THE KEEPER'S JUDGING OF A ROUND: answers judged by the one store and kept, with
 the source of each line's newest bar named, and the lines a call owes (split from keeper)."""
 
 from __future__ import annotations
