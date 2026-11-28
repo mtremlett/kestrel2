@@ -1401,12 +1401,12 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
       (hub-split, 28 Nov, O79/O77 A5's split (4): '*' named as the set's own code and tests; the Line's inverse field is DATA's, the wait R-RUNGS-21)
       {id: rungs-leveraged; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; after: rungs-trustworthy; waits: R-RUNGS-21; check: tests/unit/test_lab_ladder_sets.py::test_set_lev_holds_inverse_leveraged_lines}
-- [ ] The ladder prices an overnight holding (card holding-overnight, R-RUNNER-374; his 'Yes, card it' Thu 19 Nov
+- [x] The ladder prices an overnight holding (card holding-overnight, R-RUNNER-374; his 'Yes, card it' Thu 19 Nov
       ~22:0x, SETs GAP 1-9; held until the pre-registered EPON re-run has finished, since it changes lab/rung.py):
       one holding model, no second engine: a spec field holding ('next_open' the default, 'overnight') read by
       lab/spec.py; 'overnight' buys at close[t] and sells at open[t+1] (Friday to Monday one trade), costs whole
       by orders.charges, no stop while the market is shut. Gate, written first, in the contract test: hand-worked
-      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named GRID's cell module: a part that needs it is a GRID box this one waits for)
+      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named GRID's cell module: a part that needs it is a GRID box this one waits for). Built (#2513): `lab/spec.py` reads a row's `holding` (`next_open` default, `overnight`), `lab/rung.judge` takes it from the rule's own spec row. Later rungs reading the holding: STATUS, Found not fixed.
       {id: holding-overnight; files: lab/rung.py, lab/spec.py, tests/unit/test_lab_rung.py, tests/unit/test_lab_spec*.py; check: tests/unit/test_lab_rung.py::test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open}
 - [ ] Row 101's overnight baseline through the ladder (card holding-overnight-row101, R-RUNNER-375, part 2 of 3):
       [overnight_baseline] in lab/catalogue.toml (row 101 of set-catalogue.md, source named), buy every close and
