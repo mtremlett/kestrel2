@@ -1271,3 +1271,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | money-small: expected_gain built and census-covered; the buy-path flag waits on two fixtures (#2447). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-570 ticked: SimCity's 17 incidents split, one module each (#2454). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | O95 rungs-sets ticked (R-RUNGS-34 met); a gap-refused set exits WAITS (3) for the greenkeeper's fill; R-RUNGS-52 closed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | Chat seat 295: Fable design items 11, 10, 9, 12, 4, 7, 3(a), 3(b)A live through a green go-live (17:06, 254/254); go-live gate rebuilt (per-HEAD records, stall check, live checkout); 3(b)B, item 5, item 8 and the runner's own book with builders. |

@@ -34,6 +34,7 @@ from lab import (
     intraday,
     ladder,
     ladder_pool,
+    ladder_preflight,
     members,
     rulebook,
     scalping,
@@ -46,7 +47,9 @@ from lab import (
 )
 from lab.batch import Bars
 from lab.cell import Cell
-from lab.ladder import END, FOLDER, START, Kept, Plan, eponymous, run
+from lab.ladder import END, FOLDER, START, Plan, run
+from lab.ladder_epon import eponymous
+from lab.ladder_kept import Kept
 from lab.ladder_parts import FAILED, Shared, _made, _resolve, faults
 from lab.published_epon import TESTED
 from lab.rung import Answer, Rates, Verdict
@@ -340,7 +343,7 @@ def _pooled(make: Callable[[], Bars]) -> Callable[..., str]:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         plan: Plan = ladder.FIRST,
     ) -> str:
-        ladder.preflight(todo, make(), pounds)
+        ladder_preflight.preflight(todo, make(), pounds)
         return ladder_pool.run(home, make, pounds, todo, now, plan)
 
     return go

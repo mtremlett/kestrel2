@@ -28,7 +28,7 @@ from itertools import groupby
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from lab import batch, cell, ladder, tape, tune, verdict
+from lab import batch, cell, ladder, ladder_kept, tape, tune, verdict
 from lab.batch import Bars
 from lab.cell import Cell
 from lab.folds import YEARS
@@ -275,7 +275,7 @@ def run(
         raise RuntimeError("the code on disk has changed since this process loaded it")
     todo = ladder.cells() if todo is None else todo
     results, count = ladder.begun(home, todo, plan)
-    last = ladder.Kept(results)
+    last = ladder_kept.Kept(results)
     stamp = now()
     stop, began = home / ladder.FOLDER / STOP, time.time()
     _asked(stop, began)  #: a stale STOP goes now, before the first unit

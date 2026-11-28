@@ -35,7 +35,7 @@
   "max_lines_per_rulebook": {"CLAUDE.md": 80, "CANON.md": 200, "docs/FAILURE_PATTERNS.md": 221},
   "max_lines_per_function": 50,
   "unit_test_lines_per_product_line": 1.5,
-  "slots_per_lane": {"money": 10, "data": 3, "paper": 2, "grid": 2, "rungs": 8},
+  "slots_per_lane": {"money": 10, "data": 3, "paper": 2, "grid": 2, "rungs": 8, "runner": 1},
   "slots_why": "sessions a lane runs at once; no file is named by more of its open boxes (G30)",
   "counted": "*.py in desk/ and lab/, blank lines and comments included - the honest number"
 }
