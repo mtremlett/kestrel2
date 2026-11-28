@@ -305,6 +305,8 @@ def _stops(life: _Life) -> None:
     )
     life.promise("a sale at the price it was sized at loses nothing to a gap", kept)
     life.promise("a trade gaining nothing is flagged thin", orders.thin(order, Decimal(0)))
+    gain = orders.expected_gain(life.market[line], order)
+    life.promise("a trade expects a gain of no less than nothing", gain >= 0)
     buy = strategy.Decision("rule", symbol, life.records[-1].day, strategy.Action.BUY)
     price, fx, held = Decimal(100), life.rates[line.currency], book.positions(life.desk)
     gap = orders.stop_under(line, price) - 1  #: the live price gaps under the signal's stop

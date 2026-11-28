@@ -330,3 +330,7 @@ Options: add `variants.centre` (outside the claim; rejected), or call `plateau.c
 ### 2026-11-27 — lab.chain chains only the known sets (#2247)
 
 Options: chain every json in ladder/sets, or only the sets `chain.sweep` knows (EPON, LEV). **Decided** the known sets: grid-transfer.json and *.cells.json are not set tables. A failed chain does not fail the sweep pass (its line says so), since a failed pass would lose its count line.
+
+### 2026-11-28 — the stale clone refused in the sweep, and the wait moved to 29 Nov (#2430)
+Options for the week's clone running pre-#1210 code: (a) the sweep refuses a pass whose home is behind origin/main; (b) the runner brings the clone to main (R-GRID-8, still open); (c) wait. Chose (a) and (b), as the box says (his "please always go with recommended"). The grid-week wait: re-date, drop or keep; kept, re-dated to 2026-11-29 because its run ended BLOCKED.
+
