@@ -69,6 +69,10 @@ from desk.trading_hours import trading
 ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside the one before
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
+#: The runner ends a rehearsal at 3600 s: it stops itself 300 s short, and a step's worst is every
+#: order it may send waiting its shut-market wait, and the knock.
+RUN_SECONDS = 3300
+STEP_WORST = paper.MAX_ORDERS * placing.SHUT_SECONDS + paper.SECONDS
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 OPEN = "REHEARSAL NO-GO: not begun: {}."
@@ -232,11 +236,15 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) ->
 
 def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
     """A step at each moment, as the day's: one that fails is named and the next carries on; the
-    run stops, named, if a market comes near by the clock."""
-    failed = list[str]()
+    run stops, named, if a market comes near by the clock, or if the next step could pass the
+    run's time (RUN_SECONDS), so the runner never kills it before its own are cancelled."""
+    failed, begun = list[str](), clock()
     for at in moments:
         if near := trading(clock()):
             failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
+            break
+        if (clock() - begun).total_seconds() + STEP_WORST > RUN_SECONDS:
+            failed.append(f"{at:%H:%M} UTC stopped, the next step could pass the {RUN_SECONDS} s")
             break
         try:
             running.step(desk, at)
@@ -278,7 +286,7 @@ def rehearse(
         frozenset(h.name for h in before.holdings if h.shares),
         frozenset(o.broker_id for o in before.orders),
     )
-    door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
+    door = placing.Shut(paper.DESK, found)  #: the account found is not the rehearsal's to see
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)

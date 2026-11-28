@@ -262,6 +262,24 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
 
 
+def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    answers, ran, moment = _world(monkeypatch), list[datetime](), [SUNDAY]
+    fast_store(tmp_path / keeper.HOT, 51)
+    answers.update({tp.FILLS: [END], tp.ACCOUNT: tp.EMPTY})
+    monkeypatch.setattr(running, "step", lambda _desk, now: ran.append(now))
+
+    def slow() -> datetime:  #: each reading of the clock is 150 s on: a step takes that long
+        moment[0] += timedelta(seconds=150)
+        return moment[0]
+
+    code = command.main(["--rehearse"], {"KESTREL2_DATA": str(tmp_path)}, slow)
+    line = capsys.readouterr().out
+    assert code == 1 and "stopped, the next step could pass the 3300 s" in line
+    assert 0 < len(ran) < 199 and (moment[0] - SUNDAY).total_seconds() <= command.RUN_SECONDS + 600
+
+
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -301,6 +301,10 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     w = f"{ID}: withdrawn by the desk: not filled at the market within {paper.FILL_SECONDS} seconds"
     assert broker.place(BUY_IT) == Report(ID, (), w)  # told as the desk's, not the broker's
     assert sent[2:] == [both, CANCEL, *ASKED, ACCOUNT, CANCEL_42]
+    # the rehearsal's door, a shut market: the same buy is given SHUT_SECONDS, not two minutes
+    shut = placing.Paper(LISTED, _ready(tmp_path), lambda: AT, placing.Shut(paper.DESK))
+    _gateway(monkeypatch, [], was, [CHILD[1]], *none, silent=True)
+    assert str(shut.place(BUY_IT).reason).startswith(w.replace("120", "5")) and WAITS[2] == 5
     # a buy cut at ten of 26: its stop is for the ten bought, never the 26 ordered
     cut: list[Said] = [none[0], TEN, PART[1], TENTH, TEN]
     sent = _gateway(monkeypatch, [], EMPTY, [], *cut, RESTS, [ENDED_42], silent=True)
