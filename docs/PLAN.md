@@ -1055,7 +1055,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
 - [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612 and again in #2021 after #2007 dropped it), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563; the log line carries them, #1748); the 15 Nov stop's trigger is unproven; old failed journals under kept/ heal when a pass reruns them (#2007) {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; check: tests/unit/test_lab_sweep.py::test_unbroken_reads_seven_days_from_the_weeks_journal}
-- [ ] The week's clone runs current main's code, not pre-#1210: a pass runs the code at its own home
+- [x] The week's clone runs current main's code, not pre-#1210: a pass runs the code at its own home
       (`lab/sweep.py`, `Path(__file__).parents[1]`), so the week's clone kept pre-#1210 code and failed 2,810 cells
       an hour; a pass whose home is behind main's code is refused by name, never run (builders lead, 27 Nov)
       {id: grid-week-clone; files: lab/sweep.py, tests/unit/test_lab_sweep.py; check: tests/unit/test_lab_sweep.py::test_the_week_clone_runs_mains_code}
