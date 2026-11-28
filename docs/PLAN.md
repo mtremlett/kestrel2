@@ -541,12 +541,12 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
-- [ ] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
+- [x] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
       fourth time after #1813, #2400, #2410): nobody can tell a hang from a slow night, because `within` keeps the
       last three frames of one thread, and the runner's own dump of every thread (15 s before its 6 h limit) never
       fires behind SimCity's 7,200 s. At the limit, every thread's whole stack is named, so the
       next fix is made from evidence. Gate, written first: a planted work that waits inside a
-      nested call times out naming its outermost and innermost frames. No new desk/ file
+      nested call times out naming its outermost and innermost frames. No new desk/ file (done, #2440)
       {id: money-deep-stack; files: desk/simcitycmd.py, tests/unit/test_simcitycmd.py; check: tests/unit/test_simcitycmd.py::test_a_stuck_phase_names_every_threads_whole_stack}
 - [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
@@ -576,6 +576,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
+      Remains (#2368, blocked 27 Nov): `tests/unit/test_lab_ladder_epon.py` (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
       {id: money-epon-room; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
 - [ ] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
@@ -590,6 +591,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Remains (#2137, #2152): the daily round's pounds-room and total on main; per-side share counts in desk/book.py, once the stops rest apart by side (paper-side-stops, then money-side-stops; coordinator 284, 28 Nov: stops are keyed by ticker alone, so the zoo's one share beside the desk's holding has no stop of its own)
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
+      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); intraday refusal in desk/running.py is PAPER's (R-MONEY-76). Waits: operator
       {id: zoo-own-side; after: money-side-stops; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every eponymous desk module, and RUNGS' published list

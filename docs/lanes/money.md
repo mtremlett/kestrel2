@@ -775,3 +775,8 @@ true result on the fixture, not a tuning target.
 
 ### 2026-11-27 - collect's gap check takes optional arguments (#2363, R-RUNNER-542)
 - Options: a new function, or required arguments breaking other lanes' callers. Took optional arguments, so every caller keeps working until the callers pass lines.
+
+### 2026-11-28 - money-epon-room blocked; zoo-own-side reverted; money-small claim gap (#2368, #2379, #2440)
+- money-epon-room (#2368): options were edit RUNGS's `tests/unit/test_lab_ladder_epon.py` outside the claim (refused, pattern 21) or stop. Stopped: the seven-file deletion turns `both == python` red; asked RUNGS to compare spec-only rows (R-MONEY-77). Remains: that test changed, then delete the seven files, their tests and manifest rows; claim needs test_lab_ladder_epon.py and manifest/money.toml.
+- zoo-own-side (#2379): per-side share counts were built and reverted after the blind review found three blockers: one broker stop per line under the newest buy's id, `day._holders` as "last buyer", and zoo share counts that go negative. Options: land it (unsafe) or keep a zoo buy of a desk-held line refused (chosen, paper only). Per-side stops and holders come first (money-side-stops); intraday refusal in desk/running.py is PAPER's (R-MONEY-76).
+- money-small claim gap (#2368, #2379, #2440): its work needs desk/strategy.py and tests/unit/test_strategy*.py, outside each card's claim. By his "always go with recommended" each session left it under Remains; runner ops widens the claim. SimCity's stack dump (#2440) is written by SimCity itself, since its limit fires before the runner's.
