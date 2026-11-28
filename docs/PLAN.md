@@ -567,7 +567,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       the zoo holds, never the desk's whole book (the mechanism #2105 fixed for sizing), and the per-line room never
       refuses one share while it is within the zoo's 1,000 pounds and the zoo's total stays within it; the one risk
       gate still judges every order. Net lines in desk/ must not rise (no ceiling room)
-      Remains (#2137, #2152): the daily round's pounds-room and total on main; the intraday round (desk/running.py, PAPER's) and per-side share counts in desk/book.py
+      Remains (#2137, #2152): the daily round's pounds-room and total on main; per-side share counts in desk/book.py (the intraday round is PAPER's, outside this box: coordinator 280, 28 Nov)
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
       {id: zoo-own-side; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
@@ -944,7 +944,7 @@ his PC with the desk's own client id (222), never 4001.
       manifest.toml; after: paper-running}
 - [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       Remains: #2107 was red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines
-      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines (tests/guards/test_guards.py:151) and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
+      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
