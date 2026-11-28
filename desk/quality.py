@@ -30,10 +30,9 @@ from desk.store import _clean as cleaned
 
 
 def _missing(line: Line, held: tuple[Bar, ...], today: date) -> list[date]:
-    """The sessions from the first held bar to yesterday on which the line holds none."""
+    """The holes from the first held bar to yesterday."""
     days = {bar.day for bar in held}
-    first = min(days, default=today)
-    return [d for d in venues.sessions(line.venue, first, today - timedelta(1)) if d not in days]
+    return line.holes(days, min(days, default=today), today - timedelta(1))
 
 
 def _through(line: Line, now: datetime) -> date:
