@@ -1033,7 +1033,9 @@ his PC with the desk's own client id (222), never 4001.
       seconds, the wait given to the account the rehearsal builds (one send path, one home for each wait); a
       rehearsal whose next order would pass its time stops, cancels its own and names the stop. Rejected: a longer
       job timeout; skipping the send. Gate: a test, written first, where a planted rehearsal of 28 orders ends
-      inside its limit with no order of its own working
+      inside its limit with no order of its own working. Measured Sat 28 Nov 13:45 after #2469 (the 5 s wait):
+      a whole Friday is 313 orders at about 10 s each, plus three 30 s gateway dial timeouts, so the 3300 s ran
+      out at Friday's 17:50 bar, NO-GO, nothing left working; the planted rehearsal holds a Friday's 313 orders
       {id: paper-rehearsal-wait; files: desk/command.py, desk/placing.py, tests/unit/test_command.py, tests/unit/test_placing.py; check: tests/unit/test_command.py::test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working}
 
 ## Phase 4 — the ladder

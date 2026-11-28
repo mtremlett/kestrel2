@@ -19,7 +19,18 @@ from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
-from desk import book, broker, day, day_money, halt, incidents, kill, orders, strategy
+from desk import (
+    book,
+    broker,
+    day,
+    day_money,
+    halt,
+    incidents,
+    kill,
+    orders,
+    simcity_incidents,
+    strategy,
+)
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -234,6 +245,7 @@ EVENTS: tuple[Event, ...] = (
     (KILLED, _killed),
     (THROUGH, _through),
     *incidents.DRAWN[1:],
+    (simcity_incidents.OLD, simcity_incidents.old_records),
 )
 
 
