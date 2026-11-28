@@ -69,13 +69,14 @@ class Settings:
     #: never refuses.
     correlation: Decimal = Decimal("0.90")
     holdings: int = HOLDINGS  #: the parts the capital is cut in; one line's room is a part
+    lines: int = HOLDINGS  #: the most lines held at once: the desk's five, the zoo's own twenty
 
     def __post_init__(self) -> None:
         if not self.capital.is_finite() or self.capital <= 0:
             raise ValueError(f"a capital of {self.capital} pounds")
         if self.correlation <= 0:
             raise ValueError(f"a correlation cap of {self.correlation}")
-        if not (0 < self.day_loss <= self.week_loss <= 1) or self.new_lines < 1:
+        if not (0 < self.day_loss <= self.week_loss <= 1) or min(self.new_lines, self.lines) < 1:
             raise ValueError(f"limits of {self.day_loss}, {self.week_loss} and {self.new_lines}")
 
 
@@ -306,11 +307,10 @@ def order_id_of(decision: Decision) -> str:
 
 
 ZOO = "zoo_"  #: the front of every zoo rule's name (desk/intraday.py): a MACHINERY TEST's
-#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone): pounds whose
-#: 2% a day and 5% a week bound its losses, and the new lines it may enter in a day.
-ZOO_ROOM = Settings(Decimal(1_000), new_lines=10)
-#: The daily round's: a line's room the whole of it (a share of AAPL is not refused for costing
-#: over a fifth); the zoo's total within it is day._zoo_full's.
+#: THE ZOO'S OWN ALLOWANCE, apart from the desk's (day.standing counts each alone; his 24 Nov ruling
+#: in docs/DECISIONS.md): 5,000 pounds, 20 lines, 20 new lines a day.
+ZOO_ROOM = Settings(Decimal(5_000), new_lines=20, lines=20)
+#: The daily round's: a line's room the whole of it; the zoo's total within it is day._zoo_full's.
 ZOO_DAY = replace(ZOO_ROOM, holdings=1)
 
 
@@ -372,8 +372,8 @@ def gate(
         _within_underlying(order, settings, exposure)
     if moves is not None:
         _apart(order, settings, held, moves)
-    if symbol not in held and len(held) >= HOLDINGS:
-        raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {HOLDINGS}")
+    if symbol not in held and len(held) >= settings.lines:
+        raise Refused(f"{order.order_id}: {len(held)} holdings already, at most {settings.lines}")
     whole = replace(order, quantity=order.quantity + held.get(symbol, 0))
     _liquid(whole, traded)
     if cost(whole) > _room(order.line, settings):

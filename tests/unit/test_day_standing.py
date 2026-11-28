@@ -273,11 +273,12 @@ def test_the_daily_zoo_buys_one_share_a_rule_only_when_on_and_yields_the_desks_l
         0,
         1,
     )
-    monkeypatch.setattr(orders, "HOLDINGS", 1)  # the zoo's line fills none of the desk's holdings
     book.send(
-        tmp_path, broker, Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))), ROOM
+        tmp_path,
+        broker,
+        Order("20251111-desk_in-ISF", b, 1, *map(Decimal, (50, 1, 45))),
+        replace(ROOM, lines=1),  # the zoo's line fills none of the desk's holdings
     )
-    monkeypatch.setattr(orders, "HOLDINGS", 5)
     monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In})
     broker.open(wed)
     sessions, place = list[date | None](), broker.place
@@ -333,10 +334,11 @@ def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_f
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """23 Nov: 36 zoo buys (AAPL, TSLA, NVDA) refused 'one share costs more than the room of 200
-    pounds'; a share costing 300 is bought now, and the fourth would take the zoo past 1,000."""
+    pounds'; a share costing 1,300 is bought now, and the fourth would take the zoo past 5,000."""
     lines = [ln for ln in LINES if ln.retail and ln.leverage == 1 and ln.isa][:4]
     dear = tuple(
-        Bar(d, Decimal(300), Decimal(301), Decimal(299), Decimal(300), 10**7) for d in (MON, TUE)
+        Bar(d, Decimal(1300), Decimal(1301), Decimal(1299), Decimal(1300), 10**7)
+        for d in (MON, TUE)
     )
     broker = Pretend({ln: dear for ln in lines}, {})
     broker.open(TUE)
@@ -349,7 +351,7 @@ def test_a_zoo_share_over_a_fifth_of_its_pounds_is_bought_while_the_zoos_total_f
     )
     assert sorted(a.filled for a in answers) == [0, 1, 1, 1]
     over = next(a for a in answers if a.filled == 0)
-    assert "the zoo would hold 12" in str(over.reason) and over.blocker is Blocker.GATE
+    assert "the zoo would hold 52" in str(over.reason) and over.blocker is Blocker.GATE
 
 
 def test_a_zoo_buy_of_a_line_the_desk_holds_stays_refused_until_shares_have_owners(
@@ -391,17 +393,17 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
     monkeypatch.setattr(strategy, "STRATEGIES", {"desk_in": _In, "desk_out": _Out})
     monkeypatch.setattr(intraday, "ZOO_DAILY", {"zoo_in": _In, "zoo_out": _Out})
     monkeypatch.setattr(intraday, "zoo_lines", lambda: tuple(lines))
-    monkeypatch.setattr(orders, "HOLDINGS", 20)
+    room = replace(ROOM, lines=20)
     first, rates = {ln: (bars[ln][0],) for ln in lines}, {ln.currency: Decimal(1) for ln in lines}
-    full, one = paper.MAX_ORDERS, replace(ROOM, new_lines=1)  #: one new desk line, 19 refused
+    full, one = paper.MAX_ORDERS, replace(room, new_lines=1)  #: one new desk line, 19 refused
     none, no, rest = frozenset[str](), dict[str, Fault](), ("desk_in", "zoo_in")
     shy = {lines[0].symbol: Fault.REJECT, lines[1].symbol: Fault.PARTIAL}  #: asked, short
     held = ("desk_out", "zoo_in", "zoo_out")  #: a desk sale, a zoo yield, a zoo sale, 2 strangers
     runs = (
-        (frozenset({"desk_in"}), ROOM, full, no, (), {"zoo_in"}),
+        (frozenset({"desk_in"}), room, full, no, (), {"zoo_in"}),
         (none, one, full, no, (), {"zoo_in"}),
-        (none, ROOM, 3, shy, (), set(rest)),
-        (none, ROOM, 1, no, held, {"stranger", *held, *rest}),
+        (none, room, 3, shy, (), set(rest)),
+        (none, room, 1, no, held, {"stranger", *held, *rest}),
     )
     for n, (killed, room, cap, faults, seeded, rules) in enumerate(runs):
         root, broker = tmp_path / str(n), Pretend(bars, faults)
@@ -412,7 +414,7 @@ def test_a_round_sends_only_what_the_steps_time_allows_and_carries_the_rest(
                 root,
                 broker,
                 Order(f"20251110-{rule}-{line.symbol}", line, 1, *map(Decimal, (5, 1, 4))),
-                ROOM,
+                room,
             )
         for line in lines[-2:] if seeded else ():
             broker.inject(line.symbol, 1)
