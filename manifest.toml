@@ -28,6 +28,7 @@ paper = []
 data = ["tests/scenes/rehearsal.py"]
 grid = []
 rungs = ["lab/catalogue.toml", "tests/unit/test_lab_catalogue.py"]
+runner = []  # its boxes change the runner's repository only (design item 8)
 
 # Every module, with the one thing it owns: here only the package markers; each lane's
 # modules in manifest/<lane>.toml, one file per lane so no two lanes ever edit one file.
