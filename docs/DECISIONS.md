@@ -2889,3 +2889,33 @@ apart from the broker. `tests/unit/test_book_matrix.py`: green on main; RED on a
 forgot it"), and on a send that never asks the broker first (6 rows). Tests only, no desk change.
 Left of pattern 23's debt: which of these four answers each real gateway message becomes
 (desk/paper.py's table), and the same rows in SimCity (R-RUNNER-392).
+## 27 Nov - an open box names only files its own lane may change (design item 3, Builder 3b)
+The box is the card: the runner reads each open box's id, files, after:, waits: and check: (every
+one already guarded at any depth). A lane branch may never change another lane's file
+(`test_a_lane_changes_only_its_own_files`; no claim overrides it), so a box naming one is handed
+out, built and refused, or drifts outside its claim (patterns 12, 21; #2350, #2375, #2383 each
+ended 'outside this claim'). Options weighed: (a) let the runner grant two-lane claims: the repo
+refuses them whatever the runner grants; (b) refuse such a box in the book: chosen. Work another
+lane must do is that lane's box, and this one goes `after:` it; work that cannot be split is a
+builder's, not a lane box. `test_an_open_box_names_only_files_its_lane_may_change` was RED on main
+with 13 files in 6 boxes (money-epon-room, zoo-own-side, money-connors7, money-door-pound,
+money-round-cap: RUNGS's or PAPER's files; rungs-rows-as-rules: MONEY's). Lead 271 ruled the strip
+mine, `files:` fields only: each foreign file leaves its box (a session ends BLOCKED on it, never
+outside its claim), and so do manifest.toml and manifest/money.toml (item 4). money-round-cap moves
+whole to PAPER's book: MONEY's half landed (#2084), and what remains, running's CARRIED resend, and
+its check are desk/running.py's (as paper-step-time was split from it, 23 Nov). Green after.
+
+## 27 Nov - no file in more open boxes than its lane has slots; no hub in any box (design item 4, G30)
+Two sessions never hold one file, so a file named by more of a lane's open boxes than the lane has
+slots leaves slots idle behind it (claims-wait idle on 15, 21, 22 and 26 Nov; manifest.toml in 56
+cards on 26 Nov; his 26 Nov "can we mechanically never forget? add in code?"). The slot counts had
+one home, the runner's `slots.SLOTS`, which GitHub cannot read (pattern 5), so they move to
+`BUDGET.json` `slots_per_lane` at the runner's values (money 10, data 3, paper 2, grid 2, rungs 8)
+and the runner reads them there (Builder 1). Raising a lane's slots now loosens this guard, so it
+is his, as each raise was before. Hubs are in no box at all: a lane never changes manifest.toml,
+its own manifest file is its own outside any claim (that is the registry modules ride with), and
+the train folds STATUS and PLAN. `test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots`
+was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was green, and RED again
+on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
+desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 15 and 16 boxes against
+10 slots). A file named by a glob counts once per box for every tracked file it matches.
