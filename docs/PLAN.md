@@ -1050,7 +1050,7 @@ his PC with the desk's own client id (222), never 4001.
       too many): the fixtures of the step's tests give each line bars with a move and a volume, so a buy's expected
       gain clears twice its cost and no fixture buy is flagged; no behaviour changes today
       {id: paper-running-move; files: tests/unit/test_running.py, tests/unit/test_running_tell.py; check: tests/unit/test_running.py::test_the_fixtures_buys_clear_twice_their_round_trip_cost}
-- [ ] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
+- [x] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
       MONEY's 01:58 ending on zoo-own-side: 'desk/paper.py (per-side stops)'): read, set, move and cancel a
       resting stop by ticker and side, as methods beside today's, so the Broker interface and its one contract
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the

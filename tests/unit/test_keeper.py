@@ -12,7 +12,17 @@ from pathlib import Path
 
 import pytest
 
-from desk import archive, bars, keeper, keeper_live, keeper_rotate, paper, store, venues
+from desk import (
+    archive,
+    bars,
+    keeper,
+    keeper_live,
+    keeper_rotate,
+    keeper_round,
+    paper,
+    store,
+    venues,
+)
 from desk.bars import Five, Source
 from desk.lines import POUND, YARDSTICK, Line
 from desk.spans import Timed
@@ -233,9 +243,9 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
     assert pretend.keep(tmp_path, _at(6))[1] == []  # a line a session short is a fault, no miss
     held, parked = keeper.saved(tmp_path, MON, LINES)
     assert (held[TWIN], parked) == (_bars(TWIN, MON)[:-1], frozenset({"CCC"}))
-    for call in range(2, keeper.TRIES + 3):  # a fault is asked again TRIES times, then left
+    for call in range(2, keeper_round.TRIES + 3):  # a fault is asked again TRIES times, then left
         pretend.keep(tmp_path, _at(6, 5 * call))
-        assert pretend.asked == ["CCC"] * (call <= keeper.TRIES)
+        assert pretend.asked == ["CCC"] * (call <= keeper_round.TRIES)
     pretend.keep(tmp_path, _at(21, 30))  # the evening, readied for Tuesday: CCC still short
     pretend.refuses, pretend.short = {"AAA", "BBB"}, set()  # and whole again by the morning
     for minute in (0, 5):  # Tuesday morning the archive is away for two: what is held stands
@@ -252,7 +262,9 @@ def test_a_line_unanswered_keeps_what_its_day_holds_is_asked_again_and_a_blind_v
     held, parked = keeper.saved(tmp_path, wed, [UK])  # refused, it is parked; its past is kept
     assert (held[UK], parked) == (_bars(UK, tue), frozenset({"BBB"}))
     pretend.refuses, pretend.short = set(), {"BBB"}
-    for call in range(keeper.TRIES + 2):  # answered, yet no line clean: a miss, and never left
+    for call in range(
+        keeper_round.TRIES + 2
+    ):  # answered, yet no line clean: a miss, and never left
         said, missed = pretend.keep(tmp_path, _at(18, 5 * call, tue))
         assert "BBB" in pretend.asked and missed == [w for w in said if w.startswith("LSE: daily")]
 
