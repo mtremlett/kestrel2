@@ -59,14 +59,29 @@ def _but(fields: Sequence[str], at: int, value: str) -> list[str]:
     return [*fields[:at], value, *fields[at + 1 :]]
 
 
-@pytest.mark.parametrize("exchange", ["NASDAQ", "ARCA"])
+@pytest.mark.parametrize(
+    ("london", "exchange"),
+    [("LSEETF", "NASDAQ"), ("LSEETF", "ARCA"), ("LSE", "NYSE"), ("LSE", "BATS")],
+)
 def test_each_line_is_read_as_the_gateway_gives_it_and_only_questions_are_sent(
-    exchange: str,
+    london: str, exchange: str
 ) -> None:
+    #: a fund on London's fund board or a share on its main board; a share on NYSE (O75: the
+    #: research list's 255 London and 119 NYSE shares were named another thing, 28 Nov)
     listed, sent = _read(
-        FEED, IITU_IS, ENDS[0], FEED, PENCE, _but(AAPL_IS, 20, exchange), ENDS[1], CENTS
+        FEED,
+        _but(IITU_IS, 20, london),
+        ENDS[0],
+        FEED,
+        PENCE,
+        _but(AAPL_IS, 20, exchange),
+        ENDS[1],
+        CENTS,
     )
-    assert listed == {"IITU": IN_PENCE, "AAPL": replace(IN_CENTS, exchange=exchange)}
+    assert listed == {
+        "IITU": replace(IN_PENCE, exchange=london),
+        "AAPL": replace(IN_CENTS, exchange=exchange),
+    }
     assert sent[2:] == [  # after the greeting and the start: a line, its price steps, the next
         _frame("9|8|0|0|IITU|STK||0.0|||SMART|LSEETF|GBP|||0|||".split("|")),
         _frame(("91", "984")),

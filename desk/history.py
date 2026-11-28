@@ -27,8 +27,6 @@ PACING = 11.0  #: seconds the pull slows after the broker says pacing (its small
 ASK, BARS, NEWS, ID = 20, "17", "4", 9001
 #: A bar's fields in the answer: its day, open, high, low, close, volume, the average and a count.
 WIDTH = 8
-#: The primary exchange the broker lists a London line under; a US line is routed by SMART.
-PRIMARY = {"LSE": "LSEETF", "US": ""}
 #: The pound in dollars is asked as a forex pair (GBP.USD at IDEALPRO), of the midpoint: it has no
 #: trades, and the broker gives its bars no volume (-1), kept as none.
 CASH = (0, "GBP", "CASH", "", 0, "", "", "IDEALPRO", "", "USD")
@@ -78,7 +76,8 @@ def request(line: Line, day: date, since: date, timeframe: str = "1d") -> bytes:
     span = (day - since).days
     length = f"{span} D" if span <= 365 else f"{span // 365 + 1} Y"
     end = f"{day:%Y%m%d} 00:00:00 UTC"
-    contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", PRIMARY[line.venue], line.currency)
+    primary = listing.PRIMARY[line.venue]
+    contract = (0, line.symbol, "STK", "", 0, "", "", "SMART", primary, line.currency)
     if line == POUND:
         contract = CASH
     return paper.message(
