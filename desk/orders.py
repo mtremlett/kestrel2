@@ -272,6 +272,14 @@ def traded_value(bars: Sequence[Bar], fx: Decimal) -> Decimal:
     return sum((b.close * b.volume for b in bars[-TRADED_DAYS:]), Decimal(0)) * fx
 
 
+def expected_gain(bars: Sequence[Bar], order: Order) -> Decimal:
+    """The pounds a trade is expected to gain: the line's mean daily close-to-close move over its
+    last TRADED_DAYS bars (no rule forecasts one), on the order's shares, at its rate."""
+    last = bars[-TRADED_DAYS - 1 :]
+    moves = [abs(b.close - a.close) for a, b in zip(last, last[1:], strict=False)]
+    return sum(moves, Decimal(0)) / max(len(moves), 1) * order.quantity * order.fx
+
+
 def thin(order: Order, gain: Decimal) -> bool:
     """TRD-10: whether the pounds a trade is expected to gain are under twice the pounds its
     round trip costs, every charge of both legs (charges), so it is flagged, not skipped."""

@@ -219,3 +219,8 @@ def test_a_trade_expected_to_gain_under_twice_its_round_trip_cost_is_flagged() -
     assert trip > 0
     assert orders.thin(order, 2 * trip - Decimal("0.01"))
     assert not orders.thin(order, 2 * trip)
+
+
+def test_the_expected_gain_is_the_mean_daily_move_on_the_orders_shares() -> None:
+    bars = [Bar(date(2026, 1, 1 + i), *(Decimal(10 + i % 2),) * 4, 10) for i in range(5)]
+    assert orders.expected_gain(bars, _order(PLAIN, 100, "10")) == 100
