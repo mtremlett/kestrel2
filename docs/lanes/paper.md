@@ -635,3 +635,12 @@ Options: pass `market` to size(), which would refuse the buy (emergency rule) in
 
 ### 2026-11-27 — the Gateway-down time is kept in a file at the data root (#2347)
 Options: derive it from notes, or change the step's return. Chose a small mark file (first moment found down, cleared when the Gateway answers): the smallest change, touching only claimed files.
+
+### 2026-11-28 — conformance settles its own earlier orders first (#2369)
+Options: ignore and send, or refuse. Chose to settle client 223 orders first (cancel, book any fill, say it on the record) and refuse the run if the broker will not end one: B1 and fail loudly. Settle reads the account the run already reads once.
+
+### 2026-11-28 — a gap through the signal stop makes conformance refuse (#2381)
+Options: keep a private lower-of rule (the duplicate the audit named) or mirror the desk. Took the desk: close as signal price, last 5-minute bar as `market`, so `orders.size` refuses by its emergency rule.
+
+### 2026-11-28 — the watcher reads the supervisor lock (#2434)
+Options: keep the lock design (the system's word, independent of the supervisor's own files) or judge by receipts (the supervisor's health already does that). Lock chosen: independence is the point. The first test keeps the box's check name though it reads a lock. His standing ruling: always go with recommended.
