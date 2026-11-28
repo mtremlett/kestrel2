@@ -2992,3 +2992,17 @@ an administrator console (his hand, not his answer: no session elevates or enter
 hard line on credentials); the install receipt (`test_the_install_receipt_proves_both_tasks_started_at_boot`)
 ticks paper-supervisor-windows; only then the runner's JOBS step is retired, as a runner order. Until
 then the runner's stand-in stays the one scheduler and the supervisor is not started by hand.
+## 28 Nov - the runner lane's book (design item 8, O113; Fable design builder A10, O89 L7)
+His aim, 28 Nov: the build runs on its own. Seats cannot start builders without his typed turn, so the
+runner's own remaining work becomes boxes the runner hands out itself. Options: (a) keep runner work in
+open-orders.md and seat-started builders: not autonomous, and two homes for work (pattern 8); (b) runner
+boxes in a separate file the runner reads: an eleventh document (the set is fixed); (c) a sixth book in
+PLAN, `### The runner lane's book`: chosen. A RUNNER box names only `runner:` and `drives:` files and a
+`drives:` drive as its check, which the runner runs on master (this repository cannot); every other
+lane's box names none of them, and its check stays a test. `manifest.toml` gains `runner = []` with an
+empty `manifest/runner.toml`, and `BUDGET.json` one RUNNER slot, so the hub-crowding rule holds it to
+one open box per file. The guard is tightened, not loosened: no box that failed before passes now (a
+drive check outside the RUNNER book fails the new test as it failed the old pattern). Driven:
+`test_a_runner_box_changes_only_the_runner_and_a_box_elsewhere_never_does` RED on a RUNNER box naming
+`desk/day.py`, on a RUNNER box with no check (with `test_every_open_box_names_its_check`), and on a
+RUNGS box planted with a `drives:` check; green on the book as written.

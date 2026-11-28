@@ -1545,6 +1545,37 @@ green on main. Designs, pre-mortems and planted breaks: the runner's notes,
 - [ ] Q7 a one-page runbook: if this happens, do that
 - [ ] Q8 market events in the calendar: no new entry into a known event
 
+### The runner lane's book — the runner hands out its own work (design item 8, O113)
+
+The runner's own changes are boxes here, handed out by its RUNNER slot (one session at a
+time, in its own worktree of the runner's repository, never this one), so the build needs no
+seat to start a builder. A box names only `runner:<path>` (the runner's repository) and
+`drives:<path>` (its drives) files, and its check is the drive that proves it: the runner
+runs it on master before a hand-out (green is a tick), and a box reaches master only green,
+then goes live through the go-live gate. The runner's ratchet holds it under its ceiling, so a box subtracts before it adds.
+
+- [ ] The runner hands out RUNNER boxes and lands what they build: `RUNNER` joins its
+      lanes (its one slot is `BUDGET.json`'s), with its model, effort and reviewer; its
+      session starts on a branch of its own worktree of the runner's repository, briefed
+      with the box. The runner's repository has no remote, so the branch is never pushed
+      nor deleted unlanded: at a BUILT ending it is rebased onto master, the drives covering
+      its files run, and only green fast-forwards master; red keeps the branch and holds the
+      box on its ending. Until this lands no RUNNER box is handed out (design item 8 (b), (e))
+      {id: runner-lane; files: runner:runner.py, runner:hooks/covering.py, drives:drive_runnerlane.py; check: drives:drive_runnerlane.py}
+- [ ] Pre-flight for a RUNNER box runs its `drives:` check on an export of master, never
+      pytest: green is a tick, never a hand-out
+      {id: runner-preflight; files: runner:preflight.py, drives:drive_runnerpreflight.py; check: drives:drive_runnerpreflight.py}
+- [ ] A runner commit may name a RUNNER box id of main's plan beside an O, G or item id
+      (design item 8 (d))
+      {id: runner-boxid; files: runner:hooks/boxid.py, drives:drive_boxid.py; check: drives:drive_boxid.py}
+- [ ] One writer per path from the boxes: at hand-out the runner writes the session's
+      `state/writers.json` row from its box's runner: files and drops it at the run's end; a
+      second box naming a held file waits (design item 8 (c))
+      {id: runner-writers; files: runner:claimfile.py, drives:drive_boxwriters.py; after: runner-lane; check: drives:drive_boxwriters.py}
+- [ ] The tick: the runner opens the PLAN tick pull request for a RUNNER box only when the
+      go-live record of a head holding its commit is green (design item 8 (f))
+      {id: runner-tick; files: runner:rounds.py, drives:drive_runnertick.py; after: runner-lane; check: drives:drive_runnertick.py}
+
 ## The requirements
 
 Every requirement of his spec (`DESK_REQUIREMENTS_V2`, 226 rows, ratified 31 October 2026)
