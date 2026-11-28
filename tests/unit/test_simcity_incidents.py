@@ -3,6 +3,7 @@ a scenario of its own: green when the desk refuses the day naming the line, red 
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -10,7 +11,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from test_simcity import NOW, RATES, ROOM, SHORT
+from test_simcity import MARKET, NOW, RATES, ROOM, SHORT
 
 from desk import (
     bars,
@@ -30,6 +31,7 @@ from desk import (
     watch,
 )
 from desk.lines import YARDSTICK
+from desk.simcity_census import Census
 from desk.simcity_incidents import (
     CANCELLED,
     DEAF,
@@ -322,3 +324,18 @@ def test_a_session_the_store_withdrew_is_a_still_day_the_world_lives_past() -> N
     assert [b.day for b in world] == list(sessions)
     assert world[3] == Bar(gone.day, *(bars_[2].close,) * 4, 0)
     assert day_money.close({YARDSTICK: world}, YARDSTICK, sessions[-1]) == bars_[-1].close
+
+
+@pytest.mark.parametrize("incident", [unbarred, gateway_silent])
+def test_a_london_incident_drawn_on_a_day_london_keeps_shut_is_owed_and_the_day_lived(
+    incident: Callable[[simcity._Life, date], bool | None], tmp_path: Path
+) -> None:
+    """A world lives every session of any venue (#2187), so a morning may be a US session London
+    keeps as a holiday (Boxing Day). An incident that plans a London conformance run is still
+    owed on it (False) and the day is lived plainly; it stopped a world (deep run 27 Nov, world 2
+    on day 1,703: "LSE does not trade on 2025-12-26: it has no hours")."""
+    boxing = date(2024, 12, 26)
+    assert venues.sessions("US", boxing, boxing) and not venues.sessions("LSE", boxing, boxing)
+    life = simcity._Life(tmp_path, MARKET, ROOM, RATES, 1, Census(simcity.PATH))
+    assert incident(life, boxing) is False, "drawn on a day London is shut, and not still owed"
+    assert [r.day for r in life.records] == [boxing], "the day not lived"
