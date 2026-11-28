@@ -157,7 +157,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
         "the email: no SMTP_ setting, his phone alone; the Gateway: it answered; "
         "the kill switch: off, and drilled today; the paper account: it is the desk's book; "
         "prices: "
-        "22 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
+        "26 lines to trade on; the pound: a dollar is £0.800000, kept for the day "
         "(kept before); halts: "
         "none in force.\n"
     )
@@ -176,7 +176,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
     assert "the kill switch: ValueError: the kill switch is on, pulled at" in line
     assert "the paper account: ValueError: it is not the desk's book: IITU" in line
     assert ". Ready: the email: no SMTP_ setting, his phone alone; the Gateway: it answered" in line
-    assert "prices: 22 lines to trade on; the pound" in line
+    assert "prices: 26 lines to trade on; the pound" in line
 
     def shut(_talk: object) -> object:
         raise ConnectionRefusedError

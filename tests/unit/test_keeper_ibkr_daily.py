@@ -149,7 +149,7 @@ def test_ibkr_has_every_lines_bar_in_three_calls_the_yardstick_first_a_refusal_s
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(paper, "dial", _no_gateway)
-    lines, asked = [ln for ln in LINES if ln.venue == "LSE"], []  # 13 lines, ROOM 6
+    lines, asked = [ln for ln in LINES if ln.venue == "LSE"], []  # 17 lines, ROOM 6
     refused = lines[1]
 
     def broker(wanted: Sequence[Line], day: date) -> dict[Line, Answer]:
@@ -160,7 +160,7 @@ def test_ibkr_has_every_lines_bar_in_three_calls_the_yardstick_first_a_refusal_s
         words = keeper.keep(
             tmp_path, NOW, lines, _bars, lambda *_: (), lambda: 0.0, series=(), broker=broker
         )[0]
-    assert len(lines) == 13 and lines[9] in asked[0] and asked[0][0] == YARDSTICK
+    assert len(lines) == 17 and lines[9] in asked[0] and asked[0][0] == YARDSTICK
     assert {ln for call in asked for ln in call} == set(lines)  # all asked within three calls
     named = next(w for w in words if "newest bar from" in w)
     assert refused.symbol not in named.split("IBKR: ")[-1] and len(asked) == 3

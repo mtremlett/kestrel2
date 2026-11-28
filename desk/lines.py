@@ -167,6 +167,7 @@ ISINS = dict(
         " IDTL:IE00BSKRJZ44 AAPL:US0378331005 TSLA:US88160R1014 NVDA:US67066G1040"
         " SPCX:US84615Q1031 MSTR:US5949724083 AMD:US0079031078 MU:US5951121038"
         " SPY:US78462F1030 QQQ:US46090E1038"
+        " XSPS:LU0322251520 SUK1:IE00B94QKG22 1MCS:IE00BBGBF313 LQQS:IE00BLRPRJ20"
     ).split()
 )
 #: Where each line's bars start, once the archive's older ones are in another unit (above).
@@ -198,6 +199,10 @@ UNDERLYING = {
     "SPCX": ("SPCX", "Space Exploration Technologies Corp."),
     "MSTR": ("MSTR", "Strategy Inc."),
     "AMD": ("AMD", "Advanced Micro Devices Inc."),
+    "XSPS": ("S&P 500", "Xtrackers S&P 500 Inverse Daily Swap UCITS ETF factsheet"),
+    "SUK1": ("FTSE 100", "WisdomTree FTSE 100 1x Daily Short factsheet"),
+    "1MCS": ("FTSE 250", "WisdomTree FTSE 250 1x Daily Short factsheet"),
+    "LQQS": ("NASDAQ 100", "WisdomTree NASDAQ 100 3x Daily Short factsheet"),
 }
 LINES = tuple(
     Line(
@@ -218,6 +223,7 @@ LINES = tuple(
     for venue, currency, isa, retail, symbols in (
         ("LSE", "GBP", True, True, "3LGO:3 2MU:2 SMGB:1 IITU:1 VHYG:1 5QQQ:5 ISF:1 VUSA:1 SGLN:1"),
         ("LSE", "GBP", True, True, "VUAG:1 EQQQ:1"),
+        ("LSE", "GBP", None, None, "XSPS:1 SUK1:1 1MCS:1 LQQS:3"),  # inverse; ISA, retail unknown
         ("LSE", "GBP", False, True, "IB1T:1"),
         ("LSE", "USD", True, True, "IDTL:1"),
         ("US", "USD", True, True, "AAPL:1 TSLA:1 NVDA:1 SPCX:1 MSTR:1 AMD:1 MU:1"),
@@ -231,17 +237,11 @@ LINES = tuple(
 REFERENCE = tuple(line for line in LINES if line.retail is False)
 
 
-#: Five more US lines, watched and never traded (not in LINES, so no caller can buy, rank or
-#: rehearse them): the polled round needs 27 lines to reach its floor (desk.keeper.POLLED).
+#: One more US line, watched and never traded (not in LINES, so no caller can buy, rank or
+#: rehearse it): the polled round needs 27 lines to reach its floor (desk.keeper.POLLED).
 WATCHED = tuple(
     Line(symbol, "US", "USD", 1, NO_TAX, None, None, underlying=symbol, source=name, isin=isin)
-    for symbol, name, isin in (
-        ("MSFT", "Microsoft Corp.", "US5949181045"),
-        ("AMZN", "Amazon.com Inc.", "US0231351067"),
-        ("GOOGL", "Alphabet Inc.", "US02079K3059"),
-        ("META", "Meta Platforms Inc.", "US30303M1027"),
-        ("AVGO", "Broadcom Inc.", "US11135F1012"),
-    )
+    for symbol, name, isin in (("MSFT", "Microsoft Corp.", "US5949181045"),)
 )
 #: Every line the keeper's polled rounds ask: the traded lines, the references, the watched.
 POLLED_LINES = (*LINES, *WATCHED)

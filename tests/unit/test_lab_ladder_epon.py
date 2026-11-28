@@ -84,7 +84,7 @@ def test_set_lev_judges_its_declared_trend_rules_on_the_leveraged_lines_only_in_
 ) -> None:
     assert set(ladder_sets.TREND) <= set(ladder.eponymous()) and len(ladder_sets.TREND) == 6
     held = ladder_sets.leveraged(LINES)
-    assert {line.symbol for line in held} == {"3LGO", "2MU", "5QQQ"}
+    assert {line.symbol for line in held} == {"3LGO", "2MU", "5QQQ", "LQQS"}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
     rules = ladder_sets.TREND[:1]
     said = ladder_sets.epon(tmp_path, _door({}), {}, held[:2], clock, rules, plan=ladder_sets.LEV)

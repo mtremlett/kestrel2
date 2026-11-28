@@ -58,10 +58,12 @@ def test_the_zoo_is_thirty_machines_over_every_regime_and_none_a_candidate() -> 
     assert all(m.source for m in ZOO)
 
 
-def test_the_zoo_trades_nine_plain_london_lines_and_seven_us_securities_all_isa() -> None:
+def test_the_zoo_trades_twelve_plain_london_lines_and_seven_us_securities_all_isa() -> None:
     lines = intraday.zoo_lines()
     london = [line for line in lines if line.venue == "LSE"]
-    assert len(london) == 9 and all(line.leverage == 1 for line in london)
+    assert len(london) == 12 and all(line.leverage == 1 for line in london)
+    #: the three plain inverse lines join by the zoo's own rule; LQQS, three times, stays out
+    assert {"XSPS", "SUK1", "1MCS"} <= {ln.symbol for ln in london}
     us = [line for line in lines if line.venue == "US"]
     assert len(us) == 7 and all(line.isin for line in us)
 

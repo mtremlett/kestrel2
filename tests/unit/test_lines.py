@@ -22,15 +22,19 @@ from desk.lines import (
 
 #: Still in LINES only as price references (REFERENCE), never traded.
 LEAVING = {"SPY", "QQQ"}
+#: The four inverse lines (21 Nov 2026), whose ISA and retail facts nobody has recorded yet.
+INVERSE = {"XSPS", "SUK1", "1MCS", "LQQS"}
 
 
-def test_the_master_holds_the_twenty_of_the_ruling_thirteen_in_london_and_seven_in_the_us() -> None:
+def test_the_master_holds_the_twenty_of_the_ruling_and_the_four_inverse_lines_of_21_november() -> (
+    None
+):
     symbols = {line.symbol for line in LINES}
     assert len(symbols) == len(LINES) and "GLD" not in symbols
     assert symbols >= {"VUAG", "EQQQ", "IDTL"}
     twenty = Counter((ln.venue, ln.currency) for ln in LINES if ln.symbol not in LEAVING)
-    #: the one London line in dollars is IDTL
-    assert twenty == {("LSE", "GBP"): 12, ("LSE", "USD"): 1, ("US", "USD"): 7}
+    #: the one London line in dollars is IDTL; the four inverse lines are London lines in pounds
+    assert twenty == {("LSE", "GBP"): 16, ("LSE", "USD"): 1, ("US", "USD"): 7}
     leaving = {ln.symbol: ln.venue for ln in LINES if ln.symbol in LEAVING}
     assert leaving == dict.fromkeys(LEAVING, "US")
 
@@ -39,7 +43,11 @@ def test_every_line_says_whether_an_isa_can_hold_it_and_a_retail_customer_buy_it
     flags = {line.symbol: (line.isa, line.retail) for line in LINES}
     refused = {s: held for s, held in flags.items() if held != (True, True)}
     #: a US fund has no UK papers; a bitcoin note a retail customer can buy and an ISA cannot
-    assert refused == {**dict.fromkeys(LEAVING, (False, False)), "IB1T": (False, True)}
+    assert refused == {
+        **dict.fromkeys(LEAVING, (False, False)),
+        "IB1T": (False, True),
+        **dict.fromkeys(INVERSE, (None, None)),
+    }
     unrecorded = Line("AAA", "US", "USD", 1)  #: nobody has recorded either: neither yes nor no
     assert unrecorded.isa is None and unrecorded.retail is None
     for isa, retail in ((1, True), (True, 0), ("yes", "yes")):
@@ -55,7 +63,7 @@ def test_simply_holding_the_market_is_the_s_and_p_500_in_pounds_an_isa_can_hold(
 
 def test_leverage_is_a_fact_in_the_master_never_read_from_a_name() -> None:
     leveraged = {line.symbol: line.leverage for line in LINES if line.leverage != 1}
-    assert leveraged == {"3LGO": 3, "2MU": 2, "5QQQ": 5}
+    assert leveraged == {"3LGO": 3, "2MU": 2, "5QQQ": 5, "LQQS": 3}
 
 
 def test_a_line_on_a_venue_without_a_calendar_cannot_be_made() -> None:
@@ -70,7 +78,9 @@ def test_a_suspension_can_be_recorded_only_on_a_day_its_venue_traded() -> None:
 
 
 def test_uk_tax_is_a_fact_on_the_line_and_each_of_the_london_lines_pays_none() -> None:
-    london = "3LGO 2MU SMGB IITU VHYG 5QQQ IB1T ISF VUSA SGLN VUAG EQQQ IDTL".split()
+    london = (
+        "3LGO 2MU SMGB IITU VHYG 5QQQ IB1T ISF VUSA SGLN VUAG EQQQ IDTL XSPS SUK1 1MCS LQQS".split()
+    )
     taxes = {line.symbol: line.uk_tax for line in LINES if line.venue == "LSE"}
     assert taxes == dict.fromkeys(london, NO_TAX) and NO_TAX == 0
     assert {line.uk_tax for line in LINES} == {NO_TAX}, "a US line pays no UK tax"
@@ -97,7 +107,8 @@ def test_the_lines_record_what_a_second_source_confirmed() -> None:
 def test_spy_and_qqq_are_read_as_reference_series_and_refused_as_traded_lines() -> None:
     assert {line.symbol for line in REFERENCE} == LEAVING
     traded = [require_traded(line) for line in LINES if line not in REFERENCE]
-    assert traded and all(line.retail for line in traded), "a retail customer can buy each"
+    assert traded and all(line.retail for line in traded if line.symbol not in INVERSE)
+    assert all(line.retail is None for line in traded if line.symbol in INVERSE), "unrecorded"
     for line in LINES:
         if line.symbol in LEAVING:
             with pytest.raises(ValueError, match=f"{line.symbol}: a reference series"):
@@ -126,6 +137,22 @@ def test_every_line_names_its_underlying_market_and_source_and_one_index_is_one_
     by_market: dict[str, set[str]] = {}
     for line in LINES:
         by_market.setdefault(line.underlying, set()).add(line.symbol)
-    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY"}
-    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ"}
+    assert by_market["S&P 500"] == {"VUSA", "VUAG", "SPY", "XSPS"}
+    assert by_market["NASDAQ 100"] == {"EQQQ", "QQQ", "5QQQ", "LQQS"}
     assert by_market["GOLD"] == {"3LGO", "SGLN"} and by_market["MU"] == {"MU", "2MU"}
+
+
+def test_the_four_inverse_lines_are_london_funds_that_move_against_their_index() -> None:
+    #: his words, Sat 21 Nov 2026: "add the 4 inverse lines for monday"; the paper broker lists
+    #: each on LSEETF (read-only listing, 21 Nov); ISA and retail stay unrecorded until confirmed
+    inverse = {ln.symbol: ln for ln in LINES if ln.symbol in INVERSE}
+    facts = {s: (ln.isin, ln.leverage, ln.underlying) for s, ln in inverse.items()}
+    assert facts == {
+        "XSPS": ("LU0322251520", 1, "S&P 500"),
+        "SUK1": ("IE00B94QKG22", 1, "FTSE 100"),
+        "1MCS": ("IE00BBGBF313", 1, "FTSE 250"),
+        "LQQS": ("IE00BLRPRJ20", 3, "NASDAQ 100"),
+    }
+    for line in inverse.values():
+        assert (line.venue, line.currency, line.isa, line.retail) == ("LSE", "GBP", None, None)
+        assert "inverse" in line.source.lower() or "short" in line.source.lower()
