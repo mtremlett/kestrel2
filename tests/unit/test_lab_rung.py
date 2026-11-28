@@ -19,9 +19,10 @@ from desk.broker import Pretend
 from desk.lines import LINES, Line
 from desk.orders import BROKER, Charges, Order, Settings
 from desk.store import Bar
-from lab import cell, rung
+from lab import cell, rulebook, rung
 from lab.cell import Cell, Trade
 from lab.rung import Answer
+from lab.spec import Holding
 
 VUSA = next(line for line in LINES if line.symbol == "VUSA")
 
@@ -135,6 +136,41 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
     assert _judge(bars, 24).broker == BROKER
     cell_key = cell.key(Cell("breakout_20_10", VUSA, bars[0].day, bars[24].day), bars)
     assert _judge(bars, 24).key == cell_key.rung("lab.rung") != cell_key, "stamped by this rung"
+
+
+def _nights(bars: Sequence[Bar], *nights: int) -> tuple[rung.Priced, ...]:
+    """A hand-worked record: one buy on each named bar's close, its rule's spec held one night."""
+    record = cell.run(Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day), bars)
+    hand = replace(record, trades=tuple(Trade(bars[n].day, None) for n in nights))
+    night = replace(next(iter(rulebook.specs().values())), holding=Holding.OVERNIGHT)
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(rulebook, "specs", lambda: {"breakout_20_10": night})
+        return rung.judge(hand, bars, TEN_K, POUND).trades
+
+
+def test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open() -> None:
+    #: weekdays from Monday 4 January 2010: bar 18 a Thursday, 19 a Friday, 20 the Monday after
+    days = [date(2010, 1, 4) + timedelta(n) for n in range(40)]
+    weekdays = [day for day in days if day.weekday() < 5]
+    bars = tuple(replace(b, day=d) for b, d in zip(_bars(SHAPE), weekdays, strict=False))
+    thu, fri = _nights(bars, 18, 19)
+    #: 199 shares sized and bought at Thursday's close of 10.00, sold at Friday's open of 10.00:
+    #: £3 a leg, a twentieth of 1% each for half the spread and for slippage; no stop rests
+    assert (thu.shares, thu.paid, thu.received) == (199, Decimal(1990), Decimal(1990))
+    assert thu.held == (bars[18].day, bars[19].day)
+    assert thu.costs == Charges(Decimal(6), Decimal("1.99"), Decimal("1.99"), ZERO, ZERO)
+    #: Friday's close to Monday's open of 10.20 is one trade, the weekend inside it
+    assert (fri.paid, fri.received) == (Decimal(1990), Decimal("2029.8"))
+    assert fri.held == (bars[19].day, bars[20].day) == (date(2010, 1, 29), date(2010, 2, 1))
+    assert fri.costs == Charges(Decimal(6), Decimal("2.0099"), Decimal("2.0099"), ZERO, ZERO)
+    #: future-blind at Friday's close: all of Monday but its open, and every bar after, unread
+    later = (replace(bars[20], high=Decimal(99), low=Decimal(1), close=Decimal(2)),)
+    assert _nights((*bars[:20], *later), 19) == (fri,) and _nights(bars[:20], 19) == ()
+    #: Monday opens at 8.50, through the stop's level of 9.00: the stop's sale, at that open,
+    #: slipping thrice (1,990 x 0.05% + 1,691.50 x 0.15%)
+    gap = replace(bars[20], open=Decimal("8.5"), low=Decimal("8.4"))
+    (stopped,) = _nights((*bars[:20], gap, *bars[21:]), 19)
+    assert (stopped.received, stopped.costs.slippage) == (Decimal("1691.5"), Decimal("3.53225"))
 
 
 def test_a_planted_edge_passes_and_a_planted_non_edge_does_not() -> None:
