@@ -3,7 +3,7 @@ died part-way through an order (`recover`) and the one stop a line is left under
 
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -22,13 +22,14 @@ def recover(
     listings: Mapping[str, Listing | Unlisted],
     today: date,
     door: paper.Door,
+    collect: Callable[[], None],
 ) -> tuple[str, ...]:
     """AFTER A RESTART: what a desk that died part-way through an order left at the broker,
     put right by the order's own rules (desk/placing.py), each thing done named. Every order
     of the desk's own still working is cancelled: what `place` did not see filled is never
-    left working. The ledger takes the fills the broker made meanwhile. Then each line with
-    a stop of the desk's own open on it, now or before that cancel (the broker ends a buy's
-    stop with the buy), if its shares at the broker are the book's, is left under the one
+    left working. The ledger takes (`collect`) the fills the broker made meanwhile. Then each
+    line with a stop of the desk's own open on it, now or before that cancel (the broker ends
+    a buy's stop with the buy), if its shares at the broker are the book's, is left under the one
     stop due (_due, Paper.settle). A line whose shares are not the book's is left as it is,
     for the day's check to name; so is one held under no stop at all and no level
     kept in the book; one with a level kept is given its newest buy's stop back. Nothing is
@@ -37,7 +38,7 @@ def recover(
         return ()
     before = paper.read(door)
     did = [f"cancelled {name}, left working" for name in book.cancel_all(root, broker, today)]
-    book.collect(root, broker)
+    collect()
     held, account = book.positions(root), paper.read(door)
     newest = {f.symbol: f.order_id for f in book.fills(root) if f.quantity > 0}
     bought, kept = set(newest.values()), book.levels(root)
