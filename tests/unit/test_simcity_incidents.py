@@ -19,12 +19,14 @@ from desk import (
     conformance_parts,
     day,
     day_money,
+    day_parts,
     gateway,
     incidents,
     keeper,
     keeper_live,
     paper,
     simcity,
+    simcity_incidents,
     simcity_parts,
     store,
     venues,
@@ -326,3 +328,18 @@ def test_every_incident_comes_from_its_own_module_and_simcity_names_none() -> No
         assert scenario.__module__ == f"desk.incidents.{scenario.__name__}", words
     named = [e for _, e in every if getattr(simcity, e.__name__, 0) is e]
     assert not named, "simcity names an incident"
+
+
+def test_records_kept_before_the_fx_columns_are_read_and_without_that_the_scenario_is_red(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """23 November: desk-day died on ValueError 'not the desk's records'; #1967 reads them."""
+    event = ((simcity_incidents.OLD, simcity_incidents.old_records),)
+    monkeypatch.setattr(simcity, "EVENTS", event)
+    monkeypatch.setattr(simcity, "EVENTFUL", 1)
+    result = simcity.run(tmp_path / "read", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert simcity_incidents.OLD not in str(result.broken)
+    assert simcity_incidents.OLD in result.census["day.run"]
+    monkeypatch.setattr(day_parts, "BEFORE_FX", ["the read of 16 November is gone"])
+    result = simcity.run(tmp_path / "refused", SHORT, ROOM, RATES, NOW, (1, 2, 3))
+    assert any(simcity_incidents.OLD in broken for broken in result.broken)
