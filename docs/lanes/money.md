@@ -221,7 +221,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Decided: The request said every existing test stays, but one assertion (close 2 Jun 2025, day 4 Jun) encoded zero tolerance. Options: keep it (rule unmeetable) or flip it (chosen).
 
 ### 2026-11-15 — weekly_reversal_jegadeesh (#248, R-RUNNER-76)
-- `desk/eponymous_swing.py`: buy a close under the close five sessions back, hold five, sell.
 - Decided: (1) Jegadeesh 1990 is monthly; the weekly form is Lehmann 1990; options 21 or 5 sessions, chose 5 as the name says. (2) Long-only keeps the loser leg of a long/short cross-section. (3) Private `_run`/`ARITHMETIC` imported from strategy.py to avoid a second decision loop.
 - Remains: Verify the paper's figures; wiring EPONYMOUS into the ladder.
 
@@ -235,7 +234,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Remains: The source and any published figure; compare with the old desk.
 
 ### 2026-11-15 — Dan Zanger breakout (#265, R-RUNNER-71)
-- `desk/eponymous_dan_zanger.py`: buy over the 50-day high on 1.5x volume, sell under the 10-day average.
 - Decided: The 50-day base and 1.5x volume are this port's numbers (options 40/60 days, 1.3x/2x; sources give none). The ladder can vary them.
 
 ### 2026-11-15 — Clenow's momentum (#267, R-RUNNER-74)
@@ -252,11 +250,9 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Decided: Buy at the close or the next open; took the close, as the sibling Connors rule does. His standing ruling: go with recommended.
 
 ### 2026-11-15 — Kell's base-and-break (#269, R-RUNNER-70)
-- `desk/eponymous_kell_breakout.py`.
 - Decided: Base 20 sessions and 10-day trail from the range 10-30 / 10 or 20; 20/10 matches the family's other breakouts.
 
 ### 2026-11-15 — Mansfield RS momentum (#271, R-RUNNER-75)
-- `desk/eponymous_mansfield_rs_momentum.py`.
 - Decided: The template sees one line but RS needs the market. Options: (a) take SPY from the bars given (chosen; loud error without SPY); (b) edit the template (forbidden before Monday 21:30); (c) price-only proxy (not Mansfield). The zero-line cross only.
 
 ### 2026-11-15 — Faber's 10-month rule (#264, R-RUNNER-73)
@@ -277,7 +273,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Decided: Exit on the middle band (options: middle, lower band, fixed days). Squeeze judged on the previous day, ties counted, so a bar cannot confirm its own squeeze.
 
 ### 2026-11-15 — Weinstein stage analysis (#277, R-RUNNER-79)
-- `desk/eponymous_weinstein_stage.py`.
 - Decided: "Rising" is the average above its value 5 sessions earlier; options flat-or-rising or a longer slope; took the strict book reading.
 
 ### 2026-11-15 — Raschke's Turtle Soup (#276, R-RUNNER-77)
@@ -286,7 +281,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Remains: A later session can swap the setup if the old desk's reading differs.
 
 ### 2026-11-15 — Minervini's breakout (#266, R-RUNNER-69)
-- `desk/eponymous_minervini_breakout.py`.
 - Decided: Relative-strength rank left out (a one-line rule cannot see the market; options stand-in or omit). Exit the 50-day average, not a 7-8% stop, since the template carries no entry price.
 
 ### 2026-11-15 — Antonacci dual momentum (#250, R-RUNNER-72)
@@ -299,7 +293,7 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Decided: Window includes the judged day; exit at the lower band (the book's) rather than the centre line; long only.
 
 ### 2026-11-15 — every eponymous module declares EPONYMOUS (#280, R-RUNNER-88)
-- 16 modules gained `EPONYMOUS: Mapping[str, type[Rule]]`; a registry test sits in `tests/unit/test_eponymous_swing.py` (the lane guard lets MONEY own only tests named after a module).
+- 16 modules gained `EPONYMOUS: Mapping[str, type[Rule]]`; a registry test sits in `tests/unit/test_eponymous_connors.py` (the lane guard lets MONEY own only tests named after a module).
 - Decided: The nameless momentum rule is named `dual_momentum` (alternative `antonacci_dual_momentum`), the name its test uses.
 - Blocked 27 Nov (money-epon-room): deleting the seven twinned rule files turns `tests/unit/test_lab_ladder_epon.py` red (`both == python`: every catalogue row has a Python twin), a RUNGS test outside this card's claim. Nothing deleted.
 - Remains: `lab/cell.py`, `ladder.py`, `trials.py` still accept only STRATEGIES (R-RUNNER-89, R-RUNNER-87).
@@ -309,7 +303,6 @@ Decided by the MONEY lane as the desk's mentor, no one watching.
 - Decided: (a) the desk's own stops (chosen) or (b) every stop at the broker. The kill switch and conformance compare only the desk's orders; the old-desk account is shared on port 4002.
 
 ### 2026-11-15 — DeMark's TD Sequential (#274, R-RUNNER-78)
-- `desk/eponymous_demark_sequential.py`.
 - Decided: Published figure left unwritten rather than quoted from memory; countdown compare = close at or below the low two bars back (the book reading), the close compare noted as range.
 - Remains: The countdown's cancel by a sell setup is coded but untested.
 
