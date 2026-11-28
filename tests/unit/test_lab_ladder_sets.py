@@ -236,6 +236,26 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
 
 
+def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a_crash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from test_lab_ladder import ISF, NOISE, VUSA, _door
+
+    holed = _door({VUSA: NOISE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
+    monkeypatch.setattr(history_bars, "reader", lambda _: holed)
+    monkeypatch.setattr(history_bars, "pounds", lambda _: {})
+    monkeypatch.setattr(history_bars, "lines", lambda _: (VUSA,))
+    phone: list[str] = []
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    with pytest.raises(SystemExit) as ended:
+        ladder_sets.main(env, [], lambda _: phone.append)  # type: ignore[arg-type,return-value]
+    assert ended.value.code == ladder_sets.WAITS != 1  #: a wait for the greenkeeper, not a fault
+    said = capsys.readouterr()
+    assert said.err.startswith("ladder: set EPON waits for the store's next fill: ")
+    assert "refuses to start, first ISF has no bar on 2010-01-05" in said.err
+    assert not phone and not said.out and not (tmp_path / "ladder" / "sets").exists()
+
+
 def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

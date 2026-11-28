@@ -11,6 +11,7 @@ on their own trial count. `variants` names set VAR before any result (canon B6):
 of every ranged catalogue row entered as a trial in its own register; none is judged yet (GC).
 `transfer` publishes set 2, the grid's transfer study, from the file `lab/transfer.py` wrote.
 A set that ends with its `SET` line is told to his phone once (LAD-09), through the one door.
+A set refused by its pre-flight for gaps in its inputs exits `WAITS` (3) for the store's next fill.
 """
 
 from __future__ import annotations
@@ -28,6 +29,7 @@ from desk.lines import LINES, Line
 from lab import (
     basket,
     batch,
+    folds,
     history_bars,
     intraday,
     ladder,
@@ -49,6 +51,9 @@ from lab.ladder_parts import FAILED, Shared, _made, _resolve, faults
 from lab.published_epon import TESTED
 from lab.rung import Answer, Rates, Verdict
 
+#: The command's exit when a set's pre-flight finds gaps in its inputs (`folds.Gaps`): it waits for
+#: the greenkeeper's next fill of the store, an event; never 1, a fault, which halts the job.
+WAITS = 3
 EPON = Plan("EPON", "set EPON: does an eponymous rule earn on a line the store holds?", "EPON")
 LEV = Plan("LEV", "set LEV: does a trend rule earn on a leveraged line the store holds?", "LEV")
 VAR = Plan("VAR", "set VAR: does a variant of a ranged catalogue row earn on a line?", "VAR")
@@ -400,7 +405,7 @@ def main(
     (five-minute rules), `scalping` set SCALP (one-minute rules); `variants` only enters set
     VAR's trials; `transfer` publishes set 2, the grid's study. The sets run on the pool
     (R-RUNNER-110): every core but two. A finished set is told to his phone by `told`; 1 when
-    it could not be."""
+    it could not be. A set whose inputs have gaps exits `WAITS`, told on stderr, nothing written."""
     if not env.get("KESTREL2_DATA"):
         sys.exit("ladder: KESTREL2_DATA names no data folder, so the set has no home")
     home = Path(env["KESTREL2_DATA"])
@@ -421,7 +426,12 @@ def main(
     if argv == ["variants"]:  #: names a family; reads no bars
         sys.stdout.write(entered(home) + NL)
         return 0
-    said = transferred(home) if argv == ["transfer"] else _judged(home, argv)
+    try:
+        said = transferred(home) if argv == ["transfer"] else _judged(home, argv)
+    except folds.Gaps as gaps:  #: no table, no phone: the set waits for the store's next fill
+        tag = {"first": ladder.FIRST, "leveraged": LEV}.get(argv[0] if argv else "", EPON).tag
+        sys.stderr.write(f"ladder: set {tag} waits for the store's next fill: {gaps}{NL}")
+        raise SystemExit(WAITS) from None
     sys.stdout.write(said + NL)
     phone = told(home, said, now(), partial(door, env))
     sys.stdout.write(phone + NL)
