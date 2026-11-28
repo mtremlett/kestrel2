@@ -23,7 +23,7 @@ from functools import partial
 from pathlib import Path
 from typing import cast
 
-from desk import messenger
+from desk import keeper, messenger
 from desk.lines import LINES, Line
 from lab import (
     basket,
@@ -287,10 +287,14 @@ def baskets(
 
 def _against(first: Verdict, bars: Bars, pounds: Rates) -> basket.Against:
     """The market a basket is set beside: its first line's venue's (`ladder.MARKETS`), its bars
-    and the pound rates."""
+    and the pound rates; a market the keeper refuses is one with no bars, the retail rung's gap."""
     venue = first.key.cell.line.venue
     market = next(one for one in LINES if one.symbol == ladder.MARKETS[venue])
-    return basket.Against(market, bars(market), pounds)
+    try:
+        held = bars(market)
+    except keeper.Stale:  #: named by `basket.grade` as a market holding no bars, never dropped
+        held = ()
+    return basket.Against(market, held, pounds)
 
 
 def tapes_held(home: Path) -> str:
