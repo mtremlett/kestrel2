@@ -556,7 +556,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       first: a world whose line has a withdrawn day still lives past it and meets its later scenarios. Check:
       the next deep run's verdict has no 'stops on' line
       (#2187, #2287: a world's market lives every session of a line's venue between its first and last bar; a withdrawn one is a still day at the close before, pinned by a test. Remains: read the next deep run's verdict, which needs the nightly run)
-      {id: money-simcity-withdrawn-day; waits: 2026-11-28; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once; check: tests/unit/test_simcity_incidents.py::test_a_world_lives_past_a_withdrawn_day_and_meets_its_later_scenarios}
+      {id: money-simcity-withdrawn-day; waits: 2026-11-29; files: desk/simcity_incidents.py, desk/simcity_parts.py, tests/unit/test_simcity_incidents.py; after: money-rate-once; check: tests/unit/test_simcity_incidents.py::test_a_world_lives_past_a_withdrawn_day_and_meets_its_later_scenarios}
 - [x] FAULT, fills-replay FAILED 22:30 Mon 23 Nov (chat 174, verified by coordinator 173, item 5): StopIteration at
       desk/simcity_fills.py:78, next() finds no decision of the fill's strategy name in strategy.today.
       Hypothesis, unproven: the first zoo fill (SPCX 20:41, #2105) is replayed through the daily rule set, which
@@ -591,7 +591,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Remains (#2137, #2152): the daily round's pounds-room and total on main; per-side share counts in desk/book.py, once the stops rest apart by side (paper-side-stops, then money-side-stops; coordinator 284, 28 Nov: stops are keyed by ticker alone, so the zoo's one share beside the desk's holding has no stop of its own)
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
-      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); intraday refusal in desk/running.py is PAPER's (R-MONEY-76). Waits: operator
+      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); the intraday round's refusal is PAPER's (R-MONEY-76). Waits: operator
       {id: zoo-own-side; after: money-side-stops; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every eponymous desk module, and RUNGS' published list
@@ -766,7 +766,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       gate: a test where `rates.csv` disagrees with the database and the database wins
       (#2149 step 1: currency maths takes its rate source, SimCity off rates.csv. Remains: the trading day, day_money.worth/heat, day._gap, book._priced, book.rate and fills pricing, with `home` threaded through day.run, then the command and the paper round (PAPER's files: a PAPER box after this one); then the gate test)
       (runner ops 108, 23 Nov, stall watch 01:31: claim adds desk/book_parts.py, where the rates record is read, and desk/simcity.py, which reads it through `book.pounds_per`; two sessions stopped at that wall)
-      {id: money-door-pound; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day.py, tests/unit/test_book.py, tests/unit/test_simcity.py, tests/unit/test_simcity_fills.py, desk/book_parts.py, desk/simcity.py; check: tests/unit/test_day.py::test_rates_csv_disagreeing_with_the_database_loses}
+      {id: money-door-pound; waits: 2026-11-29; files: desk/day.py, desk/day_money.py, desk/book.py, desk/simcitycmd.py, desk/simcity_fills.py, tests/unit/test_day.py, tests/unit/test_book.py, tests/unit/test_simcity.py, tests/unit/test_simcity_fills.py, desk/book_parts.py, desk/simcity.py; check: tests/unit/test_day.py::test_rates_csv_disagreeing_with_the_database_loses}
       (plan steward, 27 Nov, builders lead's order: test globs narrowed to the tests of the modules it names)
 - [x] **Fault, the deep run (A3: a red deep test is a fault):** (#1813: ledger opened once per change, 50,412 -> 228 opens on the fixture night) deep SimCity on 067062cd ended 22 Nov 22:37
       "stuck in the worlds: no end in 7200 s" at `desk/book_parts2.py:48` (`_ledger`). The ledger file is read and
@@ -964,9 +964,7 @@ his PC with the desk's own client id (222), never 4001.
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
-- [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
-      Remains: #2107 was red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines
-      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
+- [x] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action

@@ -757,6 +757,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2369 R-RUNNER-569 built: conformance settles its own earlier orders before it sends. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2381 R-RUNNER-564 built: conformance sizes through orders.size's live price. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2434 paper-watcher built: independent supervisor watcher, 3 tests. |
 
 ### GRID
 
@@ -1242,3 +1245,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS S5: a cell's shuffles are one tape; 101 files per cell to 2, donchian cold 26.1 to 15.2 s, share equal (#2236). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: rungs-rows-as-rules parity proven for 21 of 21 rows under the box's named check; twin deletion requested of MONEY (#2425). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L16 ticked: a stale or missing market under a basket names its gap and the set's table is still published (#2428). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-232 incubation built, held red by the desk file ceiling (101 of 100); no box ticked (#2386). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | money-small: expected_gain built and census-covered; the buy-path flag waits on two fixtures (#2447). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-570 ticked: SimCity's 17 incidents split, one module each (#2454). |
