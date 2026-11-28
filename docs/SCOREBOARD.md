@@ -1242,3 +1242,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS S5: a cell's shuffles are one tape; 101 files per cell to 2, donchian cold 26.1 to 15.2 s, share equal (#2236). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS: rungs-rows-as-rules parity proven for 21 of 21 rows under the box's named check; twin deletion requested of MONEY (#2425). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L16 ticked: a stale or missing market under a basket names its gap and the set's table is still published (#2428). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | PAPER: R-RUNNER-569 built: conformance settles its own earlier orders before it sends (#2369). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | PAPER: R-RUNNER-564 built: conformance sizes through orders.size's live price, the duplicate lower-of rule deleted (#2381). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | PAPER: paper-watcher built: independent supervisor watcher, 3 tests (#2434). |
