@@ -56,7 +56,7 @@ from desk.orders import Refused as Declined
 from desk.store import NO_RATES as NO_RATES  #: a pound line's, which reads no rate
 from desk.store import Bar
 from desk.strategy import ARITHMETIC, Action, Decision
-from lab import cell, published, reproduce
+from lab import cell, published, reproduce, rulebook
 from lab.cell import Cell, Key, Record, Trade
 from lab.reproduce import Reproduction
 from lab.spec import Holding
@@ -135,17 +135,17 @@ def judge(
     settings: Settings,
     rates: Rates,
     reproduced: Sequence[Reproduction] = (),
-    holding: Holding = Holding.NEXT_OPEN,
 ) -> Verdict:
-    """The record's trades priced on the bars that made it, as the holding fills them; none
-    before its reproductions."""
+    """The record's trades priced on the bars that made it, as its rule's own spec holds them
+    (a rule with no spec row: next open); none before its reproductions."""
     published.proven(record.key.cell.strategy)
     behind = reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
     at = {bar.day: n for n, bar in enumerate(read)}
-    night = holding is Holding.OVERNIGHT
+    spec = rulebook.specs().get(record.key.cell.strategy.partition("[")[0])
+    night = spec is not None and spec.holding is Holding.OVERNIGHT
     price = _overnight if night else _price
     ends = [(t, t.bought if night else t.sold) for t in record.trades]
     done = [t for t, end in ends if end is not None and at[end] + 1 < len(read)]

@@ -19,7 +19,7 @@ from desk.broker import Pretend
 from desk.lines import LINES, Line
 from desk.orders import BROKER, Charges, Order, Settings
 from desk.store import Bar
-from lab import cell, rung
+from lab import cell, rulebook, rung
 from lab.cell import Cell, Trade
 from lab.rung import Answer
 from lab.spec import Holding
@@ -139,10 +139,13 @@ def test_a_trade_is_sized_at_its_close_filled_at_the_next_open_and_stopped_by_th
 
 
 def _nights(bars: Sequence[Bar], *nights: int) -> tuple[rung.Priced, ...]:
-    """A hand-worked record: one buy on each named bar's close, held one night."""
+    """A hand-worked record: one buy on each named bar's close, its rule's spec held one night."""
     record = cell.run(Cell("breakout_20_10", VUSA, bars[0].day, bars[-1].day), bars)
     hand = replace(record, trades=tuple(Trade(bars[n].day, None) for n in nights))
-    return rung.judge(hand, bars, TEN_K, POUND, holding=Holding.OVERNIGHT).trades
+    night = replace(next(iter(rulebook.specs().values())), holding=Holding.OVERNIGHT)
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(rulebook, "specs", lambda: {"breakout_20_10": night})
+        return rung.judge(hand, bars, TEN_K, POUND).trades
 
 
 def test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open() -> None:
