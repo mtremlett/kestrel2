@@ -43,7 +43,8 @@ USAGE = "python -m desk.simcity [--full | --soak]"
 SOAKED = Path("simcity") / "seeds.jsonl"  #: under KESTREL2_DATA: one line per block lived
 FIRST, BLOCK = 100, 100  #: the first seed a soak may use (0-99 are the nights'), and a block
 QUICK = range(20)  #: the weekdays' night: a fifth of the worlds
-LIMIT = 7200.0  #: seconds a phase may take; the 20 worlds took 17 minutes, the hang six hours
+LIMIT = 7200.0  #: seconds the store read and the stress replay may take; a hang took six hours
+PER_WORLD = 360.0  #: seconds each world may take: the 20 worlds of a night keep their 7200
 T = TypeVar("T")
 WORST = 5  #: the yardstick's worst days the stress pass tells
 NO_CALIBRATION = (
@@ -185,7 +186,11 @@ def main(
     worlds = soak(Path(env["KESTREL2_DATA"]), now) if argv == ["--soak"] else QUICK
     worlds = simcity.WORLDS if argv == ["--full"] else worlds
     rates = command.rates(Path(env["KESTREL2_DATA"]), now.date())
-    night = within(LIMIT, "the worlds", lambda: simcity.run(root, saved, room, rates, now, worlds))
+    night = within(
+        PER_WORLD * len(worlds),
+        "the worlds",
+        lambda: simcity.run(root, saved, room, rates, now, worlds),
+    )
     block = f" Soak: seeds {worlds[0]}-{worlds[-1]}." if argv == ["--soak"] else ""
     print(night.words() + block)  # noqa: T201 - the command's answer to whoever asked
     if argv == []:
