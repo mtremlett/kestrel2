@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 import test_keeper as tk
 
-from desk import bars, bars_form, keeper, store_scope
+from desk import bars, bars_form, keeper, keeper_round, store_scope
 from desk.lines import Line
 from desk.store import Bar
 
@@ -52,10 +52,10 @@ def test_a_day_the_judge_refuses_is_unserved_and_a_true_bar_brings_it_back(
         kept, faults, park = judged(line, *a, **k)
         return (kept[:-1] if line == tk.UK else kept), faults, park
 
-    monkeypatch.setattr(keeper, "scoped_judge", refusing)
+    monkeypatch.setattr(keeper_round, "scoped_judge", refusing)
     pretend.keep(tmp_path, tk._at(6, 10))
     assert [b.day for b in bars.daily(hot, tk.UK)] == [b.day for b in before[:-1]]  # unserved
-    monkeypatch.setattr(keeper, "scoped_judge", judged)
+    monkeypatch.setattr(keeper_round, "scoped_judge", judged)
     monkeypatch.setattr(keeper, "RULES", "a newer set of rules")
     pretend.keep(tmp_path, tk._at(6, 20))
     assert bars.daily(hot, tk.UK) == before  # a true bar brings the day back
@@ -136,11 +136,11 @@ SITES = dict(
     zip(
         ROWS,
         (
-            ("keeper._dropped", "keeper._kept_in"),
-            ("keeper._dropped",),
-            ("keeper._kept_in", "keeper._upheld"),
-            ("keeper._upheld", "bars.daily"),
-            ("keeper._upheld",),
+            ("keeper_round._dropped", "keeper_round._kept_in"),
+            ("keeper_round._dropped",),
+            ("keeper_round._kept_in", "keeper_round._upheld"),
+            ("keeper_round._upheld", "bars.daily"),
+            ("keeper_round._upheld",),
             ("bars_form._barred", "bars_form.restated"),
             ("bars_form.barred", "bars.daily"),
         ),
@@ -154,7 +154,7 @@ MARKS = {"WITHDRAW", "RESTORE", "UNDER", "_barred", "_dropped", "_upheld"}
 def _sites() -> set[str]:
     """Every function of the keeper and the writer that is a withdraw rule or uses one."""
     found = set()
-    for module in (keeper, bars, bars_form):
+    for module in (keeper, keeper_round, bars, bars_form):
         tree = ast.parse(Path(str(module.__file__)).read_text(encoding="utf-8"))
         for fn in (n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)):
             used = {getattr(n, "id", getattr(n, "attr", "")) for n in ast.walk(fn)}
@@ -177,7 +177,7 @@ def test_the_withdraw_rule_table(tmp_path: Path, row: str) -> None:
     with bars.writing(hot, bars.Source.IBKR) as round_:  # an older judge's mark: none given
         round_.daily(tk.UK, [], withdrawn=[day] if marked else [])
     assert (day in {b.day for b in bars.daily(hot, tk.UK)}) is not marked
-    keeper._kept_in(hot, {tk.UK: tuple(answer)}, tk.MON, {}, standing=False)
+    keeper_round._kept_in(hot, {tk.UK: tuple(answer)}, tk.MON, {}, standing=False)
     shown = {b.day: b for b in bars.daily(hot, tk.UK)}
     assert (day in shown) is served
     assert not served or shown[day] == held[D]  # served as held: its bar unchanged

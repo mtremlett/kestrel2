@@ -2971,3 +2971,28 @@ was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was g
 on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
 desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 15 and 16 boxes against
 10 slots). A file named by a glob counts once per box for every tracked file it matches.
+
+## 28 Nov - rungs-rows-as-rules ticked; deleting the twins stays R-RUNNER-127 (coordinator 281)
+B4 asked for the rows proven identical, then the 19 `desk/eponymous_*.py` files deleted. Its check
+passes on main, but the files are still there: they are MONEY's, the zoo's daily rules import 11 of them,
+and the ladder's EPON set, promotion and the rulebook find their rules by them (1,623 lines, 925 of tests).
+Sessions handed the box ended empty (patterns 12, 22). Options: (a) widen the claim to the 19 files:
+refused by the 27 Nov ruling above (a lane box names only its lane's files) and still short of their
+readers; (b) carve one deletion box: the same refusal, plus a claim of hub files (G30); (c) tick B4
+for the half its lane can do, and leave the deletion to the builder's request R-RUNNER-127 that
+STATUS already names: chosen. Deleting code is not deleting data (git keeps it), so no hard line
+waits; it waits on the readers moving to the rows, after EPON's re-run.
+
+## 28 Nov - desk/running.py split along its rounds (his 07:4x (g) and 15:1x "do it now", O79)
+MONEY ended money-small and money-time-gaps BLOCKED on PAPER's step file and its tests (15:10), and
+money-round-cap, R-MONEY-76 (zoo-own-side) and the resend all live in the step's rounds. Options: (a)
+widen MONEY's claims into PAPER's files: refused by the lane wall (27 Nov, a box names only its lane's
+files); (b) move the boxes to PAPER's book: PAPER has 2 slots and MONEY 10, and the rounds are the
+money path; (c) split the file along its seams, pure restructuring, logic unchanged: chosen. The Desk
+and its notes record go to `desk/running_notes.py` (PAPER); each venue's daily round and the round owed
+again to `desk/rounds.py` (MONEY); the intraday and zoo rounds to `desk/bar_rounds.py` (MONEY); the
+step, the check, the drill and his messages stay in `desk/running.py` (PAPER, 571 to 257 lines). Their
+tests moved by file (`test_rounds_again.py`, `test_rounds_restop.py`, `test_bar_rounds.py`), bodies
+unchanged but for the module each name now lives in. The halves of money-small and money-time-gaps
+still in PAPER's files become PAPER boxes (paper-running-move, paper-collect-callers), the MONEY boxes
+`after:` them (the wall's own rule); money-round-cap returns to MONEY's book on `desk/rounds.py`.

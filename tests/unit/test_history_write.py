@@ -171,3 +171,25 @@ def test_the_archive_never_replaces_a_day_the_broker_holds_but_fills_the_day_it_
     assert bars.sources(live, LINE, bars.DAILY) == {bars.Source.IBKR: 1, bars.Source.ARCHIVE: 1}
     with sqlite3.connect(bars.files(live)[bars.DAILY]) as raw:
         assert raw.execute("SELECT count(*) FROM correction").fetchone() == (0,)
+
+
+def test_a_weekly_follows_its_restated_days_but_a_pulled_weekly_stays(tmp_path: Path) -> None:
+    live, keep, at = (
+        tmp_path / bars.LIVE,
+        keeper(tmp_path / bars.LIVE, {"VUAG": 1}),
+        datetime(2026, 11, 20, 18, tzinfo=UTC),
+    )
+    days = [Bar(date(2026, 11, d), PRICE, PRICE, PRICE, PRICE, 5) for d in range(16, 21)]
+    keep(LINE, "1d", tuple(days))
+    assert roll(live, LINE, at) == 1
+    days[4] = Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE + 1, 5)  # a fresh source restates
+    keep(LINE, "1d", (days[4],))
+    assert clashes(live, LINE, at) == ["VUAG 1wk 2026-11-16 00:00: rolled and held differ"]
+    assert roll(live, LINE, at) == 1 and clashes(live, LINE, at) == []
+    assert bars.timed(live, LINE, "1wk", at - timedelta(days=9), at)[0].close == PRICE + 1
+    pulled = Candle(datetime(2026, 11, 23, tzinfo=UTC), PRICE, PRICE, PRICE, PRICE, 9, "ibkr")
+    keep(LINE, "1wk", (pulled,))
+    days[4] = Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE + 2, 5)
+    keep(LINE, "1d", (days[4],))
+    roll(live, LINE, at + timedelta(days=4))
+    assert bars.sources(live, LINE, "1wk")[bars.Source.IBKR] == 1

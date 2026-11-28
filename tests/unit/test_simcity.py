@@ -23,8 +23,10 @@ from typing import IO, Any
 
 import pytest
 
-from desk import book, day, orders, simcity, simcity_incidents, strategy, venues
+from desk import book, day, orders, simcity, strategy, venues
 from desk.broker import Crash, Disconnected, Fault, Pretend
+from desk.incidents.gateway_silent import STOP_SILENT
+from desk.incidents.unbarred import UNBARRED
 from desk.lines import NO_TAX, YARDSTICK, Line
 from desk.orders import Settings
 from desk.simcity_census import Census, parts
@@ -468,7 +470,7 @@ def test_a_promise_the_desk_breaks_in_any_world_turns_the_night_red_and_names_th
 ) -> None:
     monkeypatch.setattr(owner, name, broken_desk)
     monkeypatch.setattr(
-        simcity, "EVENTS", simcity.EVENTS[first:-6]
+        simcity, "EVENTS", simcity.EVENTS[first:-7]
     )  #: not the unheard hour nor the parked yardstick: each has its own test
     night = busy(monkeypatch, tmp_path, (0, 1))
     for promise in promises:
@@ -494,8 +496,8 @@ def test_scenarios_choose_only_lines_that_have_begun_so_a_late_line_halts_and_fa
     both = {name: (name, fn) for name, fn in simcity.EVENTS}
     chosen = (
         both[simcity.GAPPED],
-        both[simcity_incidents.UNBARRED],
-        both[simcity_incidents.STOP_SILENT],
+        both[UNBARRED],
+        both[STOP_SILENT],
     )
     monkeypatch.setattr(simcity, "EVENTS", chosen)
     monkeypatch.setattr(simcity, "EVENTFUL", 1)

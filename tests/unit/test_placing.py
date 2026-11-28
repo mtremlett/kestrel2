@@ -279,6 +279,10 @@ def test_a_buy_goes_with_its_stop_and_the_line_is_left_under_one_stop_for_all_it
     # onto the broker's step, in pence. Filled whole, the stop is for the shares held: no more
     both = _msg({16: "BUY", 27: "0"}) + _msg(AT_STOP | {1: "42", 28: "41"})
     assert sent == [b"", ACCOUNT, both, *ASKED, ACCOUNT]
+    # a rehearsal's door (the markets shut) gives an order seconds, not minutes, to fill
+    shut = placing.Paper(LISTED, tmp_path, lambda: AT, placing.Shut(paper.DESK))
+    _gateway(monkeypatch, [], EMPTY, FILLING, under, *did, under)
+    assert shut.place(BUY_IT).fills == (FILL,) and WAITS[2] == placing.SHUT_SECONDS
     # a stop the broker is not holding protects nothing: the stop due is sent, that one cancelled
     limbo = _account([HELD], *_order("42", "SELL STP 3600.0", f"{ID}-stop", "Inactive"))
     sent = _gateway(monkeypatch, [], EMPTY, FILLING, limbo, *did, limbo, [MINE[1]], [ENDED_42])

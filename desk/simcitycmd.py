@@ -43,7 +43,8 @@ USAGE = "python -m desk.simcity [--full | --soak]"
 SOAKED = Path("simcity") / "seeds.jsonl"  #: under KESTREL2_DATA: one line per block lived
 FIRST, BLOCK = 100, 100  #: the first seed a soak may use (0-99 are the nights'), and a block
 QUICK = range(20)  #: the weekdays' night: a fifth of the worlds
-LIMIT = 7200.0  #: seconds a phase may take; the 20 worlds took 17 minutes, the hang six hours
+LIMIT = 7200.0  #: seconds the store read and the stress replay may take; a hang took six hours
+PER_WORLD = 360.0  #: seconds each world may take: the 20 worlds of a night keep their 7200
 T = TypeVar("T")
 WORST = 5  #: the yardstick's worst days the stress pass tells
 NO_CALIBRATION = (
@@ -130,6 +131,16 @@ def soak(data: Path, now: datetime) -> range:
     return range(start, start + BLOCK)
 
 
+def every_stack() -> str:
+    """THE DUMP: every live thread by name, its whole stack, the outermost frame first."""
+    names = {each.ident: each.name for each in threading.enumerate()}
+    return "\n".join(
+        f"--- {names.get(ident, '?')} ({ident}) ---\n"
+        + "".join(traceback.format_stack(frame)).strip()
+        for ident, frame in sys._current_frames().items()
+    )
+
+
 def within(limit: float, phase: str, work: Callable[[], T]) -> T:
     """THE FAST FAIL: work run in a thread; if it has not ended within limit seconds the night
     ends with an error naming the phase and the line where the thread waits."""
@@ -146,9 +157,10 @@ def within(limit: float, phase: str, work: Callable[[], T]) -> T:
     thread.start()
     thread.join(limit)
     if thread.is_alive():
-        frame = sys._current_frames()[thread.ident or 0]
-        where = "".join(traceback.format_stack(frame)[-3:]).strip()
-        raise TimeoutError(f"SimCity stuck in {phase}: no end in {limit:g} s, waiting at: {where}")
+        raise TimeoutError(
+            f"SimCity stuck in {phase}: no end in {limit:g} s; every thread's stack, "
+            f"outermost call first, the work's own thread {thread.ident}:\n{every_stack()}"
+        )
     if failed:
         raise failed[0]
     return done[0]
@@ -174,7 +186,11 @@ def main(
     worlds = soak(Path(env["KESTREL2_DATA"]), now) if argv == ["--soak"] else QUICK
     worlds = simcity.WORLDS if argv == ["--full"] else worlds
     rates = command.rates(Path(env["KESTREL2_DATA"]), now.date())
-    night = within(LIMIT, "the worlds", lambda: simcity.run(root, saved, room, rates, now, worlds))
+    night = within(
+        PER_WORLD * len(worlds),
+        "the worlds",
+        lambda: simcity.run(root, saved, room, rates, now, worlds),
+    )
     block = f" Soak: seeds {worlds[0]}-{worlds[-1]}." if argv == ["--soak"] else ""
     print(night.words() + block)  # noqa: T201 - the command's answer to whoever asked
     if argv == []:
