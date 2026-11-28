@@ -533,6 +533,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
       173). Money path: A6 blind review
       Ticked (ro205, coordinator 203 17:0x): met by #2166 (R-RUNNER-486); the gate on main is the test in tests/unit/test_running.py that two steps of one day with different fetched rates both price at the first
       {id: money-rate-once; files: desk/book_parts.py, desk/running.py, tests/unit/test_running*.py, docs/lanes/money.md}
+- [ ] FAULT, deep SimCity FAILED 02:15 Sat 28 Nov, 'stuck in the worlds, no end in 7200 s' (coordinator 284; the
+      fourth time after #1813, #2400, #2410): nobody can tell a hang from a slow night, because `within` keeps the
+      last three frames of one thread, and the runner's own dump of every thread (15 s before its 6 h limit) never
+      fires behind SimCity's 7,200 s. At the limit, every thread's whole stack is named, so the
+      next fix is made from evidence. Gate, written first: a planted work that waits inside a
+      nested call times out naming its outermost and innermost frames. No new desk/ file
+      {id: money-deep-stack; files: desk/simcitycmd.py, tests/unit/test_simcitycmd.py; check: tests/unit/test_simcitycmd.py::test_a_stuck_phase_names_every_threads_whole_stack}
 - [ ] FAULT, deep SimCity RED 23:06 Mon 23 Nov (coordinator 173, item 4a): all 20 worlds stop on day 5,
       '2019-05-23: no close of VUAG ... the day has no record' (VUAG 2019 is the keeper's withdrawn day,
       #2088, pattern 13), so 14 scenarios never happen and SimCity proves nothing. A day the store withdrew is
