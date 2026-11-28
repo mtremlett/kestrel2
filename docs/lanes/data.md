@@ -178,6 +178,15 @@ Options: judge vouching again for each old bar (rejected: the check must not rep
 ### 2026-11-26 — #2208 (R-RUNNER-524): the live-day copy is silent in `keep` (DATA)
 Options: add a report line, or stay silent. Silent keeps the output the runner and tests read unchanged. The `--live` one-minute round does not copy; the next five-minute round does.
 
+### 2026-11-28 — #2462 (R-RUNNER-271): the keeper split is named by what it owns (DATA)
+Options: `keeper_parts` (rejected: a fragment name, refused by the guard, pattern 6); `keeper_round`, the round's judging (chosen). `_kept_in` and `pound_closes` are re-exported from `desk.keeper` rather than editing other lanes' files. The card's claim still names `keeper_parts.py`: runner ops must change it to `keeper_round.py` or the PR is disarmed (pattern 21).
+
+### 2026-11-28 — #2470 (data-weather): volatility first, one home for the std (DATA)
+Volatility first (strongest published evidence), as the box says; window 20 days (a trading month), the same std as `risk.volatility` (one home). Storage: a jsonl per line in a folder the caller names, appended idempotently. Options: a database table (rejected: heavier, needs the writer, for a recorded-only layer). Nothing trading reads it; each layer acts only after REG-07.
+
+### 2026-11-28 — the request waits stay dates (DATA scribe)
+The order to write `waits: R-DATA-64..80` on data-isa-twins, -second-source, -dividends and -survivorship trips `test_every_id_the_plan_names_is_known` (a four-letter lane prefix reads as a spec id, `DATA-64`; MONEY, PAPER and RUNGS are longer). Loosening that guard is his alone, so the boxes keep `waits: 2026-12-04`; the requests stay named in STATUS. Fix: the guard's id pattern skipping an `R-` prefix, his word first.
+
 ## LADDER (until 13 November; since then GRID and RUNGS)
 
 ### 2026-11-13 — the ladder's unit of work: days only, the whole history, keyed by what it read
