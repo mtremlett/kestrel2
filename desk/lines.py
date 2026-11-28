@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass, field, replace
 from datetime import date
 from decimal import Decimal
@@ -86,6 +87,13 @@ class Line:
         if self.isin is not None and not valid_isin(self.isin):
             raise ValueError(f"{self.symbol}: {self.isin!r} is not an ISIN with a good check digit")
         self._records()
+
+    def holes(self, days: Collection[date], first: date, last: date) -> list[date]:
+        """THE ONE RULE OF A HOLE (R-RUNGS-40): each session of the line's venue from first to
+        last, read from the one calendar, on which it holds no bar (days) and is not suspended.
+        The hover, the greenkeeper and the ladder's pre-flight (`lab/market.py` gaps) read it."""
+        held = frozenset(days) | self.suspended
+        return [d for d in venues.sessions(self.venue, first, last) if d not in held]
 
     def _records(self) -> None:
         if any(not r.is_finite() or r <= 0 or r == 1 for _, r in self.splits):
