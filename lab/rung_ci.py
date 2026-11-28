@@ -72,10 +72,13 @@ def judge(gains: Sequence[Decimal]) -> Answer:
 
 
 def _judged(first: rung.Verdict) -> tuple[Answer, str]:
-    """The interval rung as the ladder reads it: its answer, and the interval in words."""
+    """The interval rung as the ladder reads it: its answer, and the interval in words. Too few
+    trades is the first rung's own answer (`rung.decide`, on trades): the loss planted at a stop
+    (G2) is among the gains the interval reads, never a trade counted."""
+    if first.answer in (Answer.FAULT, Answer.THIN):
+        many = len(first.trades)
+        return first.answer, f"{many} trades: under {MIN_TRADES} the interval is not read"
     answer = judge(first.gains)
-    if answer in (Answer.FAULT, Answer.THIN):
-        return answer, f"{len(first.gains)} gains: under {MIN_TRADES} the interval is not read"
     _, low, high = rung.interval(first.gains)
     return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
 

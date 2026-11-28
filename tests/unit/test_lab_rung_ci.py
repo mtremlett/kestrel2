@@ -12,9 +12,11 @@ from decimal import Decimal
 
 import pytest
 from test_lab_calibration import _cell as _first
+from test_lab_rung import AAPL, FREE
 
 from lab import rung, rung_ci
-from lab.rung import MIN_TRADES, Answer
+from lab.cell import Cell, Key, Trade
+from lab.rung import MIN_TRADES, Answer, Priced
 
 Judge = Callable[[Sequence[Decimal]], Answer]
 CELLS, TRADES = 500, 200
@@ -115,3 +117,17 @@ def test_the_bootstrap_is_on_the_judges_path(monkeypatch: pytest.MonkeyPatch) ->
         monkeypatch.setattr(rung_ci, "bootstrap", drawn)
         assert rung_ci.RUNG.judge(first, [], {date(2020, 1, 1): Decimal(1)})[0] is held
     assert seen == [(first, [], {date(2020, 1, 1): Decimal(1)})] * 3
+
+
+def test_29_priced_trades_and_the_planted_stop_loss_are_thin_never_judged_as_30() -> None:
+    """R-RUNGS-44: the loss planted at a stop (G2) is no trade; the rung counts trades, as the
+    first rung's one rule does, so 29 winners are THIN however clear their interval."""
+    day = date(2010, 1, 4)
+    priced = tuple(
+        Priced(Trade(day, day), 1, Decimal(100), Decimal(101 + n % 3), FREE, (day, day), Decimal(0))
+        for n in range(MIN_TRADES - 1)
+    )
+    first = rung.verdict(Key(Cell("breakout_20_10", AAPL, day, day), "code", "AAPL"), priced)
+    assert len(first.gains) == MIN_TRADES and first.answer is Answer.THIN  #: one planted
+    answer, why = rung_ci.RUNG.read(first)
+    assert answer is Answer.THIN and why.startswith(f"{MIN_TRADES - 1} trades"), why
