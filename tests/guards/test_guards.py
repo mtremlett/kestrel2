@@ -43,6 +43,26 @@ ALLOWED_DOCS = {
 }
 
 
+#: The complete repository root. Anything else there fails, so a stray script, note or
+#: dump has nowhere to land; the first desk's root filled with exactly those.
+ROOT_ENTRIES = {
+    ".github",
+    ".gitignore",
+    "BUDGET.json",
+    "CANON.md",
+    "CLAUDE.md",
+    "README.md",
+    "announce.py",
+    "check.py",
+    "desk",
+    "docs",
+    "lab",
+    "manifest.toml",
+    "pyproject.toml",
+    "requirements.txt",
+    "tests",
+}
+
 #: Assembled from pieces, never spelt out: a guard that names the thing it forbids
 #: flags its own source, and the cure for that must never be a whole-file excuse.
 MACHINE_MARKS = (
@@ -357,6 +377,20 @@ def test_no_versioned_copies_and_no_session_named_files() -> None:
         or SESSION_NAME.match(Path(name).stem.lower())
     ]
     assert not bad, f"versioned or session-named: {bad}. Edit the original; git is the archive."
+
+
+def test_the_repository_root_is_fixed() -> None:
+    """SPRAWL, at the front door. A file left at the root is the first thing every session
+    sees and the last anyone deletes. The root holds exactly ROOT_ENTRIES."""
+    root = {name.split("/")[0] for name in _tracked()}
+    assert root == ROOT_ENTRIES, (
+        f"at the root but not in the fixed set: {sorted(root - ROOT_ENTRIES)}; in the set "
+        f"but gone: {sorted(ROOT_ENTRIES - root)}. Product code goes in desk/, research in "
+        "lab/, tests in tests/ (fixtures in tests/fixtures/), documents in docs/ (the fixed "
+        "set), tool settings in pyproject.toml, dependencies in requirements.txt. Notes and "
+        "findings go in docs/STATUS.md; a one-off script runs from outside the repository "
+        "and data never enters it."
+    )
 
 
 def _lane_docs() -> set[str]:
