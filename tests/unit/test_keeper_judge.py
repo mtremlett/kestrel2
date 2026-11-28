@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from desk import bars, keeper
+from desk import bars, keeper, keeper_parts
 from desk.lines import LINES
 from desk.store import Bar
 from desk.store_scope import judge as judged
@@ -31,7 +31,7 @@ def test_a_writer_begins_its_round_while_the_daily_refresh_is_still_judging(
             begun.append(1)
         return real(*args, **kwargs)
 
-    monkeypatch.setattr("desk.keeper.scoped_judge", judge)
+    monkeypatch.setattr("desk.keeper_parts.scoped_judge", judge)
     day, line = date(2026, 11, 16), LINES[0]
     answer = (Bar(date(2026, 11, 13), Decimal(10), Decimal(11), Decimal(9), Decimal(10), 100),)
     keeper._kept_in(tmp_path / "hot", {line: answer}, day, {})
@@ -49,7 +49,7 @@ def test_a_judged_round_compares_each_held_bar_a_few_times_not_the_whole_history
     monkeypatch.setattr(keeper, "_held", lambda *_a: held)
     monkeypatch.setattr(keeper, "pound_closes", lambda *_a: {})
     monkeypatch.setattr(bars, "bridged", lambda *_a: None)
-    monkeypatch.setattr(keeper, "scoped_judge", lambda *_a, **_k: (kept, [], None))
+    monkeypatch.setattr(keeper_parts, "scoped_judge", lambda *_a, **_k: (kept, [], None))
     monkeypatch.setattr(bars, "writing", lambda *_a: nullcontext(writer))
     compares: list[int] = []
     real_eq: Any = Bar.__eq__
