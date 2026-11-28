@@ -53,6 +53,14 @@ def test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it() 
     assert not [line for line in doc.splitlines() if ENTRY.fullmatch(line)], "a map row there"
 
 
+def test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it() -> None:
+    """A new rung claims `lab/ladder_map.py`, never the ladder, the file most RUNGS cards claim
+    (failure patterns 16 and 18, R-RUNNER-571)."""
+    doc = ladder.__doc__ or ""
+    assert "RUNG MAP" not in doc, "the rung map is back in lab/ladder.py's docstring"
+    assert not [line for line in doc.splitlines() if ENTRY.fullmatch(line)], "a map row there"
+
+
 def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) -> None:
     results = tmp_path / "r.jsonl"
     lines = [{"cell": ["a"], "n": 1}, {"cell": ["b"], "n": 2}, {"cell": ["a"], "n": 3}]
