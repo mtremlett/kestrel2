@@ -1223,3 +1223,4 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2320 RUNGS a finished ladder set is told to his phone once (rungs-sets step, LAD-09). |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b ticked: the known-answer kit's crowd, a planted edge, goes forward through every rung; its noise twin is refused. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS E13 (R-RUNNER-572): rung 15, one bar late; an edge paid only on the next open fails, one that lasts passes. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | DATA data-history-holes ticked (O75, R-RUNGS-40): one rule of a hole, Line.holes; history_bars.holes lists 32,856 on 470 research lines for the greenkeeper. |
