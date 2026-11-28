@@ -592,10 +592,10 @@ day's trading and reconciliation are built, and any broker can stand behind them
       a fixture (the donchian twin test's way), so EPON's book does not change.
       Remains (#2368, blocked 27 Nov): `tests/unit/test_lab_ladder_epon.py` (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
       {id: money-epon-room; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
-- [ ] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
+- [x] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
       cancelling the zoo's stop never touches the desk's. The paper door has them first (paper-side-stops); its
-      contract case in the paper door's contract test is PAPER's, after this box. Edits only, no new desk/ file
+      contract case in the paper door's contract test is PAPER's, after this box. On main (#2479): the pretend broker rests them apart; the Protocol gains the side methods when PAPER adds them to the door. Edits only, no new desk/ file
       {id: money-side-stops; after: paper-side-stops; files: desk/broker.py, tests/unit/test_broker*.py; check: tests/unit/test_broker.py::test_the_zoos_stop_and_the_desks_stop_on_one_ticker_rest_apart}
 - [ ] The zoo's one-share orders are judged on the zoo's own side (coordinator 163's ruling, 23 Nov 20:3x, his
       'one share each' and 'trade freely across uk and us'; paper only, a MACHINERY TEST): 'held already' reads what
@@ -724,7 +724,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       (plan steward, 27 Nov, builders lead's order: wide globs narrowed: orders.size/gate/thin, day._buy, the gain's source in strategy.py, SimCity's traded_value in simcity.py, and the fixtures the box names)
-      {id: money-small; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
+      {id: money-small; waits: 2026-11-29; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
       tests/unit/test_day.py, desk/simcity.py, tests/unit/test_simcity.py,
       tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
       (runner ops, 27 Nov: claim gap, strategy.py and its tests are MONEY files (manifest/money.toml:5), no RUNGS request needed)
@@ -733,7 +733,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Step 4 in #2363: `book.collect` takes lines, settings and tell and halts buying on a stop sold past GAP_LOSS (callers still pass none: day._stand_down, running.py, running_parts.py, send). Remains: those callers pass them, then delete `day._stand_down`'s body; each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
       (plan steward, 27 Nov, builders lead's order: desk/ and test globs narrowed to the modules the Remains name: book.collect's callers in day.py, gap_loss in orders.py and simcity.py, the time stop in strategy.py; the rules' own sell logic keeps eponymous_*.py and grimes)
-      {id: money-time-gaps; waits: 2026-11-28; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      {id: money-time-gaps; waits: 2026-11-29; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day.py, tests/unit/test_day_tell.py, tests/unit/test_day_standing.py, tests/unit/test_orders.py, tests/unit/test_strategy.py, tests/unit/test_strategy_hold.py,
       desk/simcity.py, tests/unit/test_simcity.py, tests/unit/test_simcity_gaps.py, desk/book.py, tests/unit/test_book.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
@@ -863,6 +863,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       SimCity's own phase limit still names a real hang. Time one deep world on #2187's parent and merge, same
       seed and prices; profile one world's own body and fix the biggest cost at its source, or let the limit
       follow the worlds asked (one named per-world allowance, never a bigger constant). No clamp, no try/except
+      Remains (#2474, per-world allowance on main: PER_WORLD 360 s x worlds asked; a night of 20 keeps 7200 s): on a machine with the store, time ONE world on #2187's parent and merge, profile its body, fix the biggest cost red-first, find why the book is not the broker's on 1,638 of 1,939 days; then lower PER_WORLD to what a world takes.
       {id: simcity-full-phase-limit; files: desk/simcitycmd.py, desk/simcity.py, desk/strategy_parts.py, tests/unit/test_simcity_cmd.py; check: tests/unit/test_simcity_cmd.py::test_the_full_run_ends_inside_its_time_and_the_limit_still_names_a_hang}
 
 ## Phase 3 — the money path, on paper
