@@ -303,7 +303,7 @@ class TrailingStop(Block):
 
 
 class Always(Block):
-    """Fires on every bar: the filter that forbids nothing."""
+    """Fires on every bar: the filter that forbids nothing, the entry and exit of every close."""
 
     def see(self, bar: Bar, holding: bool) -> bool:  # noqa: ARG002 - the one interface of every block
         """Shown the next bar: whether the block fires."""
@@ -397,6 +397,8 @@ BLOCKS: Mapping[str, Spot] = {
     "darvas_box": Spot(Kind.ENTRY, DarvasBreakout, {"n": _DAYS}),
     "darvas_stop": Spot(Kind.STOP, DarvasStop, {"n": _DAYS}),
     "no_filter": Spot(Kind.FILTER, Always, {}),
+    "buy_every_close": Spot(Kind.ENTRY, Always, {}),  #: the overnight control's (row 101)
+    "sell_every_close": Spot(Kind.EXIT, Always, {}),
     "trend_template": Spot(Kind.FILTER, TrendTemplate, {}),
 }
 #: The one list of SIZE blocks by name, apart from BLOCKS: a sizer never fires, so it has no
