@@ -12,7 +12,7 @@ from desk.conformance_parts import Side
 from desk.keeper_rotate import Kept, record
 from desk.lines import LINES, YARDSTICK
 from desk.orders import Order
-from desk.running import DAY
+from desk.running_notes import DAY
 from desk.store import Bar
 
 if TYPE_CHECKING:

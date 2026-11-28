@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 from test_running import MON
 
-from desk import book, halt, running, venues
+from desk import book, halt, rounds, running_notes, venues
 from desk.lines import LINES
 
 LSE = [line.symbol for line in LINES if line.venue == "LSE"][:3]
@@ -21,25 +21,25 @@ def _plant(root: Path, cancelled: list[str], noted: tuple[str, ...] = ("orders L
         root / book.CANCELS, [[f"{TODAY:%Y%m%d}-s-{s}", TODAY.isoformat()] for s in cancelled]
     )
     for what in noted:
-        running._note(root, MON, what, "x")
+        running_notes._note(root, MON, what, "x")
 
 
 def test_only_the_desks_own_cancels_go_again_once_and_not_after_the_close(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     look, open_ = SimpleNamespace(), venues.hours("LSE", TODAY).open
-    assert running._again(tmp_path, open_, look) == {}  # type: ignore[arg-type]  # no cancels
+    assert rounds._again(tmp_path, open_, look) == {}  # type: ignore[arg-type]  # no cancels
     _plant(tmp_path, LSE[:2])  # a third order was refused or cancelled by the broker: not listed
     now = open_ + timedelta(minutes=30)
-    assert running._again(tmp_path, now, look) == {"LSE": set(LSE[:2])}  # type: ignore[arg-type]
-    assert running._again(tmp_path, now, None) == {}  # the look failed
+    assert rounds._again(tmp_path, now, look) == {"LSE": set(LSE[:2])}  # type: ignore[arg-type]
+    assert rounds._again(tmp_path, now, None) == {}  # the look failed
     fill = SimpleNamespace(order_id=f"{TODAY:%Y%m%d}-s-{LSE[0]}-r1", day=TODAY)
     monkeypatch.setattr(book, "fills", lambda _root: [fill])  # one went again and filled
-    assert running._again(tmp_path, now, look) == {"LSE": {LSE[1]}}  # type: ignore[arg-type]
+    assert rounds._again(tmp_path, now, look) == {"LSE": {LSE[1]}}  # type: ignore[arg-type]
     after = venues.hours("LSE", TODAY).close + timedelta(minutes=1)
-    assert running._again(tmp_path, after, look) == {}  # type: ignore[arg-type]
-    running._note(tmp_path, now, "orders LSE again", "x")
-    assert running._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # never a third
+    assert rounds._again(tmp_path, after, look) == {}  # type: ignore[arg-type]
+    running_notes._note(tmp_path, now, "orders LSE again", "x")
+    assert rounds._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # never a third
 
 
 def test_orders_the_round_cap_carried_go_again_once_a_sale_with_a_buy(tmp_path: Path) -> None:
@@ -48,6 +48,6 @@ def test_orders_the_round_cap_carried_go_again_once_a_sale_with_a_buy(tmp_path: 
     _plant(tmp_path, [])
     carried = [halt.Blocked(f"{TODAY:%Y%m%d}-s-{s}", halt.Blocker.CARRIED, 0, "x") for s in LSE[:2]]
     halt.note(tmp_path, TODAY, carried)
-    assert running._again(tmp_path, now, look) == {"LSE": set(LSE[:2])}  # type: ignore[arg-type]
-    running._note(tmp_path, now, "orders LSE again", "x")
-    assert running._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # neither twice
+    assert rounds._again(tmp_path, now, look) == {"LSE": set(LSE[:2])}  # type: ignore[arg-type]
+    running_notes._note(tmp_path, now, "orders LSE again", "x")
+    assert rounds._again(tmp_path, now, look) == {}  # type: ignore[arg-type]  # neither twice
