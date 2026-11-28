@@ -1260,3 +1260,6 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-232 incubation built, held red by the desk file ceiling (101 of 100); no box ticked (#2386). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | money-small: expected_gain built and census-covered; the buy-path flag waits on two fixtures (#2447). |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-570 ticked: SimCity's 17 incidents split, one module each (#2454). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2474 R-RUNNER-438 first step: per-world allowance, 1 contract test. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2464 R-RUNNER-482 SimCity scenario for the desk-day ValueError built, green and red driven. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2479 money-side-stops built; zoo-own-side unblocked on the broker side. |
