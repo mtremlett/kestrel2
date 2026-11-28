@@ -33,6 +33,7 @@ from lab import (
 from lab.cell import Cell
 from lab.deflated import Deflated
 from lab.folds import Pooled
+from lab.published_epon import TESTED
 from lab.reproduce import Reproduction
 from lab.rung import Answer, Rates, Verdict
 from lab.verdict_parts import (
@@ -67,6 +68,9 @@ FOLDS = folds.YEARS
 #: Draws of the judged trades' pounds for the resampled drawdowns: they measure, never gate.
 RESAMPLES = 1000
 NO_FIGURE = "no author's figure is on file for the rule: no published result stands behind it"
+#: The reproduce rung's other form (seat 215, 26 Nov): with no author's figure on file, the cell
+#: is run again on the same bars and code and must give the identical verdict (`_determined`).
+DETERMINED = "no author's figure: judged on determinism"
 #: A rule trades a line five to ten times a year and wants 200 sessions to warm up: a line of
 #: fewer bars than those and a year's trading has made no trade yet, which says nothing of the rule.
 MIN_BARS = 200 + 252
@@ -159,15 +163,15 @@ def judge(
     except ValueError as missed:  #: the rule as coded is not the author's: no verdict on ours
         return {"rungs": {"reproduce": [Answer.FAIL.name, str(missed)]}, "every": False}
     verdict = first or ready(c, own, pounds, made)
-    unrun = {} if made else {"reproduce": NO_FIGURE}
     settings = Settings(CAPITAL)
     (one,) = (among,) if among is not None else deflated.judge([verdict], count - 1)
     rungs = named(verdict, one, c.strategy if EASED else None)
     if EASED and verdict.answer is Answer.FAIL and verdict.t is not None and verdict.t < 0:
-        return _stopped(len(verdict.trades), {"first": rungs["first"]}, unrun)  #: a hard fail
-    if made:
-        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
-        rungs["reproduce"] = (Answer.PASS, f"reproduced: {said}")
+        return _stopped(len(verdict.trades), {"first": rungs["first"]}, {})  #: a hard fail
+    said = _reproduced(c, own, pounds, verdict, made)  #: None: its author's figure is owed
+    unrun, rungs = ({}, rungs | {"reproduce": said}) if said else ({"reproduce": NO_FIGURE}, rungs)
+    if said and said[0] is Answer.FAIL:  #: a hard fail: a verdict unlike its own re-run
+        return _stopped(len(verdict.trades), rungs, unrun)
     rungs["folds"] = _folded(pooled)
     rungs["market"] = _marketed(market.judge(verdict, own, beside, held, pounds), beside, rungs)
     rungs["regime"] = _weathered(own, verdict, made)
@@ -429,9 +433,36 @@ def shuffled(
     share = shuffle.share(c, own, settings, pounds, made)
     return (
         Answer.PASS if share <= shuffle.SHARE else Answer.FAIL,
-        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {share:.3f}; "
+        f"{shuffle.SHUFFLES} shuffles of its days, its share among them {shuffle.said(share)}; "
         f"{shuffle.SHARE} or under passes",
     )
+
+
+def _reproduced(
+    c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict, made: Sequence[Reproduction]
+) -> Pair | None:
+    """The reproduce rung in the form that judged it: the author's figures, each reproduced
+    (`reproduce.settled` refused any that was not); with none on file, `_determined`, but only
+    for a rule no author's test binds (`published_epon.TESTED`): one that binds waits, None."""
+    if made:
+        said = "; ".join(f"{m.figure.hand.value} result, {m.figure.source}" for m in made)
+        return Answer.PASS, f"reproduced: {said}"
+    test = TESTED.get(c.strategy)
+    return None if test is not None and test.candidate else _determined(c, own, pounds, verdict)
+
+
+def _determined(c: Cell, own: Sequence[Bar], pounds: Rates, verdict: Verdict) -> Pair:
+    """The reproduce rung where no author's figure is on file (DETERMINED): the cell and its
+    first rung run again on the same bars and code, PASS only on the identical verdict."""
+    again = ready(c, own, pounds, ())
+    said = "the identical verdict" if again == verdict else "another verdict"
+    why = (
+        f"{DETERMINED}: run again on the same bars and code, it gave {said}, "
+        f"{len(again.trades)} trades at {_n(again.t)} standard errors"
+    )
+    if again == verdict:
+        return Answer.PASS, why
+    return Answer.FAIL, f"{why}, against {len(verdict.trades)} at {_n(verdict.t)} first"
 
 
 def _stressed(c: Cell, own: Sequence[Bar], settings: Settings, pounds: Rates) -> Pair:

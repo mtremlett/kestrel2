@@ -29,6 +29,7 @@ from desk import store
 from desk.bars import EPOCH, Five, writing
 from desk.bars import daily as held_days
 from desk.lines import TAG, Line
+from desk.spans import SPANS, Timed
 from desk.store import Bar, Refused
 
 SOURCE = "https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -79,11 +80,12 @@ def address(line: Line, day: date, since: date = SINCE) -> str:
     return _address(line, _moment(since), _moment(day), DAILY)
 
 
-def address_five(line: Line, now: datetime, back: timedelta = KEPT) -> str:
-    """Where a line's five-minute bars up to now are asked for: every one the archive still
-    keeps, or those of a shorter time back. A now in no time zone is refused."""
+def address_five(line: Line, now: datetime, back: timedelta = KEPT, span: str = FIVE) -> str:
+    """Where a line's intraday bars (five-minute, else the span named) up to now are asked for:
+    every one the archive still keeps, or those of a shorter time back. A now in no time zone
+    is refused."""
     first, end = ((moment - EPOCH) // timedelta(seconds=1) for moment in (now - back, now))
-    return _address(line, first, end, FIVE)
+    return _address(line, first, end, span)
 
 
 def _unit(line: Line, currency: object) -> Decimal:
@@ -156,6 +158,18 @@ def parse_five(line: Line, payload: bytes, now: datetime) -> tuple[Five, ...]:
     ended = min(moment, (now - EPOCH) // timedelta(seconds=1) - 299)
     return tuple(
         Five(datetime.fromtimestamp(row[0], UTC), *row[1:]) for row in rows if row[0] < ended
+    )
+
+
+def parse_timed(line: Line, payload: bytes, now: datetime, span: str) -> tuple[Timed, ...]:
+    """A line's bars of a quarter or half hour from the archive's answer, as far as they had
+    ended by now; the answer's closing price of the moment is no bar, as in `parse_five`."""
+    meta, rows = _read(line, span, payload)
+    moment = min(meta["regularMarketTime"], meta["currentTradingPeriod"]["regular"]["end"])
+    length = SPANS[span].seconds
+    ended = min(moment, (now - EPOCH) // timedelta(seconds=1) - length + 1)
+    return tuple(
+        Timed(span, datetime.fromtimestamp(row[0], UTC), *row[1:]) for row in rows if row[0] < ended
     )
 
 
@@ -275,6 +289,16 @@ def fetch_five(
     return _kept(kept, address_five(line, now, back), lambda raw: parse_five(line, raw, now))
 
 
+def fetch_timed(line: Line, now: datetime, span: str) -> tuple[Timed, ...]:
+    """A line's bars of a quarter or half hour up to now, read on entry, as far back as the
+    archive keeps them (the same days as five-minute bars); not kept raw."""
+    return _kept(
+        None,
+        address_five(line, now, KEPT, span),
+        lambda raw: parse_timed(line, raw, now, span),
+    )
+
+
 def gather(
     lines: Iterable[Line], when: When, ask: Callable[[Line, When], Read]
 ) -> dict[Line, Read | Refused]:
@@ -294,6 +318,20 @@ def gather(
         except (OSError, HTTPException, ValueError) as refusal:  # the network's or the answer's
             answers[line] = Refused(f"{type(refusal).__name__}: {refusal}")
     return answers
+
+
+def five_pull(now: datetime) -> Callable[[Line, str], Sequence[Five | Timed] | Refused]:
+    """The archive as a gap-filling pull: five-minute, quarter-hour and half-hour bars; any other
+    span is refused, with the reason."""
+
+    def pull(line: Line, span: str) -> Sequence[Five | Timed] | Refused:
+        if span == "5m":
+            return gather([line], now, fetch_five)[line]
+        if span in ("15m", "30m"):
+            return gather([line], span, lambda ln, sp: fetch_timed(ln, now, sp))[line]
+        return Refused(f"the archive keeps no {span} bars")
+
+    return pull
 
 
 def _held(live: Path, line: Line, only_new: bool) -> set[date]:

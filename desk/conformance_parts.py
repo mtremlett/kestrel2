@@ -104,16 +104,15 @@ def _last(line: Line, today: date, home: Path) -> Bar:
     return bars[-1]
 
 
-def _priced(line: Line, today: date, home: Path, close: Decimal) -> Decimal:
-    """The price a line is sized at: the lower of its last close and the latest price the store
-    holds of today's session (its last five-minute bar), so a gap down puts the stop under the
-    market, never above it; no bar of today yet, the close."""
+def _live(line: Line, today: date, home: Path) -> Decimal | None:
+    """The latest price the store holds of today's session (its last five-minute bar), the live
+    price orders.size takes as its market; none while no bar of today is held."""
     found = venues.hours(line.venue, today)
     try:
         today_bars = hot_bars.five(home / keeper.HOT, line, found.open, found.close)
-    except (LookupError, FileNotFoundError):  # the store holds no bar of today: the close stands
-        return close
-    return min(close, today_bars[-1].close) if today_bars else close
+    except (LookupError, FileNotFoundError):  # the store holds no bar of today: none is live
+        return None
+    return today_bars[-1].close if today_bars else None
 
 
 def plan(
@@ -146,16 +145,17 @@ def plan(
         line = random.Random(seed).choice(sorted(bars, key=lambda line: line.symbol))  # noqa: S311 - a drawn line, no secret
     its = line.venue.lower() + stamp  #: each run names its orders its own: the refusal's too
 
-    price = _priced(line, today, home, bars[line].close)
+    live = _live(line, today, home)
 
-    def sized(name: str, line: Line, close: Decimal) -> Order:
-        return size(_named(line, today, name + its), line, close, fx[line.currency], ROOM, {})
+    def sized(name: str) -> Order:
+        decision = _named(line, today, name + its)
+        return size(decision, line, bars[line].close, fx[line.currency], ROOM, {}, live)
 
-    first = replace(sized("conf1", line, price), quantity=1)
+    first = replace(sized("conf1"), quantity=1)
     named = _named(line, today, f"conf2{its}")
     sale = Sale(order_id_of(named), line, 1, session=named.day)
     refusal = _named(refused, today, "conf0" + its)
-    return Plan(today, refusal, first, sale, sized("conf3", line, price), stamp)
+    return Plan(today, refusal, first, sale, sized("conf3"), stamp)
 
 
 def _send(side: Side, order: Order | Sale) -> str:

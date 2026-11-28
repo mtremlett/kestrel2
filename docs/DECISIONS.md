@@ -2619,6 +2619,7 @@ the check refuses to call such a run green. Failure pattern 5's twin, folded int
 running 2.3.0; pytest: pinned 8.3.4, running 9.0.2; numpy: pinned 2.1.3, running 2.3.5"; with
 .venv's python it passes.
 
+
 ## 26 Nov - plateau is judged on every cell (L17, RUNGS)
 
 **Why.** Nothing could go forward: `verdict_parts.goes` asks that no rung be unrun, and plateau was
@@ -2645,3 +2646,319 @@ stops at its hard fail before plateau, so it is unchanged.
 **Cost, measured** on a 2,400-bar walk: 0.4 s a variant, about 3.6 s for a passing cell (9
 variants on average). EPON's ~21,000 cells: at most ~21 CPU hours were every cell to pass, under
 four hours on the pool's six workers; in practice only passing cells pay, a small share.
+
+## 26 Nov - reproduce, with no author's figure, is judged on determinism (RUNGS)
+
+**Ruled by chat seat 215** (26 Nov, 18:5x). A rule with no author's figure on file stayed UNRUN
+for ever (`verdict.NO_FIGURE`), and `goes()` lets nothing forward with a rung unrun. No figure
+is on file (`reproduce.FIGURES` is empty), so no rule could ever go forward.
+
+**Options.** (a) keep it UNRUN until figures are read: requiring a figure that does not exist
+forbids every unpublished rule for ever and tests nothing of the rule; (b) excuse it: a rung
+that cannot fail; (c) judge it by determinism as PLUMB LINE v2 defines reproduce, "identical
+verdict on a re-run with the same seed and data" (chosen). The determinism test can fail, so it
+is a real rung (A7).
+
+**What it does.** With no figure, the cell and its first rung are run again on the same bars
+and code; PASS only on the identical verdict (every priced trade, the t and the answer), and a
+FAIL is a hard fail that stops the line. Its reason names the form: "no author's figure: judged
+on determinism". A rule with a figure keeps the author's-figure test, whose reason begins
+"reproduced:". The shuffle is not run twice: it is seeded by the trial's name. Cost: one more
+first-rung run a cell, about 0.4 s.
+
+**Driven (A7).** A planted coin (the cell drops its last trade on every other run) FAILs the
+rung; the breakout on a walk PASSes
+(`test_a_rule_with_no_figure_is_judged_on_determinism_and_a_planted_coin_fails_it`).
+
+**The golden moves (B5).** `test_lab_rung_golden.py`'s edge row gains a reproduce rung, PASS on
+determinism; no answer and no other rung changes. Its noise row stops at its hard fail first.
+
+**Blind review (26 Nov, Fable, CANON A6 step 6): one blocking finding, fixed.** Determinism stood in
+for every rule with no figure, Faber's too, whose author's test binds (`published_epon.TESTED`,
+`candidate`): his printed figure would never have been asked, and `promotion.Candidate` would have
+let him onto paper unreproduced. Now determinism judges only a rule no author's test binds; one
+that binds keeps reproduce UNRUN (`NO_FIGURE`) until its figure is on file and reproduced. Seen red
+first: `test_a_rule_whose_authors_test_binds_waits_for_its_figure_never_for_determinism`.
+
+## 27 Nov - every open lane box names its `check:` (the box is the card, item 3; his "Yes, all of it")
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", he answered
+"Yes, all of it" (Fri 27 Nov). Its first repository piece: a PLAN box is the only unit of work, and
+the runner runs its `check:` on main before it spends a session (green ticks it, never a hand-out).
+Format: one more key in the box's note, `check: tests/<file>.py::test_<name>[, ...]`, a pytest node
+id whose file one of the box's own `files:` matches, so its session can write it. Required on every
+open non-umbrella box under `### The <lane> lane's book`, read as the runner's `slots.boxes` reads it.
+All 47 open boxes carry one (48 before rungs-plateau-wired was ticked on main). 46 name the new test the box will write (none exists on main, so
+each fails until built); `rungs-each-rung`, whose text says "Remains: none", names the registry test
+already on main, so the runner's pre-flight ticks it. Boxes whose remains are time or a run (grid-week,
+paper-supervised, the windows task) name the fixture test their evidence will need; options weighed:
+an existing passing test (rejected: the runner would tick unfinished work), a command instead of a
+test id (rejected: one kind of check, one runner path), no check for such boxes (rejected: the hole
+patterns 12 and 22 come through).
+Check: `tests/guards/test_lanes.py::test_every_open_box_names_its_check`, and `_notes` refuses a
+malformed check. Driven RED on main before the checks were added: all 48 boxes named
+("data: data-isa-twins", ... "rungs: rungs-leveraged"); planted `::A_line_moves...` (not a test id):
+"a check is a test id"; planted `data-tiers` checking `tests/unit/test_day.py` (outside its files):
+named with the file. Each plant reverted; the guard green with the 48 checks.
+## 27 Nov - the desk/ 100-file count retired for ownership and naming guards (his words)
+Asked "adopt Fable's design in full, including retiring the desk/ 100-file count", the operator
+answered **"Yes, all of it"** (Fri 27 Nov, recorded in the after-first-light queue). This loosens a
+guard, so it is his alone; his words are quoted here before the commit that changes `BUDGET.json`.
+Why: the count contradicts the 800-line file cap and the hub splits (a split needs a file; at 100
+of 100 none fits), it blocked DATA six times today (stooq-into-desk), and 25 desk/ files under 70
+lines are `_parts` fragments made to dodge it. Kept hard: desk/ 30,000 and lab/ 20,000 lines, 800
+per file, 50 per function. In its place, two guards (`tests/guards/test_guards.py`): every desk/
+module is a row of its lane's manifest file with one owner and the one thing it owns; and no
+`_parts`, `_parts2` (or like fragment) name may be added in desk/ or lab/, the existing ones only
+falling (failure pattern 6 extended).
+Driven RED before the file count was removed: a planted `desk/book_parts3.py`, registered,
+"fragment names added: ['desk/book_parts3.py']"; a planted `desk/plantowner.py` whose row says
+`" "`, "desk/ modules with no lane or no stated job: ['desk/plantowner.py']". Both reverted; both
+green on main's 100 desk/ files (14 desk/ and 6 lab/ fragments stand and may only fall).
+## 2026-11-27 — MONEY: the desk's files read once until written (deep SimCity 7200 s)
+
+**What.** The deep run timed out every run on 27 Nov. It was never stuck: since #2187/#2287 a
+world lives every session from VUAG's first bar (about 1,600 days), and a day's work grew with
+the days behind it (one world of the saved lines: 220k Python calls a day at day 50, 1.12M at day
+1,500; 0.3 s to 1.3 s). `book_parts.read_once` keeps one reading per file kind under the file's
+stamp, dropped by `keep`; the ledger's split, the rates and the records read through it;
+`book.interest` finds a day's earning once per run of idle days and adds it per day (the same
+sum). After: 200k at day 50, 707k at day 1,500 (-37%), still growing.
+
+**Test changed, not weakened.** `test_a_round_trip_pairs_each_sale...` counted calls of
+`rates_kept`; `pounds_per` no longer calls it, so the count moved to opens of `rates.csv` after a
+fresh write: still exactly one read for all the trips. Seen red first:
+`test_a_day_reads_the_desks_files_no_more_often_however_many_days_lie_behind_it` (rates 4 reads
+for 1 write each day on the old code). Blind review (27 Nov): nothing blocking; its one note, a
+rewrite in place keeps the stamp, is said on `read_once`.
+
+**Left.** The record still re-prices the whole ledger and rewrites every row, and even flat the
+20 worlds x ~1,600 days at 0.3 s is about 2.8 h > 7200 s: a bounded world span, parallel worlds,
+or a LIMIT sized to the night is the next card's choice (open orders O54).
+
+## 2026-11-27 — MONEY: a SimCity day's work is flat however many days lie behind it
+
+**What.** After #2400 a day still grew with the days behind it (real store, one world: 267k calls
+at day 100, 531k at 800, 684k at 1,500). Every source fixed where the work is made, no result
+changed: `book_parts.add` appends a record's new rows (still written whole and swapped in) and
+grows its `Rows` reading by them, so the records, the rates and the ledger are never parsed whole
+again after the desk's own write; `publish` adds one row, `record_rates` the day's new rates, the
+ledger its new fills (a correction still rewrites it); `Charges.amounts` reads the five lines off
+(astuple deep-copied them: a third of a day); `round_trips` and `interest` are carried on from the
+last asking over the fills since (`book._summed`, the same additions in the same order, afresh on
+any other ledger); `standing` reads the week back from the last record; bars are sliced by
+bisection (`store_parts.upto`). After, same store: 114k at day 100, 154k at 800, 156k at 1,500
+(the rise to 800 is lines begun, not days lived).
+
+**Seen red first.** `test_a_days_work_does_not_grow_with_the_days_the_desk_has_lived` (a market
+whose months are alike: day 280's calls within 1.1x of day 200's): 87,780 -> 126,288 on main.
+`test_the_round_trips_and_interest_carried_on_each_day_are_those_summed_afresh` driven red by a
+planted 1E-20 in the carried interest; the unended-file case of
+`test_a_record_added_to_is_read_as_if_read_whole...` red with the newline check taken out.
+
+**Tests changed, not weakened.** The ledger is opened once, not twice, after the desk's own fill
+(its reading grown): the count tightened 2 -> 1, another writer's rewrite still exactly one read.
+The round trips' "one read of the rates" now follows a rewrite by another hand: re-keeping a day's
+kept rates writes nothing. The reads-per-day sanity line "the rates are read daily" became "the
+rates and records are written every day and read whole at most twice in the world".
+
+**Blind review (27 Nov).** Nothing blocking; a fuzz of 12 seeds x 60 days (late fills,
+corrections, earlier days asked) against the old code found 0 differences. Fixed: `add` refused a
+file whose last row is unended (it would run on into it), and a rates file of another hand is
+written whole again rather than refused. Minor, kept: bars must run in day order (they do, the
+day already reads `bars[-1]`); a parse error now names its file.
+
+**Found, not fixed.** `Pretend.fills()` gives every fill since the world began, so `collect`
+scans them all (the Broker contract, IBKR gives the day's); `simcity._market` rebuilds a line's
+tuple per bar (quadratic in a world's making, not its days); a few cheap per-fill scans remain
+(`positions`, `side`, `_holders`), about 9% over 90 days in the test world.
+
+## 26 Nov - the rest of the answer key (PLUMB LINE v2 step 2, RUNGS)
+
+Seat 215's order, the rest of the key, every rung real (no rung's own result stubbed):
+- **The drift-rider** (`Dart`, in or out with a chance of a tenth a day by the day's own seed) on four
+  US lines rising 0.1% a day, run EASED as EPON runs: the real shuffle FAILs it on every line
+  (shares 0.23 to 0.91) and the market rung FAILs it beyond its own line's moves; on NVDA its first
+  rung PASSes (2.45), so the key shows the first rung fooled and the later rungs catching it.
+- **Noise: 160 cells in the unit check, 1,008 once outside it.** There is no nightly tier and a
+  unit shard holds about five minutes; 1,000 cells take 15 to 18 minutes. Chosen: 10 sets of 16
+  (about 3 minutes), passing at most 2% (3 cells). Honestly sized: at a true false pass of 2% the
+  160 show over 3 about a third of the time, at 5% nine times in ten, so it catches a ladder that
+  lets noise through, not the 2% edge itself. The 1,008 (63 sets of 16, seeds 1000 on) were run
+  once on 26 Nov through the same ladder with plateau and reproduce wired: 0 went forward, every one
+  FAIL, 952 s.
+- **Planted edges at a true t of 1, 2, 3 and 4** (the churner on the kit's paid line, its tilt set
+  from the mean and spread measured at no tilt): stated first-rung pass rates 0.16, 0.50, 0.84, 0.98
+  (a normal above 2 - t), found 0.20, 0.65, 0.95, 1.00 on 20 lines each, within 0.25 and rising; the
+  first rung is the rung a true t governs, so the rates are stated for it. The blind review judged the
+  calibration FAIL: every group's mean t runs about 0.3 high (found rates fit t + 0.3: 0.24, 0.62,
+  0.90, 0.99), so the plant is t + 0.3 and the tolerances (0.5 on t, 0.25 on a rate) hide it.
+  **Fixed (R-RUNNER-553, 27 Nov):** the first rung's t measured at the tilt on 200 seeds the test
+  never uses at each planted t of 0 to 4 (found 0.24, 1.25, 2.23, 3.35, 4.27), fitted as a line in
+  the tilt (residuals under 0.07) and read back: B -0.00158 -> -0.00132, SD 0.0541 -> 0.0532. On
+  the test's own 80 lines a t: mean t 1.02, 1.99, 3.08, 4.03 (within 0.25), pass rates 0.11, 0.50,
+  0.94, 0.99 against 0.16, 0.50, 0.84, 0.98 (within 0.15), rising. Seen red first with the old B
+  and SD under the new tolerances (means 1.27, 2.26, 3.37, 4.33). A seed's found t spreads about
+  0.71, not 1, so the found rates sit beyond the stated ones away from t 2, inside 0.15.
+- **A delisted line** (AMD cut at 2023-06-30 among 16): judged, FAIL, never an error; the 2025 fold
+  pooled over the 15 lines still trading. Found: its regimes rung FAULTs (STATUS, found not fixed).
+- **L17's gate met:** the kit's paid edge goes forward on every line.
+
+**Driven (A7)**, each against a planted fault from a plugin outside the tree: the shuffle replaced
+by a constant pass (main's fake proof) turns the drift-rider's shuffle row red; a ladder that
+passes everything turns the noise test red (9 of 160 went forward); a first rung passing any t
+above nothing turns the planted-edge rates red. The paid-edge test was red on the plateau branch
+alone, reproduce still UNRUN.
+
+**Shard weights.** `check.py` SECONDS gains the two key files (220 s, 205 s, measured on the PC), so
+the sharder does not weigh them by size as near nothing. A weight loosens nothing.
+
+**Merged with the liquidity rung (#2230).** The paid edge's lines trade one share a day, which
+the liquidity rung rightly FAILS (its own kit row), so the paid edge no longer goes forward. Its L17
+test now asks what L17 owns: no rung unrun, plateau NOT APPLICABLE, and liquidity the one hard rung
+holding it back. Still red if plateau or reproduce is left unrun.
+## 27 Nov - the rulebooks name the box as the unit of work (design appendix (a), his "Yes, all of it")
+Replacements only; `test_the_rulebooks_stay_short` holds the caps (CANON 198 to 197 lines). CANON C
+"Work in progress is capped" becomes "A box is the only unit of work" (pre-flight, typed endings,
+two endings without a tick set it aside), its runner drives marked OWED until they land. CANON C's
+"the deny hook is OWED" was stale: the hook is `hooks/guard.py` in the notes, built 22 Nov.
+FAILURE_PATTERNS 3's progress number is plan boxes ticked on main per 24 hours, as CLAUDE.md says,
+no longer scenes passing out of seven.
+
+## 27 Nov - a box opened already met is refused (the box is the card; his "Yes, all of it")
+A box whose `check:` already passes on main when it is opened is busy work: pre-flight ticks it
+at once, or a session finds nothing to do. `tests/guards/test_lanes.py::test_a_box_opened_here_fails_its_check_on_main`
+reads every check this change gives an open lane box, new or changed against main, and refuses
+one that passes on main: a test not yet written there passes this guard at once; one that exists
+is run in a scratch worktree of main's commit. The runner may call it on any branch that opens
+boxes. Driven RED on its first run, on #2388's branch before it landed: `rungs-each-rung` ("Remains: none")
+names `test_lab_rung_registry.py::test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired`,
+green on main, "boxes opened already met on main". Green once #2388 is main (no check new).
+`_git` there now decodes as UTF-8: Windows' codepage dropped `git show` of PLAN.md to None.
+Driven again on main after #2388: `rungs-sets` given an existing passing test of its file
+(`test_a_line_is_traded_only_while_a_member_and_a_london_line_says_it_is_not_corrected`), RED,
+"boxes opened already met on main"; given a test not yet written, green. Both reverted.
+
+## 27 Nov - the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
+## 27 Nov - the known-answer kit's planted edge is a crowd (L15b, Builder R2)
+The breakout's planted rise cannot go forward (#2402): any trend rule hears it (fit 0.91), so it is
+no edge of its own. Options weighed: (a) deepen and lengthen the breakout walks: fit still FAILS by
+design; (b) the rung kit's paid churner: a next-open jump that a one-bar-late rung (E13) must FAIL,
+so it cannot be the edge that goes forward on every rung; (c) an edge only its rule hears that
+lasts. Chose (c), test data only, no rung touched: `Crowd` is in while the day's volume is crowded
+(2,000,000 shares against 1,000,000); crowded spells of about 8 days rise 0.4% a day, quiet spells
+of about 16 give half of it back, so the line goes nowhere, under 1.5% of noise, on the four US
+lines beside SPY. Why 17 years: an honest edge sits under the yearly Sharpe flag of 2 (canon B6),
+and on 2,400 days a Sharpe that size was too thin for both regime windows to pass apart (t 1.1 to
+2.9, regimes FAIL on every line, probed). Over 6,200 days at a rise of 0.4%: t 4.9 to 6.3, yearly
+Sharpe 1.19 to 1.54, fit 0.43 to 0.55, costs 5.7 to 7.3 times, both windows PASS, every rung run and
+passed on all four lines (`goes`). A rise of 0.3% left every line short; 0.5% also passes, nearer the
+flag (1.49 to 1.79). The noise twin, the same spells with no rise, FAILS at the first rung after
+costs on every line (t -2.57 to -0.61), so liquidity is not what refuses it.
+`test_a_planted_edge_reads_pass_through_the_whole_ladder` was red first (on 2,400 days, regimes),
+green after. job-ladder.hold is the coordinator's to lift (E21), not this change's.
+
+## 27 Nov - rung 15, one bar late (E13, R-RUNNER-572, Builder R2), before any EPON result
+A rule whose edge sits in the one open after its signal is paid on a fill the desk cannot rely on
+(a missed order, a restart, a slow broker), and is often a bar-timing fault in the test itself.
+`lab/rung_late.py` makes every trade the first rung judged one bar later, buy and sale alike, and
+prices them by the first rung's own pricing (`rung.judge`: the desk's sizing, the pretend broker's
+fills and stop, the broker's costs, each leg at its own day's rate), so no second pricing path.
+THE BAR, options weighed: (a) FAIL only when the late mean gain after costs is below nothing; (b)
+the first rung's own rule on the late trades (MIN_TRADES, T_PASS); (c) a share of the on-time
+mean kept. Chose (b): one rule, already calibrated, no new number; (a) passes an edge that is
+noise a bar late, (c) is a number with no home. Its answer is that rule's (PASS, FAIL, THIN or
+FAULT); it only lowers a PASS, as liquidity does, and it is a hard rung (not GRADED): its FAIL
+stops a cell going forward. The reason names both sides: trades, mean gain after costs, t.
+Known answers: the kit's churner on its paid line (the whole gain is the next open's jump) PASSES
+on time and FAILS a bar late; the kit's crowd PASSES a bar late and still goes forward through the
+whole ladder; the fixture breakout's trend edge keeps most of it (12.62% to 11.41% a trade, t 5.09
+to 4.70, golden row pinned); a cell the first rung did not pass is not priced again. The rung
+kit's paid edge is now held by liquidity and late (its L17 test names both). `tests/unit/test_lab_rung_late.py` was red first (no rung_late module), then green. Edges, from
+its blind review: a late trade is sized at its own close, so its stop is its own and may sell it
+on the on-time sale's day; a pass on exactly 30 trades whose last falls off the bars is THIN late
+and does not go forward (too few to say), recorded rather than special-cased.
+## 27 Nov - every limit has one home (design item 7, Builder 3b)
+A limit copied out of `BUDGET.json` stays behind when the file changes, and the copy is what a
+session reads (pattern 8; the runner's own pin of its budget did this today). Options weighed: (a)
+search every file for every number in `BUDGET.json`: 50 and 20,000 also mean seconds and bytes in
+`check.py`, so it cries wolf; (b) search where a limit is restated, the guards that enforce limits
+and the three rulebooks, for any number past a day of the month or any fraction: chosen. A guard
+reads the figure from `BUDGET.json`; a rulebook names the file. `test_each_limit_has_one_home` was
+RED on main with four copies (CANON.md:4 200, CANON.md:74 50 and 800, test_guards.py:192 1.5), and
+RED again on a planted `PLANTED_CAP = 8914 + 30000` in a guard (30000 named, 8914 rightly not: it is
+the runner's figure, and its drive is the runner's). The two CANON lines now name `BUDGET.json` in
+place of the figures, same rule, same line count; the comment lost its copy. Green after.
+## 27 Nov - file replaces may fall, never rise (design L16, Builder 3b)
+Windows refuses to swap a file another process holds open (pattern 19), so every `path.replace`
+in `desk/` and `lab/` is a place a live job can fail. Options weighed: (a) build the one locked
+writer first: right, but it touches every lane's writers at once; (b) a ratchet now, so the count
+can only fall while the writer is built: chosen, as for whole-file reads. A replace is a call of
+`replace` or `rename` with one argument and no names (a text's replace takes two, a time's takes
+names) or `os.replace`/`os.rename`: 19 on main, each checked by hand against a grep.
+`test_file_replaces_never_rise` was RED on a planted `tmp.replace(path)` in desk/quality.py
+("rise from 19 on main to 20"), green with it removed.
+
+## 27 Nov - book.send's fault matrix (design L8, pattern 23, Builder 3b)
+The send path learnt each broker behaviour from a live fault (#373, #860, #1008, #1014, #1031). One
+table now crosses the six moments a send asks the broker's door something (report, holdings,
+stops, before and after place, fills) with four answers in place of the one asked (Disconnected,
+Crash, a timeout, an unknown word): 24 rows, each judged by two rules, through the pretend broker
+with a door that breaks once. An order the broker received is never forgotten (its fills booked,
+its note kept, or the kill switch on), and the next send never buys it twice nor leaves the book
+apart from the broker. `tests/unit/test_book_matrix.py`: green on main; RED on a planted
+`going.unlink()` on a disconnect after the send (the 20 Nov fault, "the broker holds o-1, the book
+forgot it"), and on a send that never asks the broker first (6 rows). Tests only, no desk change.
+Left of pattern 23's debt: which of these four answers each real gateway message becomes
+(desk/paper.py's table), and the same rows in SimCity (R-RUNNER-392).
+## 27 Nov - an open box names only files its own lane may change (design item 3, Builder 3b)
+The box is the card: the runner reads each open box's id, files, after:, waits: and check: (every
+one already guarded at any depth). A lane branch may never change another lane's file
+(`test_a_lane_changes_only_its_own_files`; no claim overrides it), so a box naming one is handed
+out, built and refused, or drifts outside its claim (patterns 12, 21; #2350, #2375, #2383 each
+ended 'outside this claim'). Options weighed: (a) let the runner grant two-lane claims: the repo
+refuses them whatever the runner grants; (b) refuse such a box in the book: chosen. Work another
+lane must do is that lane's box, and this one goes `after:` it; work that cannot be split is a
+builder's, not a lane box. `test_an_open_box_names_only_files_its_lane_may_change` was RED on main
+with 13 files in 6 boxes (money-epon-room, zoo-own-side, money-connors7, money-door-pound,
+money-round-cap: RUNGS's or PAPER's files; rungs-rows-as-rules: MONEY's). Lead 271 ruled the strip
+mine, `files:` fields only: each foreign file leaves its box (a session ends BLOCKED on it, never
+outside its claim), and so do manifest.toml and manifest/money.toml (item 4). money-round-cap moves
+whole to PAPER's book: MONEY's half landed (#2084), and what remains, running's CARRIED resend, and
+its check are desk/running.py's (as paper-step-time was split from it, 23 Nov). Green after.
+
+## 27 Nov - no file in more open boxes than its lane has slots; no hub in any box (design item 4, G30)
+Two sessions never hold one file, so a file named by more of a lane's open boxes than the lane has
+slots leaves slots idle behind it (claims-wait idle on 15, 21, 22 and 26 Nov; manifest.toml in 56
+cards on 26 Nov; his 26 Nov "can we mechanically never forget? add in code?"). The slot counts had
+one home, the runner's `slots.SLOTS`, which GitHub cannot read (pattern 5), so they move to
+`BUDGET.json` `slots_per_lane` at the runner's values (money 10, data 3, paper 2, grid 2, rungs 8)
+and the runner reads them there (Builder 1). Raising a lane's slots now loosens this guard, so it
+is his, as each raise was before. Hubs are in no box at all: a lane never changes manifest.toml,
+its own manifest file is its own outside any claim (that is the registry modules ride with), and
+the train folds STATUS and PLAN. `test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots`
+was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was green, and RED again
+on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
+desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 15 and 16 boxes against
+10 slots). A file named by a glob counts once per box for every tracked file it matches.
+
+## 28 Nov - rungs-rows-as-rules ticked; deleting the twins stays R-RUNNER-127 (coordinator 281)
+B4 asked for the rows proven identical, then the 19 `desk/eponymous_*.py` files deleted. Its check
+passes on main, but the files are still there: they are MONEY's, the zoo's daily rules import 11 of them,
+and the ladder's EPON set, promotion and the rulebook find their rules by them (1,623 lines, 925 of tests).
+Sessions handed the box ended empty (patterns 12, 22). Options: (a) widen the claim to the 19 files:
+refused by the 27 Nov ruling above (a lane box names only its lane's files) and still short of their
+readers; (b) carve one deletion box: the same refusal, plus a claim of hub files (G30); (c) tick B4
+for the half its lane can do, and leave the deletion to the builder's request R-RUNNER-127 that
+STATUS already names: chosen. Deleting code is not deleting data (git keeps it), so no hard line
+waits; it waits on the readers moving to the rows, after EPON's re-run.

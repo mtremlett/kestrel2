@@ -333,3 +333,21 @@ def test_once_the_archive_refuses_the_rest_of_the_round_is_not_asked(
     answers = archive.gather((US, UK, Line("CCC", "US", "USD", 1)), date(2025, 11, 17), ask)
     assert asked == [US]
     assert all(isinstance(a, Refused) and "Refusing" in a.reason for a in answers.values())
+
+
+def test_the_archive_pull_answers_intraday_cells_of_five_to_thirty_minutes_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(archive, "fetch_five", lambda _line, _now: FIVES)
+    asked: list[str] = []
+
+    def answer(url: str) -> bytes:
+        asked.append(url)
+        return _payload(span="15m")
+
+    monkeypatch.setattr(archive, "_ask", answer)
+    pull = archive.five_pull(MARK + timedelta(hours=1))
+    assert pull(US, "5m") == FIVES
+    got = pull(US, "15m")
+    assert [b.span for b in got] == ["15m", "15m"] and "interval=15m" in asked[0]  # type: ignore[union-attr]
+    assert isinstance(pull(US, "1h"), Refused)

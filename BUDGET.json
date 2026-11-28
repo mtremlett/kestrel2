@@ -11,27 +11,22 @@
   "phases": {
     "0-foundations": {
       "product_lines": 1500,
-      "product_files": 20,
       "lab_lines": 20
     },
     "1-data": {
       "product_lines": 3500,
-      "product_files": 30,
       "lab_lines": 20
     },
     "2-money-sim": {
       "product_lines": 7000,
-      "product_files": 45,
       "lab_lines": 7000
     },
     "3-money-paper": {
       "product_lines": 30000,
-      "product_files": 100,
       "lab_lines": 20000
     },
     "4-ladder": {
       "product_lines": 15000,
-      "product_files": 100,
       "lab_lines": 20000
     }
   },
@@ -40,5 +35,7 @@
   "max_lines_per_rulebook": {"CLAUDE.md": 80, "CANON.md": 200, "docs/FAILURE_PATTERNS.md": 221},
   "max_lines_per_function": 50,
   "unit_test_lines_per_product_line": 1.5,
+  "slots_per_lane": {"money": 10, "data": 3, "paper": 2, "grid": 2, "rungs": 8},
+  "slots_why": "sessions a lane runs at once; no file is named by more of its open boxes (G30)",
   "counted": "*.py in desk/ and lab/, blank lines and comments included - the honest number"
 }

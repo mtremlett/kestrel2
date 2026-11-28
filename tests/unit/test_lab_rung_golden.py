@@ -39,6 +39,12 @@ GOLDEN = [
                 "the worst of 5 yearly folds, 2022: 6 trades pooled over 2 lines, their mean day "
                 "-0.57 standard errors from nothing; on the history before it, 8.59",
             ),
+            "late": (
+                "PASS",
+                "a bar late, 61 trades, mean gain 11.41% after costs, 4.70 standard errors; on "
+                "time, 61 trades, mean gain 12.62% after costs, 5.09 standard errors; 2 standard "
+                "errors asked on 30 or more trades",
+            ),
             "liquidity": (
                 "PASS",
                 "its worst leg took 0.0213% of VUSA's volume on 2016-02-11, needs at most 1%; "
@@ -74,6 +80,11 @@ GOLDEN = [
                 "NOT APPLICABLE: breakout_20_10 carries no settings to choose among, so none was "
                 "picked from a peak (decision a)",
             ),
+            "reproduce": (
+                "PASS",
+                "no author's figure: judged on determinism: run again on the same bars and code, "
+                "it gave the identical verdict, 61 trades at 5.09 standard errors",
+            ),
         },
     ),
     (
@@ -97,6 +108,7 @@ GOLDEN = [
                 "fixed pricing (schedule read 13 November 2026)) -0.10 standard errors above "
                 "nothing; 30 trades and 2 asked",
             ),
+            "late": ("FAIL", "the first rung did not pass it, so nothing is priced a bar late"),
             "liquidity": ("FAIL", "the first rung did not pass it, so its volume is not read"),
             "regimes": (
                 "FAIL",

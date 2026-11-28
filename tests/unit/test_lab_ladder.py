@@ -36,6 +36,7 @@ from lab import (
     rung_costs,
     rung_cpcv,
     rung_fit,
+    rung_late,
     rung_liquidity,
     rung_regimes,
     shuffle,
@@ -129,8 +130,10 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
         "regimes": rung_regimes.RUNG.judge(verdict)[0].name,
         "liquidity": rung_liquidity.RUNG.judge(verdict, EDGE, {})[0].name,
         "fit": rung_fit.RUNG.judge(verdict, EDGE, {})[0].name,
+        "late": rung_late.RUNG.judge(verdict, EDGE, {})[0].name,
         "shuffle": "THIN",  #: run last, and only on a trial that passed all before it
         "plateau": "PASS",  #: L17: the breakout carries no settings, NOT APPLICABLE
+        "reproduce": "PASS",  #: no author's figure: the same verdict on a re-run
     }
     assert {name: answer for name, (answer, _) in won["rungs"].items()} == want
     assert (won["trials"], one.luck.trials, won["trades"]) == (2, 2, len(verdict.trades))
@@ -147,7 +150,8 @@ def test_each_cell_is_judged_on_every_rung_and_kept_with_its_reasons_and_trials(
     }
     assert (won["answer"], won["every"], lost["answer"]) == ("THIN", False, "FAIL")
     assert lost["rungs"]["first"][0] == lost["rungs"]["market"][0] == "FAIL"
-    assert set(won["unrun"]) == {"reproduce"}  #: no rung module is off the path
+    assert won["unrun"] == {}  #: no rung module is off the path
+    assert won["rungs"]["reproduce"][1].startswith("no author's figure: judged on determinism")
     assert won["rungs"]["plateau"][1].startswith("NOT APPLICABLE: breakout_20_10")
     assert 0 <= won["drawdown"]["median"] <= won["drawdown"]["p95"] < 1, "measured, never gated"
 

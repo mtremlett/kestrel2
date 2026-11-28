@@ -13,11 +13,10 @@ from pathlib import Path
 
 import pytest
 
-from desk.eponymous_zweig_breadth_thrust import Breadth
 from desk.store import Bar
-from desk.strategy import _run
+from desk.strategy import Rule, _run
 from lab import rulebook
-from lab.spec import Spec, SpecRule
+from lab.spec import Spec, SpecRule, ratio_bars
 
 BOOK = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
 RULES = rulebook.eponymous()
@@ -36,6 +35,15 @@ def _bars(seed: int, days: int = 1500) -> tuple[Bar, ...]:
             Bar(date(2010, 1, 1) + timedelta(n), c, h, lo, c, int(1000 * crowd.uniform(0.5, 2.5)))
         )
     return tuple(made)
+
+
+def _twin(name: str, counts: dict[date, tuple[int, int]]) -> Rule:
+    """The row's Python twin; Zweig's reads the day's breadth, imported only while it stands."""
+    if BOOK[name]["entry"] != "breadth_thrust":
+        return RULES[name]()
+    from desk.eponymous_zweig_breadth_thrust import Breadth  # noqa: PLC0415
+
+    return RULES[name]({day: Breadth(*pair) for day, pair in counts.items()})  # type: ignore[call-arg]
 
 
 # Each row's decisions on the five fixture series, hashed: the proof of identical trades that
@@ -65,20 +73,31 @@ PINNED: dict[str, str] = {
 }
 
 
-@pytest.mark.parametrize("name", sorted(BOOK.keys() | RULES))
+ZWEIG = "zweig_breadth_thrust"  # the last row proven (#1382): its own check closes B4's parity
+
+
+@pytest.mark.parametrize("name", sorted((BOOK.keys() | RULES) - {ZWEIG}))
 def test_each_spec_decides_as_its_python_rule_and_its_pin_on_every_day(name: str) -> None:
+    """Every other row trades as its Python twin and its pin on the five fixture series."""
+    _decides_as_its_twin_and_pin(name)
+
+
+def test_zweig_breadth_thrust_row_trades_as_its_python_twin() -> None:
+    """Zweig's row, read on breadth-ratio bars, trades as his Python rule and its pin."""
+    _decides_as_its_twin_and_pin(ZWEIG)
+
+
+def _decides_as_its_twin_and_pin(name: str) -> None:
+    """The row's decisions equal its twin's (while it stands) and hash to its pin."""
     assert name in BOOK, f"{name}: a desk rule with no catalogue row"
     spec, seen, print_ = Spec.parse({"name": name, **BOOK[name]}), set(), hashlib.sha256()
     for seed in range(5):
         bars, draw = _bars(seed), random.Random(seed)  # noqa: S311 - a test draw
-        made = {b.day: Breadth(draw.randint(1, 99), draw.randint(1, 99)) for b in bars}
-        if BOOK[name]["entry"] == "breadth_thrust":  # the row reads the market's breadth ratio
-            bars = tuple(Bar(b.day, r, r, r, r, 1) for b in bars for r in [made[b.day].ratio])
-        mine = tuple(_run(name, SpecRule(spec), "X", bars))
+        counts = {b.day: (draw.randint(1, 99), draw.randint(1, 99)) for b in bars}
+        breadth = BOOK[name]["entry"] == "breadth_thrust"  # the row reads the breadth ratio
+        mine = tuple(_run(name, SpecRule(spec), "X", ratio_bars(counts) if breadth else bars))
         if name in RULES:
-            breadth = BOOK[name]["entry"] == "breadth_thrust"
-            twin = RULES[name](made) if breadth else RULES[name]()  # type: ignore[call-arg]
-            theirs = tuple(_run(name, twin, "X", _bars(seed)))
+            theirs = tuple(_run(name, _twin(name, counts), "X", _bars(seed)))
             assert mine == theirs, f"{name} seed {seed}: the spec differs from the rule"
         seen |= {d.action.name for d in mine}
         print_.update(repr(mine).encode())
