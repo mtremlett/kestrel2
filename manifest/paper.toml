@@ -19,6 +19,7 @@
 "desk/running_parts.py" = "what running is built of, apart from the step: the recovery of a desk that died part-way through an order, and the one stop a line is left under"
 "desk/streak.py" = "FIRST-LIGHT counted by the desk itself: the run of consecutive days whose records count (a day that sent nothing never does), against the ten it takes, in a plain sentence"
 "desk/supervisor.py" = "the desk's processes kept alive: one supervisor that runs each registered job when due in a process of its own, one of each at a time, a dated receipt for every run, the desk's health judged from outside by the receipts, and the ledger of what the operator did with the measure of how long the desk has run without him"
+"desk/watcher.py" = "the supervisor's independent watcher: asks the system whether the supervisor holds its lock, forgives a restart, and tells him through the messenger once an hour when it stays gone"
 "desk/command.py" = "the desk's day as the runner asks for it: one step, the morning's pre-flight and the rehearsal of a whole day with the markets shut, each one line and a code; and the real doors a step is given, the price store's and the day's pounds per dollar"
 "desk/command_parts.py" = "the day's pound in dollars, split out of desk/command.py: IBKR first, the archive's where it gives none, told in pound.log, the rate kept for the day"
 "desk/trading_hours.py" = "when a real market could fill an order: the regular session, New York's pre-market and after-hours and London's auctions, from the one calendar, so a rehearsal never sends into a fill"
