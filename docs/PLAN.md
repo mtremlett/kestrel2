@@ -509,6 +509,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       but acting only once each passes REG-07; news for event awareness, never a signal until
       proven (REG-01, REG-07, STR-20)
       {id: data-weather; files: desk/weather.py, tests/unit/test_weather.py; after: data-tiers; check: tests/unit/test_weather.py::test_realised_volatility_is_recorded_each_day_before_it_acts}
+- [ ] Daily Stooq reader into desk (card stooq-into-desk, R-RUNNER-419; his ruling Sat 21 Nov 08:2x 'Yes, allow it'):
+      stooq_rows (lab/headstart_days.py) moves to a new desk/daily_local.py registered under DATA; lab imports it
+      from desk, behaviour unchanged; desk/backfill.py takes a day the broker lacks from local Stooq before the
+      archive, a third source the one store judges. manifest.toml lets desk/ import the one pinned price-file
+      library lab/ already uses, nothing else; the PR cites the ruling in docs/DECISIONS.md. A new desk/ file, so
+      it waits for room (money-epon-room). Gate, written first: a contract test on a tiny committed parquet
+      fixture (only OK rows, a missing file refused by name), and backfill's test taking a broker-missing day from local Stooq
+      {id: stooq-into-desk; after: money-epon-room; files: desk/daily_local.py, desk/backfill.py, lab/headstart_days.py, tests/unit/test_daily_local*.py, tests/unit/test_backfill*.py, tests/fixtures/stooq/*; check: tests/unit/test_daily_local.py::test_local_stooq_reads_only_ok_rows_and_refuses_a_missing_file_by_name}
 
 ## Phase 2 — the money path, in simulation
 
@@ -837,6 +845,25 @@ day's trading and reconciliation are built, and any broker can stand behind them
       never "since the day's open". Gate: a test, written first, red on main, pins the new words
       Remains: none (#2009; the caller has no session date, so none is added).
       {id: money-loss-words; files: desk/risk.py, desk/day_parts.py, tests/unit/test_risk.py, tests/unit/test_day_standing.py}
+- [ ] The zoo counts its own 20 lines (card money-zoo-cap-20, R-RUNNER-506; his 24 Nov 11:4x 'Yes zoo cap to 20'
+      and 11:5x 'this is a test environment that paper trades so you can loosen the [n]umber of trades and
+      portfolio sizes as required'): in desk/orders.py's ZOO_ROOM the zoo counts its own lines apart from the
+      desk's holdings (which stay 5): at most 20 zoo lines, 20 new a day (was 10), 5,000 pounds (was 1,000), one
+      share per order (B6). The desk's own rules, the risk gate and the kill switch do not change. His words
+      quoted in docs/DECISIONS.md in the same PR; money path: A6 blind review. Gate, written first: one test per
+      zoo setting; the zoo refused at its 21st line and not at the desk's 6th; the desk still refused at its 6th
+      {id: money-zoo-cap-20; files: desk/orders.py, tests/unit/test_orders*.py, tests/unit/test_day_standing.py, docs/DECISIONS.md; check: tests/unit/test_orders.py::test_the_zoo_is_refused_at_its_21st_line_and_the_desk_at_its_6th}
+- [ ] SimCity covers four data faults (card simcity-data-gaps, R-RUNNER-336; his Thu 19 Nov 13:00 ask 5): (1) a
+      keeper window cutting a line's full history; (2) a unit change, pence against pounds; (3) a rolled bar
+      that disagrees with a held one; (4) the hourly P&L on mixed bases. The desk refuses or names each, never
+      trades on it; the night's census names the four, RED before their fixes and GREEN after
+      {id: simcity-data-gaps; files: desk/simcity_incidents.py, tests/unit/test_simcity_incidents*.py; check: tests/unit/test_simcity_incidents.py::test_four_data_faults_are_refused_or_named_never_traded}
+- [ ] SimCity's full run outlives its limit (card simcity-full-phase-limit, R-RUNNER-438; coordinator 225, 27 Nov
+      02:5x: LIMIT is NOT raised, pattern 24): a weekend `desk.simcity --full` ends inside the runner's 6 h and
+      SimCity's own phase limit still names a real hang. Time one deep world on #2187's parent and merge, same
+      seed and prices; profile one world's own body and fix the biggest cost at its source, or let the limit
+      follow the worlds asked (one named per-world allowance, never a bigger constant). No clamp, no try/except
+      {id: simcity-full-phase-limit; files: desk/simcitycmd.py, desk/simcity.py, desk/strategy_parts.py, tests/unit/test_simcity_cmd.py; check: tests/unit/test_simcity_cmd.py::test_the_full_run_ends_inside_its_time_and_the_limit_still_names_a_hang}
 
 ## Phase 3 — the money path, on paper
 
@@ -1037,6 +1064,12 @@ his PC with the desk's own client id (222), never 4001.
       a whole Friday is 313 orders at about 10 s each, plus three 30 s gateway dial timeouts, so the 3300 s ran
       out at Friday's 17:50 bar, NO-GO, nothing left working; the planted rehearsal holds a Friday's 313 orders
       {id: paper-rehearsal-wait; files: desk/command.py, desk/placing.py, tests/unit/test_command.py, tests/unit/test_placing.py; check: tests/unit/test_command.py::test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working}
+- [ ] The rehearsal's NO-GO names what failed (card nogo-line-names-cause, R-RUNNER-442): a rehearsal whose first
+      or last account read stalls still ends REHEARSAL NO-GO, never a bare TimeoutError: the line names that read
+      ('the account read before the run stalled: <message>', or after it) and the step tally ('199 of 199 steps
+      passed'); a failed step is told by its first fault's message, not its class alone. The account left as
+      found stays unproven, so it stays NO-GO
+      {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally}
 
 ## Phase 4 — the ladder
 
@@ -1330,6 +1363,23 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
       {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21; check: tests/unit/test_lab_ladder_sets.py::test_set_lev_holds_inverse_leveraged_lines}
+- [ ] The ladder prices an overnight holding (card holding-overnight, R-RUNNER-374; his 'Yes, card it' Thu 19 Nov
+      ~22:0x, SETs GAP 1-9; held until the pre-registered EPON re-run has finished, since it changes lab/rung.py):
+      one holding model, no second engine: a spec field holding ('next_open' the default, 'overnight') read by
+      lab/spec.py; 'overnight' buys at close[t] and sells at open[t+1] (Friday to Monday one trade), costs whole
+      by orders.charges, no stop while the market is shut. Gate, written first, in the contract test: hand-worked
+      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named lab/cell.py, GRID's: a part that needs it is a GRID box this one waits for)
+      {id: holding-overnight; files: lab/rung.py, lab/spec.py, tests/unit/test_lab_rung.py, tests/unit/test_lab_spec*.py; check: tests/unit/test_lab_rung.py::test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open}
+- [ ] Row 101's overnight baseline through the ladder (card holding-overnight-row101, R-RUNNER-375, part 2 of 3):
+      [overnight_baseline] in lab/catalogue.toml (row 101 of set-catalogue.md, source named), buy every close and
+      sell the next open, an always-true entry block in lab/blocks.py and its firing in lab/fast.py only if none
+      exists; its verdict shows in-sample and out-of-sample side by side, as the control
+      {id: holding-overnight-row101; after: holding-overnight; files: lab/catalogue.toml, lab/blocks.py, lab/fast.py, tests/unit/test_lab_catalogue*.py, tests/unit/test_lab_fast*.py; check: tests/unit/test_lab_catalogue.py::test_the_overnight_baseline_buys_every_close_and_holds_one_night}
+- [ ] The ladder prices a same-day holding (card holding-same-day, R-RUNNER-376, part 3 of 3): 'same_day' in the
+      same holding model: decided before the open on data up to close[t-1], bought at open[t], sold at close[t],
+      costs whole, daily bars only. Gate, written first: hand-worked prices; future-blind (the day-t decision
+      identical without bars from t on)
+      {id: holding-same-day; after: holding-overnight-row101; files: lab/rung.py, lab/spec.py, tests/unit/test_lab_rung.py, tests/unit/test_lab_spec*.py; check: tests/unit/test_lab_rung.py::test_a_same_day_holding_buys_at_the_open_and_sells_at_the_close}
 
 ## Phase 5 — the edge
 
