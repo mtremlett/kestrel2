@@ -236,15 +236,30 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     first = verdict.ready(CELL, EDGE, {}, ())
 
     def said(
-        t: str, ladders: Answer, stress: Answer = Answer.PASS, retail: Answer | None = None
+        t: str,
+        ladders: Answer,
+        stress: Answer = Answer.PASS,
+        retail: Answer | None = None,
+        yearly: float = 1.0,
     ) -> str:
         made = replace(first, answer=ladders, t=Decimal(t))
-        return verdict.basket_answer(made, stress, retail)
+        rungs = {"first": ladders} | ({} if retail is None else {"retail": retail})
+        return verdict.basket_answer(made, rungs, stress, yearly)
 
     for sour in (Answer.FAIL, Answer.FAULT):  #: a graded rung failed or faulted is never a PASS
         assert said("2.1", Answer.PASS, retail=sour) == sour.name
         assert said("1.0", Answer.FAIL, retail=sour) == (sour.name if eased else "FAIL")
     assert said("2.1", Answer.PASS, retail=Answer.DOUBT) == "PASS"  #: WEAK, within MAX_WEAK
+    #: the one rule, never a judge of its own: a hard gate short of PASS is the answer, a soft
+    #: rung's FAULT before the scorecard, and a yearly Sharpe over SHARPE_STOP a hard stop
+    made = replace(first, answer=Answer.PASS, t=Decimal("2.1"))
+    doubted = {"first": Answer.PASS, "deflated": Answer.DOUBT}
+    assert verdict.basket_answer(made, doubted, Answer.PASS, 1.0) == "DOUBT"
+    assert said("2.1", Answer.PASS, yearly=2.5) == "STOP"
+    assert said("2.1", Answer.PASS, retail=Answer.FAULT, yearly=2.5) == "FAULT"
+    assert said("2.1", Answer.PASS, Answer.FAIL) == "FAIL"  #: stress is a soft rung
+    assert said("1.0", Answer.FAIL, yearly=2.5) == ("STOP" if eased else "FAIL")
+    assert verdict.gates({"first": (Answer.PASS, ""), "retail": (Answer.THIN, "")})
 
     assert said("0.9", Answer.FAIL) == "FAIL"
     assert said("1.0", Answer.FAIL) == ("INCUBATE" if eased else "FAIL")

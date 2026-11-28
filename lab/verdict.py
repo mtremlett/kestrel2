@@ -94,9 +94,9 @@ WEAK = (Answer.THIN, Answer.DOUBT)  #: a scorecard's WEAK: neither a win nor a l
 #: SHARPE_STOP is a hard stop, whatever the rungs say. The luck rung is reported, never ruled.
 HARD = ("first", "deflated", "folds", "shuffle")
 SOFT = ("market", "regime", "stress")
-#: The rungs graded soft: SOFT, and the declared regime and fit-with-the-book rungs, added
-#: after (`ladder_parts`); "fit" is `rung_fit.RUNG.name` (#2233), named here until it lands.
-GRADED = (*SOFT, rung_regimes.RUNG.name, "fit")
+#: The rungs graded soft: SOFT, the declared regime and fit-with-the-book rungs, added after
+#: (`ladder_parts`; "fit" is `rung_fit.RUNG.name`, #2233), and a basket's retail rung.
+GRADED = (*SOFT, rung_regimes.RUNG.name, "fit", "retail")
 #: The rungs a shuffle waits on: the hard gates before it and the yearly hard stop, none soft.
 BEFORE_SHUFFLE = (*HARD[:-1], "yearly")
 MAX_WEAK = 2
@@ -224,18 +224,22 @@ def _plateaued(
         return Answer.FAULT, f"the plateau could not be judged: {cannot}"
 
 
-def basket_answer(basket: Verdict, stressed: Answer, retail: Answer | None) -> str:
-    """A basket's answer's name. Off: the ladder's own. EASED: a basket the ladder fails on enough
-    trades, whose after-cost mean is T_INCUBATE standard errors above nothing and whose stress
-    passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE. The
-    retail rung (None when unread) is a soft rung, read as `one_answer` reads one: its FAULT, or
-    a `scorecard` short of PASS, is the answer of a basket that would otherwise PASS or INCUBATE."""
+def basket_answer(
+    basket: Verdict, rungs: Mapping[str, Answer], stressed: Answer, yearly: float | None
+) -> str:
+    """A basket's answer's name, by the one rule over the rungs it has (`rungs`: its own, the
+    retail rung among them when read) and the stress it stands on: the least HARD gate short of
+    PASS; else a soft rung's FAULT; else the `scorecard`, a yearly Sharpe over SHARPE_STOP a stop.
+    EASED: a basket the ladder fails on enough trades, whose after-cost mean is T_INCUBATE
+    standard errors above nothing and whose stress passed, is INCUBATE, then read the same way."""
     pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
-    said = INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
-    if retail is None or said not in (Answer.PASS.name, INCUBATE):
-        return said
-    soft = Answer.FAULT.name if retail is Answer.FAULT else scorecard([retail], 0.0)
-    return said if soft == Answer.PASS.name else soft
+    incubates = EASED and pending and stressed is Answer.PASS
+    if not incubates and (least := _short(rungs)) is not None:
+        return least.name
+    said = INCUBATE if incubates else Answer.PASS.name
+    soft = [stressed, *([rungs["retail"]] if "retail" in rungs else [])]
+    card = Answer.FAULT.name if Answer.FAULT in soft else scorecard(soft, yearly or 0.0)
+    return said if card == Answer.PASS.name else card
 
 
 def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:

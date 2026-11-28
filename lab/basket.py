@@ -198,6 +198,7 @@ def row(
     rungs = verdict.named(basket, one)  #: its trials the set's baskets, no family's
     if against is not None and (retail := grade(basket, against)) is not None:
         rungs["retail"] = retail
+    answers = {name: said for name, (said, _) in rungs.items()}
     return {
         "set": tag,
         "cell": [rule, *NAME],
@@ -205,6 +206,6 @@ def row(
         "trades": len(basket.trades),
         "rungs": verdict.reported(rungs),
         "unrun": UNRUN,
-        "every": verdict.every(rungs),
-        "answer": verdict.basket_answer(basket, stressed, rungs.get("retail", (None,))[0]),
+        "every": verdict.gates(rungs),
+        "answer": verdict.basket_answer(basket, answers, stressed, one.yearly),
     }
