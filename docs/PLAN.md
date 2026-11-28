@@ -1012,6 +1012,15 @@ his PC with the desk's own client id (222), never 4001.
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
       zoo's cancelled, the desk's still resting. Edits only, no new desk/ file
       {id: paper-side-stops; files: desk/paper.py, tests/unit/test_paper.py; check: tests/unit/test_paper.py::test_two_stops_on_one_ticker_rest_apart_by_side}
+- [ ] The rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov): Saturday's zoo-on
+      rehearsal sent 28 one-share orders, each given the fill wait (120 s) on a shut market, and the runner ended
+      it at 3600 s at Friday's 09:40 bar, before its own cancel ran: a buy and its stop were left resting at the
+      paper broker (failure pattern 24). On a shut market no order can fill, so the rehearsal's account waits a few
+      seconds, the wait given to the account the rehearsal builds (one send path, one home for each wait); a
+      rehearsal whose next order would pass its time stops, cancels its own and names the stop. Rejected: a longer
+      job timeout; skipping the send. Gate: a test, written first, where a planted rehearsal of 28 orders ends
+      inside its limit with no order of its own working
+      {id: paper-rehearsal-wait; files: desk/command.py, desk/placing.py, tests/unit/test_command.py, tests/unit/test_placing.py; check: tests/unit/test_command.py::test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working}
 
 ## Phase 4 — the ladder
 
