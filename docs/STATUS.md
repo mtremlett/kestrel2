@@ -237,7 +237,7 @@ Open: members' FTSE Russell announcement reader (lseg.com has no stable machine-
 - **Keeper/collector:** desk/collector.py:199 and desk/keeper_live.py:130 do not yet name a lock wait (#856); IDTL has no security definition at the broker (#844). **Operator:** IB1T not ISA-holdable; nothing else waits on him (data-members takes the free route; data-isa-twins waits on R-DATA-64, -65, -66). **Store/keeper:** `history.run` checks the desk round once, not per page, its bars not yet re-aligned to the session, 5QQQ's 2021-22 lost; `backfill.in_currency` alias awaits `test_backfill.py`; `keeper.py` 400 lines; `quality` runner job needs its card ticked; archive limits unmeasured (#685); `history.lacks` unused (#751); IDTL parks on a missing 16 Nov unless its five-minute bars are held; disagreements not in a stored fault file.
 - **The one door (22 Nov):** 172 lines differ from the old CSVs beyond rounding (GOOG on 3,398 days, AAPL 270 CSV-only days, most on one day); the database is read.
 ## GRID
-Last updated: 27 November 2026.
+Last updated: 28 November 2026.
 ### Where it is
 
 Built and proven: the cell (a Line only), batch, fast grid engine and fast spec-row engine (`lab/fast.py`, ~30 times
@@ -247,9 +247,9 @@ pass runs each strategy on its declared universe (22 lines); all-on-all is `--tr
 its seconds: cold transfer 5,330 cells in 17 min, declared about 8 min, far inside the 48 h weekend (LAD-10 done).
 `lab/chain.py` (#2190, #2202, #2227; R-RUNNER-364 to 366), `python -m lab.chain` chains the EPON and LEV set tables older than their chain file (#2247; sweep's pass calls it, a failed chain does not fail the pass): a published set's variants at x2/3 and x3/2, `sweep` runs them under the set's plan, `report` writes each plateau's centre per rule and line (PRE-REVIEW). Remains: the real ladder refuses a variant name (R-GRID-9); 
 ### Next step
-grid-week (waits: 2026-11-28): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
-each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612, and again #2021 after #2007 dropped the filter; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563, #1748: failed cells read `Invalid isoformat string: ''`, last written 21 Nov 03:27 under code 86bce5; a raising pass is logged and the week carries on, #1562). The week must restart unbroken once the runner updates
-its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555, #1700): 7 days not before 28 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
+grid-week (waits: 2026-11-29): the pass runs old code (pre-#1210) on the new-format store, so 2,810 of 5,325 cells fail
+each hour (#1370, and 348 LSE/US stale `*.faults.csv` notes swept as phantom tickers until `held()` skipped them again, #1612, and again #2021 after #2007 dropped the filter; a failure now names its file, line and function; each pass line carries `why`, its three commonest errors, #1563, #1748: failed cells read `Invalid isoformat string: ''`, last written 21 Nov 03:27 under code 86bce5; a raising pass is logged and the week carries on, #1562). A pass on a clone behind main is now refused by name (`StaleClone`, #2430) and failed pass lines carry `why`. The week must restart unbroken once the runner updates
+its clone (R-GRID-8; frozen at 6793651f of 14 Nov, main's code runs these cells fine, #1555, #1700): 7 days not before 29 Nov, then read `sweep.unbroken(Path(KESTREL2_DATA))`.
 The 2,810 failures were journals the old CSV door wrote on 21 Nov; current code runs them (#2007), they heal on a full pass. Every other box is ticked. Unknown: why the week stopped 15-21 Nov (no log). Open: R-DATA-7 (`batch.stored` now reads through `universe.read`, #618; remains: a cell keeping
 `History.moves` and `.rescaled` in its record, which changes the cell's record and key), R-RUNGS-2 (declared sweep enters every cell in the register), R-RUNGS-4.
 ### Done for other lanes
