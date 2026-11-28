@@ -23,6 +23,8 @@ from lab.rung import Answer, Rates
 
 RUNGS = "lab"  #: the package whose `rung_*` modules declare the rungs the ladder runs
 PROXIES = {"VUAG": "SPY"}  #: a short-history line and the longer series that may stand in for it
+#: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
+MARKETS = {"US": "SPY", "LSE": "ISF"}
 #: A cell that waits on data is tried again no sooner than this after its last try.
 RETRY = timedelta(minutes=30)
 FAILED = (ValueError, OSError, keeper.Stale)  #: what may leave a cell unjudged; all else is a bug

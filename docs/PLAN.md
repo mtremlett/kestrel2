@@ -1315,7 +1315,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         set runner's pre-flight; gate: a set whose inputs have gaps refuses to start.
         Step 1 built (#1680): `market.gaps`, `folds.gaps`. Step 2 built (#1706, #1786): `ladder.run` runs `folds.preflight` before anything is written and its door refuses (NOT PUBLISHED) over 1% FAULT cells (`folds.published(faults, cells)`). Remains: the pooled runner `ladder_pool.run` skips the pre-flight (add `folds.preflight(ladder.inputs(todo, make_bars()), pounds)` before `ladder.begun`; claim widens to lab/ladder_pool.py and tests/unit/test_lab_ladder_pool.py), `ladder_sets.epon` writes its table before the fault count (lab/ladder_sets.py), then rerun EPON; the gaps themselves are DATA's; claim widened to them (runner ops 92, 22 Nov)
         Step 3 built (#1865): the pooled runner behind EPON, LEV and `first` runs the same pre-flight and refuses a set with input gaps; tables end `## NOT PUBLISHED` over 1% FAULT. Remains: DATA mends 77,870 input gaps (R-RUNGS-40), then rerun EPON and tick.
-        {id: rungs-faults-not-answers; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-rung-map; waits: R-RUNGS-40; check: tests/unit/test_lab_ladder_sets.py::test_epon_publishes_with_under_one_percent_faults}
+        (hub-split, 28 Nov, O79: the pre-flight moved to lab/ladder_preflight.py, so the claim names it in place of the cell engine)
+        {id: rungs-faults-not-answers; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets.py, lab/ladder_preflight.py, lab/ladder_parts.py, lab/market.py, lab/folds.py, tests/unit/test_lab_ladder.py, tests/unit/test_lab_market.py, tests/unit/test_lab_folds.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-rung-map; waits: R-RUNGS-40; check: tests/unit/test_lab_ladder_sets.py::test_epon_publishes_with_under_one_percent_faults}
 - [ ] **STRATEGIES AS DATA (his goal: 1,000+ strategies over 1,000+ tickers):**
   - [x] B1 building blocks written once, each known-answer tested: indicators, entries,
         exits, stops, filters (regime filters among them), sizing. Built: every block has its
@@ -1544,6 +1545,37 @@ green on main. Designs, pre-mortems and planted breaks: the runner's notes,
 - [ ] Q6 each strategy beside simply holding its market
 - [ ] Q7 a one-page runbook: if this happens, do that
 - [ ] Q8 market events in the calendar: no new entry into a known event
+
+### The runner lane's book — the runner hands out its own work (design item 8, O113)
+
+The runner's own changes are boxes here, handed out by its RUNNER slot (one session at a
+time, in its own worktree of the runner's repository, never this one), so the build needs no
+seat to start a builder. A box names only `runner:<path>` (the runner's repository) and
+`drives:<path>` (its drives) files, and its check is the drive that proves it: the runner
+runs it on master before a hand-out (green is a tick), and a box reaches master only green,
+then goes live through the go-live gate. The runner's ratchet holds it under its ceiling, so a box subtracts before it adds.
+
+- [ ] The runner hands out RUNNER boxes and lands what they build: `RUNNER` joins its
+      lanes (its one slot is `BUDGET.json`'s), with its model, effort and reviewer; its
+      session starts on a branch of its own worktree of the runner's repository, briefed
+      with the box. The runner's repository has no remote, so the branch is never pushed
+      nor deleted unlanded: at a BUILT ending it is rebased onto master, the drives covering
+      its files run, and only green fast-forwards master; red keeps the branch and holds the
+      box on its ending. Until this lands no RUNNER box is handed out (design item 8 (b), (e))
+      {id: runner-lane; files: runner:runner.py, runner:hooks/covering.py, drives:drive_runnerlane.py; check: drives:drive_runnerlane.py}
+- [ ] Pre-flight for a RUNNER box runs its `drives:` check on an export of master, never
+      pytest: green is a tick, never a hand-out
+      {id: runner-preflight; files: runner:preflight.py, drives:drive_runnerpreflight.py; check: drives:drive_runnerpreflight.py}
+- [ ] A runner commit may name a RUNNER box id of main's plan beside an O, G or item id
+      (design item 8 (d))
+      {id: runner-boxid; files: runner:hooks/boxid.py, drives:drive_boxid.py; check: drives:drive_boxid.py}
+- [ ] One writer per path from the boxes: at hand-out the runner writes the session's
+      `state/writers.json` row from its box's runner: files and drops it at the run's end; a
+      second box naming a held file waits (design item 8 (c))
+      {id: runner-writers; files: runner:claimfile.py, drives:drive_boxwriters.py; after: runner-lane; check: drives:drive_boxwriters.py}
+- [ ] The tick: the runner opens the PLAN tick pull request for a RUNNER box only when the
+      go-live record of a head holding its commit is green (design item 8 (f))
+      {id: runner-tick; files: runner:rounds.py, drives:drive_runnertick.py; after: runner-lane; check: drives:drive_runnertick.py}
 
 ## The requirements
 

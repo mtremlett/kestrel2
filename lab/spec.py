@@ -6,13 +6,15 @@ the one engine decides on it as it decides on a Python rule.
 A row: name, entry, exit, stop, filter (block names), params (per place), source and cases
 (known answers: bars as [high, low, close], the wish after each), and may carry ranges (per
 place, a setting's values to try, lowest first, each held to its block; `lab.variants` makes
-them), and may name a size (a SIZE block, its parameters under params["size"]; never ranged).
+them), may name a size (a SIZE block, its parameters under params["size"]; never ranged), and
+may name its holding (`Holding`: how the first rung, `lab.rung`, fills it; next_open if unnamed).
 A spec with no case is refused. Out of the market it buys when its entry fires and its
 filter allows; in it, it sells when its exit or its stop fires.
 """
 
 from __future__ import annotations
 
+import enum
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -31,6 +33,22 @@ PLACES = tuple(kind.value for kind in Kind if kind is not Kind.SIZE)  #: the pla
 Ranges = Mapping[tuple[str, str], tuple[int | Decimal, ...]]
 _DAY = date(2020, 1, 1)
 _KNOWN = {**BLOCKS, **SIZES}  #: every block a place may name; its kind says which place
+
+
+class Holding(enum.Enum):
+    """How a rule's trade is held, priced by the one rung (`lab.rung.judge`)."""
+
+    NEXT_OPEN = "next_open"  #: decided at a close, bought at the next open, sold by stop or rule
+    OVERNIGHT = "overnight"  #: bought at the close, sold at the next open: one night, no stop
+
+
+def _holding(row: Mapping[str, Any]) -> Holding:
+    """The holding a row names, next_open when it names none, or refused."""
+    named = row.get("holding", Holding.NEXT_OPEN.value)
+    known = {h.value: h for h in Holding}
+    if not isinstance(named, str) or named not in known:
+        raise ValueError(f"spec {row['name']}: holding {named!r} is none of {sorted(known)}")
+    return known[named]
 
 
 @dataclass(frozen=True)
@@ -126,12 +144,13 @@ class Spec:
     cases: tuple[Case, ...]
     ranges: Ranges  #: the settings `lab.variants` tries; none for a row tried as written
     size: tuple[str, Mapping[str, int | Decimal]] | None  #: its SIZE block; None: sized as before
+    holding: Holding  #: how the first rung fills it
 
     @classmethod
     def parse(cls, row: Mapping[str, Any]) -> Spec:
         """The spec a row describes, or a ValueError naming what is wrong with it."""
         fields = {"name", "source", "params", "cases", *PLACES}
-        extra = set(row) - fields - {"ranges", "size"}
+        extra = set(row) - fields - {"ranges", "size", "holding"}
         if fields - set(row) or extra:
             raise ValueError(
                 f"spec row: missing {sorted(fields - set(row))}, extra {sorted(extra)}"
@@ -154,6 +173,7 @@ class Spec:
             cases=tuple(_case(n, raw) for n, raw in enumerate(row["cases"])),
             ranges=_ranges(row, {place: chosen[place][1] for place in PLACES}),
             size=_place(row, "size") if "size" in row else None,
+            holding=_holding(row),
             **{place: chosen[place][0] for place in PLACES},
         )
         spec.hold_cases()

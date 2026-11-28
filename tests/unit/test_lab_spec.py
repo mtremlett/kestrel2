@@ -12,7 +12,7 @@ import pytest
 
 from desk.store import Bar
 from lab import rulebook
-from lab.spec import Spec, SpecRule, ratio_bars
+from lab.spec import Holding, Spec, SpecRule, ratio_bars
 
 CASE = {"bars": [[11, 9, 10]] * 3 + [[13, 11, 12], [10, 7, 8]], "wants": [0, 0, 0, 1, 0]}
 ROW: dict[str, Any] = {
@@ -34,6 +34,8 @@ def _row(**change: Any) -> dict[str, Any]:
 def test_a_good_row_is_a_frozen_spec_holding_its_parameters() -> None:
     spec = Spec.parse(ROW)
     assert (spec.entry, spec.params["entry"]["n"]) == ("highest_high", 3)
+    assert spec.holding is Holding.NEXT_OPEN, "a row naming no holding is filled at the next open"
+    assert Spec.parse(_row(holding="overnight")).holding is Holding.OVERNIGHT
     with pytest.raises(AttributeError):
         spec.name = "x"  # type: ignore[misc]
 
@@ -66,6 +68,7 @@ def test_a_good_row_is_a_frozen_spec_holding_its_parameters() -> None:
         (_row(size="highest_high", params={**ROW["params"], "size": {"n": 3}}), "not a size"),
         (_row(params={**ROW["params"], "size": {"n": 3}}), "params are given"),
         (_row(size="volatility_size"), "takes parameters"),
+        (_row(holding="weekly"), "holding 'weekly' is none of"),
     ],
 )
 def test_parse_refuses_each_bad_row_by_name(row: dict[str, Any], why: str) -> None:
