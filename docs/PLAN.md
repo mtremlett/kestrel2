@@ -1016,6 +1016,7 @@ his PC with the desk's own client id (222), never 4001.
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       Done: `python -m desk.supervisor install ROOT` makes both schtasks, each starting in the code folder (#2102, #2110). Remains: he runs it once from an administrator console on his PC (tasks run as that user, so KESTREL2_DATA and Telegram settings are seen)
       (plan steward, 27 Nov: his yes is recorded, after-first-light.md line 487, Sun 22 Nov 09:5x, "Yes, add it"; no question waits. The wait stays for his hand, not his answer: `schtasks /SC ONSTART` runs only from a console he opens as administrator (desk/supervisor.py:31), and no session may elevate or enter his password, hard line: credentials)
+      (coordinator 320, 28 Nov: the supervisor is the desk's one scheduler, DECISIONS 28 Nov 'one owner of the desk's schedule'; once this box ticks, the runner's `daily.py` JOBS stand-in is retired, never before)
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py; waits: operator; check: tests/unit/test_supervisor.py::test_the_install_receipt_proves_both_tasks_started_at_boot}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
