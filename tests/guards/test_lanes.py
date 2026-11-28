@@ -16,7 +16,9 @@ these refuse it in the check, on GitHub, before anything merges:
 - every `{id: ...; files: ...; after: ...; waits: ...; check: ...}` note on a book's box
   parses, its id is unique, each `after` names a box that exists, and each `waits` is a
   request number, a date or `operator`, so the runner can hand boxes out and hold back the
-  rest; every open box of a lane's book names its `check:`, the test that proves it.
+  rest; every open box of a lane's book names its `check:`, the test that proves it, and
+  only files its own lane may change, never a hub (the manifest, STATUS, PLAN), and no file
+  is named by more of a lane's open boxes than the lane has slots (`BUDGET.json`).
 
 Ruled 13 November 2026 (docs/DECISIONS.md).
 """
@@ -29,10 +31,11 @@ import re
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from fnmatch import fnmatch
 from pathlib import Path
 
-from test_guards import manifest
+from test_guards import _budget, manifest
 
 ROOT = Path(__file__).resolve().parents[2]
 LANE_BRANCH = re.compile(r"lane/([a-z]+)-")  #: every lane branch; an unknown lane fails
@@ -52,6 +55,9 @@ BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, 
 ITEM = re.compile(r"^([ \t]*)- \[([ x])\] (.*(?:\n[ \t]+(?!- \[)\S.*)*)", re.MULTILINE)
 #: a check is a pytest node id: a test file under tests/ and its test function
 CHECK = re.compile(r"tests/[a-z0-9_/]+\.py::test_[a-z0-9_]+")
+#: never in a box's files: a lane never changes manifest.toml, its own manifest file is its own
+#: outside any claim, and the train folds the documents, so naming one only queues boxes (G30)
+HUBS = ("manifest.toml", "manifest/*.toml", "docs/STATUS.md", "docs/PLAN.md")
 
 
 def _git(*args: str) -> str:
@@ -351,4 +357,58 @@ def test_a_box_opened_here_fails_its_check_on_main() -> None:
     assert not met, (
         f"boxes opened already met on main: {met}. Tick a met box instead; an open box's "
         "check names the test its work will make pass."
+    )
+
+
+def _overlap(path: str, pattern: str) -> bool:
+    """Whether a named path or glob and an owned path or glob can name one file."""
+    return fnmatch(path, pattern) or fnmatch(pattern, path)
+
+
+def test_an_open_box_names_only_files_its_lane_may_change() -> None:
+    """A BOX THAT CANNOT LAND (the box is the card, design item 3). A lane session changes only
+    its own lane's files, so a box naming another lane's file is handed out, built, and refused
+    by `test_a_lane_changes_only_its_own_files`, or drifts outside its claim (failure patterns 12
+    and 21). Work another lane must do is a box in that lane's book; this box goes `after:` it."""
+    lanes = sorted(manifest()["lanes"])
+    owned = {lane: _owned(lane) for lane in lanes}
+    foreign = []
+    for lane, boxes in _open_work((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")).items():
+        for text in boxes:
+            fields = _box_fields(text)
+            for path in fields.get("files", []):
+                if any(_overlap(path, p) for p in owned[lane]):
+                    continue
+                others = [
+                    o for o in lanes if o != lane and any(_overlap(path, p) for p in owned[o])
+                ]
+                if others:
+                    foreign.append(f"{lane}: {fields['id'][0]} names {path} ({others[0]}'s)")
+    assert not foreign, (
+        f"open boxes name files another lane owns, so their sessions can never land: {foreign}. "
+        "Give that part its own box in the owning lane's book, and this box `after:` it."
+    )
+
+
+def test_no_file_is_named_by_more_open_boxes_than_its_lane_has_slots() -> None:
+    """HUB FILES QUEUE EVERY BOX BEHIND ONE CLAIM (G30, his 26 Nov 'can we mechanically never
+    forget?'; design item 4). Two sessions never hold one file, so a file in more of a lane's
+    open boxes than the lane has slots leaves slots idle behind it (manifest.toml was in 56 cards
+    on 26 Nov). Such a file is split, or its boxes are; a hub is never named at all."""
+    slots: dict[str, int] = _budget()["slots_per_lane"]
+    tracked = _git("ls-files").splitlines()
+    hubs, crowded = [], []
+    for lane, boxes in _open_work((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")).items():
+        assert lane in slots, f"BUDGET.json's slots_per_lane has no {lane!r}: {sorted(slots)}"
+        named: Counter[str] = Counter()
+        for text in boxes:
+            fields = _box_fields(text)
+            files = fields.get("files", [])
+            hubs += [f"{fields['id'][0]}: {p}" for p in files if any(fnmatch(p, h) for h in HUBS)]
+            named.update({t for p in files for t in [t for t in tracked if fnmatch(t, p)] or [p]})
+        crowded += [f"{lane}: {f} in {n} boxes" for f, n in named.items() if n > slots[lane]]
+    assert not hubs, f"open boxes name hub files, which no box claims ({HUBS}): {hubs}"
+    assert not crowded, (
+        f"files named by more open boxes than their lane has slots {slots}: {sorted(crowded)}. "
+        "Split the file, or merge or re-scope its boxes."
     )

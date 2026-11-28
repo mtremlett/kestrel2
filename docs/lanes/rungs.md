@@ -570,6 +570,22 @@ then the break was removed:
 - How to detect a stopped pass. Options: compare the answer text inline; one constant both modules read; a typed return from `go`. Chose the constant `ladder_pool.STOPPED`: one home, smallest change; a typed result touches every `go` and its fakes (the debt in failure pattern 14).
 - The reviewer's three non-blocking findings. Options: fix here or record. Chose record: they change published counts and cache keys, not a verdict, and the first needs lab/verdict_parts.py, outside the claim.
 
+### 2026-11-26 — the shuffle rung stops once a trial cannot pass (S3, RUNGS lane)
+
+The shuffle rung passes a trial only when at most 5 of its 101 (itself and 100 shuffles) do as
+well. Once a sixth does, no shuffle left can change the answer, so the rung stops there instead
+of running all 100: a failing trial costs as few runs as it needs, a passing one the same 100.
+Options: run all 100 and report the exact share (as before); stop at six and report "at least 6
+of 101" (chosen: the PASS/FAIL answer is identical by construction, and the overnight EPON run
+is about 20 rules of mostly failing cells). The text changes: a FAIL's reason now says
+"its share among them at least 6 of 101" where it gave a figure such as 0.683; a PASS's reason
+is unchanged; a trial of under two trades, never shuffled, says "1 (under two trades: no shuffle
+run)". A FAIL's exact share is no longer recorded anywhere; nothing reads it. No threshold or
+answer changes. Proven by
+`tests/unit/test_lab_shuffle.py::test_a_shuffle_stopped_once_it_cannot_pass_answers_as_the_full_one`
+(the early answer equals a full run's on a passing and a failing walk) and
+`test_five_as_good_passes_the_sixth_fails_and_stops_there` (the edge, ties and None scripted).
+
 ### 2026-11-27 — set 1 publishes; the stress reason names untested episodes; secondary figure for RSI-2 (#2257, #2254, #2273, #2266)
 - Claim gap rungs-pound-gap (runner ops asked in #2254, #2256, #2257, #2266, #2273: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py), under his standing words "please always go with recommended to avoid waiting for me to attend". Options: edit those files in a session whose claim lacks them (refused; failure pattern 21), or hand it on. Taken: hand it on; rungs-pound-gap is ticked on main (#1992), so runner ops only widens the card's claim if a session is still wanted. rungs-epon-first stays held until R-RUNGS-38 (#2273).
 - Survivorship note for set 1 (#2257). Options: (a) leave it off, (b) name every line "not corrected". Taken (b): set 1 trades each rule on its declared lines over the whole window, so saying none was corrected is the honest line.
@@ -604,3 +620,16 @@ hold file exists. Recorded by runner ops 241 for coordinator 240.
 ### 2026-11-27 — R-GRID-9's GRID half handed back to GRID (R-RUNNER-565)
 - The daily audit (R-RUNNER-565): #2302 ticked R-GRID-9 whole, but only RUNGS's half (`published.proven` proves `rule[settings]` by its base rule) landed; `rulebook.specs()` carrying ranges is in GRID's lab/rulebook.py. Options: (a) leave the tick and let GRID find it, (b) build it here (another lane's file, pattern 21), (c) open GRID's half as its own request. Took (c), under his standing "please always go with recommended to avoid waiting for me to attend": one box per piece of work, so the runner's done list closes only what landed (pattern 22).
 - R-RUNNER-566 declined: the branch and claim guards are not RUNGS's files. R-RUNGS-46's wiring is met on main (#2226: `verdict.judge` builds the plateau itself); its tightening rides open #2232 and #2237, never rebuilt (pattern 16).
+
+### 2026-11-27 — the rung map leaves the ladder's docstring (R-RUNNER-571, RUNGS, Builder R)
+
+The rung map and its "rungs built: n of m" count lived in `lab/ladder.py`'s docstring, so every
+new rung had to edit the file most RUNGS cards claim (failure patterns 16 and 18). They move,
+unchanged row for row, to `lab/ladder_map.py` as data (`MAP`, `rows()`, `rungs_built()`);
+`ladder.rungs_built` stays the name its callers use. Options for the home: `lab/rung_map.py`
+as carded, or `lab/ladder_map.py`. Chosen: `lab/ladder_map.py`, because `rung.found` reads every
+`lab/rung_*.py` as a rung's own module, so a `rung_map` would be named an unwired rung on every
+cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer changes. Every kept
+cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
+`tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
+and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
