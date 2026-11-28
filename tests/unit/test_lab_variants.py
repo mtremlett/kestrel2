@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import ast
+import time
 import tomllib
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from test_lab_fast import _desk, _series
 from test_lab_plateau import FAIL, PASS, PEAK, _AnyRule, _verdict
 
 from desk.store import Bar
 from desk.strategy import Rule
-from lab import cell, plateau, trials, variants
+from lab import cell, fast, plateau, trials, variants
 from lab.spec import Spec, SpecRule
 
 BOOK = tomllib.loads((Path(__file__).parents[2] / "lab" / "catalogue.toml").read_text("utf-8"))
@@ -109,3 +112,26 @@ def test_a_range_off_the_row_or_outside_its_block_is_refused(ranges: object) -> 
         Spec.parse({**ROW_RAW, "ranges": ranges})
     with pytest.raises(ValueError, match="no ranges"):
         variants.variants(Spec.parse({**ROW_RAW, "ranges": {}}))
+
+
+#: Bars where the desk's Keltner block, dividing by 3, rounds a close exactly on a band to beyond
+#: it (each checked an exact tie in fractions, 28 Nov): the desk's fault, owed in lab/blocks.py.
+KELTNER_TIES = {"walk 5": {85, 86, 87}, "walk 9": {374}, "walk 36": {860, 1094}}
+
+
+def test_every_variant_matches_the_desk_engine_before_it_is_judged() -> None:
+    begun = time.monotonic()
+    book = {name: Spec.parse({"name": name, **row}) for name, row in BOOK.items()}
+    del book["zweig_breadth_thrust"]  # judged on ratio bars by the desk alone, never the fast grid
+    made = variants.family(book)
+    for label, raw in _series().items():  # the swinging volume of test_lab_fast, so volume trades
+        bars = tuple(
+            replace(b, volume=1000 + 900 * (k * 7 % 5 - 2) // 2) for k, b in enumerate(raw)
+        )
+        shared = fast.Shared(bars)
+        for each in made:
+            found, desk = fast.held(each.spec, shared).tolist(), _desk(each.spec, bars)
+            apart = {k for k, (a, b) in enumerate(zip(found, desk, strict=True)) if a != b}
+            ties = KELTNER_TIES.get(label, set()) if "keltner" in each.spec.name else set()
+            assert apart <= ties, f"{each.spec.name} on {label}: the engines part at {apart}"
+    assert len(made) > 150 and time.monotonic() - begun < 80, "every variant, quicker than 80 s"
