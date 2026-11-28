@@ -289,6 +289,14 @@ def test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally(
     line = capsys.readouterr().out
     assert "the account read after the run stalled: no answer in 30 s" in line
     assert "199 of 199 steps passed" in line
+    # a rehearsal stopped at its tenth step tells 9 passed and 190 not run, never 198 of 199
+    ran = [0]
+    monkeypatch.setattr(running, "step", lambda *_: ran.append(0))
+    each = (command.RUN_SECONDS - command.STEP_BOUND) / 8.5
+    clock = lambda: SUNDAY + timedelta(seconds=2 + each * (len(ran) - 1))  # noqa: E731
+    reads[0], stalls[0] = 0, 3
+    assert command.main(["--rehearse"], {"KESTREL2_DATA": str(tmp_path)}, clock) == 1
+    assert "(9 of 199 steps passed, 190 not run)" in capsys.readouterr().out
 
 
 def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
@@ -299,7 +307,8 @@ def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
     moments = command._moments(FRI)
     desk = command._desk(tmp_path, Mock(), tmp_path)
     clock = lambda: SUNDAY + timedelta(seconds=next(ticks))  # noqa: E731 - ten minutes a call
-    failed = command._live(desk, moments, clock)
+    failed, unrun = command._live(desk, moments, clock)
+    assert unrun == len(moments) - len(steps)
     spent = f"the rehearsal's {command.RUN_SECONDS} s were spent"
     assert 0 < len(steps) < len(moments) and failed == [
         f"{moments[len(steps)]:%H:%M} UTC stopped, {spent}"
@@ -316,7 +325,7 @@ def test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working(
     now = [SUNDAY]
     monkeypatch.setattr(running, "step", lambda *_: now.append(now[-1] + timedelta(seconds=cost)))
     desk = command._desk(tmp_path, Mock(), tmp_path)
-    assert command._live(desk, moments, lambda: now[-1]) == []
+    assert command._live(desk, moments, lambda: now[-1]) == ([], 0)
 
 
 def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_stops_as_found(

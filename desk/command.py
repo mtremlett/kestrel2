@@ -237,22 +237,25 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) ->
     return wrong
 
 
-def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
+def _live(
+    desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]
+) -> tuple[list[str], int]:
     """A step at each moment, as the day's: one that fails is named and the next carries on; the
-    run stops, named, if a market comes near by the clock or its own time (RUN_SECONDS) is spent."""
+    run stops, named, if a market comes near by the clock or its own time (RUN_SECONDS) is spent.
+    Also the steps not run, which the tally never counts as passed."""
     failed, began = list[str](), clock()
-    for at in moments:
+    for n, at in enumerate(moments):
         if (clock() - began).total_seconds() + STEP_BOUND > RUN_SECONDS:
             failed.append(f"{at:%H:%M} UTC stopped, the rehearsal's {RUN_SECONDS} s were spent")
-            break
+            return failed, len(moments) - n
         if near := trading(clock()):
             failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
-            break
+            return failed, len(moments) - n
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding
-            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}: {fault}")
-    return failed
+            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}: {fault or repr(fault)}")
+    return failed, 0
 
 
 def _changes(found: Found, before: paper.Account, door: placing.Shut) -> list[str]:
@@ -303,11 +306,14 @@ def rehearse(
     door = placing.Shut(paper.DESK, found)  #: the account found is not the rehearsal's to see
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
-    failed = _live(desk, moments, clock)
+    failed, unrun = _live(desk, moments, clock)
     left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
     if wrong := _amiss(desk, on, left, _changes(found, before, door)):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
-        tally = f" ({len(moments) - len(failed)} of {len(moments)} steps passed)"
+        ran = len(moments) - unrun
+        passed = ran - len([f for f in failed if " stopped, " not in f])
+        left = f", {unrun} not run" * bool(unrun)
+        tally = f" ({passed} of {len(moments)} steps passed{left})"
         return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}{tally}"
     words = " ".join(note.words for note in running_notes.notes(desk.root))
     orders, sent = words.count(" shares done"), words.count(": the broker says ")
