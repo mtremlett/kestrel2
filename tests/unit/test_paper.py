@@ -315,9 +315,7 @@ def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings
     assert paper.whole(apart) == account
 
 
-def test_two_sides_stops_on_one_ticker_are_read_apart_and_the_zoos_cancelled_leaves_the_desks() -> (
-    None
-):
+def test_two_stops_on_one_ticker_rest_apart_by_side() -> None:
     desk, zoo = (
         _order("7", "SELL STP", "desk-stop", "PreSubmitted", 10),
         _order("8", "SELL STP", "zoo-stop", "PreSubmitted", 10, "223"),
