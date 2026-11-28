@@ -1225,3 +1225,14 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b ticked: the known-answer kit's crowd, a planted edge, goes forward through every rung; its noise twin is refused. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS E13 (R-RUNNER-572): rung 15, one bar late; an edge paid only on the next open fails, one that lasts passes. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | DATA data-history-holes ticked (O75, R-RUNGS-40): one rule of a hole, Line.holes; history_bars.holes lists 32,856 on 470 research lines for the greenkeeper. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2307 R-RUNNER-555 polled 5-minute round now asks 27 lines (floor reached). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2341 R-RUNNER-562 keeper judge made linear, test counted not timed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2321 R-RUNNER-560 polled keeper rounds no longer share keeper-live's gateway client id. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2361 R-RUNNER-567 archive no longer overwrites IBKR days (writer fix by source rank). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2408 data-consolidated: headstart check names each old store deletable or KEEP; real run and his yes remain. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2409 data-rolloff-rows: list-writing command built and tested; runner call remains. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2426 data-collector done, 13 sources, Alpha Vantage earnings cross-check test green. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2438 data-monitor: archive wired into five-minute gap filling (box not finished). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2439 data-monitor: archive fills 15m/30m cells (box not finished). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2267 data-tiers done: desk/tiers.py, three tiers, each source one Feed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2453 R-RUNNER-563 weekly roll-up follows restated days; IDTL 1wk keeper FAULT cleared at the writer. |
