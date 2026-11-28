@@ -2976,3 +2976,33 @@ tests moved by file (`test_rounds_again.py`, `test_rounds_restop.py`, `test_bar_
 unchanged but for the module each name now lives in. The halves of money-small and money-time-gaps
 still in PAPER's files become PAPER boxes (paper-running-move, paper-collect-callers), the MONEY boxes
 `after:` them (the wall's own rule); money-round-cap returns to MONEY's book on `desk/rounds.py`.
+
+## 28 Nov - one owner of the desk's schedule: its own supervisor (coordinator 320, O112(c))
+Two things run the desk's jobs today: the runner's `daily.py` JOBS, written as "the supervisor's
+stand-in (#159)", steps the desk every five minutes; and `desk/supervisor.py`, which would run the same
+jobs with receipts, health and the operator ledger once Windows starts it at boot. Two schedulers of one
+desk is pattern 8. Options: (a) the runner owns the schedule and the supervisor's install is retired:
+the desk's daily running then lives outside the wall in a build tool (pattern 2), and paper-supervised's
+seven days cannot be counted, since its check reads the supervisor's own receipts and ledger; (b) the
+supervisor owns it and the runner's stand-in is retired: chosen. Evidence from tonight: the runner hung
+for 12 minutes (18:04 to 18:16, a git fetch under its GIT lock during a GitHub outage, O115) and the
+desk's step stopped with it; a build tool's fault should never stop the desk. Order of change, so that
+the desk always has exactly one scheduler: he runs `python -m desk.supervisor install ROOT` once from
+an administrator console (his hand, not his answer: no session elevates or enters his password, his
+hard line on credentials); the install receipt (`test_the_install_receipt_proves_both_tasks_started_at_boot`)
+ticks paper-supervisor-windows; only then the runner's JOBS step is retired, as a runner order. Until
+then the runner's stand-in stays the one scheduler and the supervisor is not started by hand.
+## 28 Nov - the runner lane's book (design item 8, O113; Fable design builder A10, O89 L7)
+His aim, 28 Nov: the build runs on its own. Seats cannot start builders without his typed turn, so the
+runner's own remaining work becomes boxes the runner hands out itself. Options: (a) keep runner work in
+open-orders.md and seat-started builders: not autonomous, and two homes for work (pattern 8); (b) runner
+boxes in a separate file the runner reads: an eleventh document (the set is fixed); (c) a sixth book in
+PLAN, `### The runner lane's book`: chosen. A RUNNER box names only `runner:` and `drives:` files and a
+`drives:` drive as its check, which the runner runs on master (this repository cannot); every other
+lane's box names none of them, and its check stays a test. `manifest.toml` gains `runner = []` with an
+empty `manifest/runner.toml`, and `BUDGET.json` one RUNNER slot, so the hub-crowding rule holds it to
+one open box per file. The guard is tightened, not loosened: no box that failed before passes now (a
+drive check outside the RUNNER book fails the new test as it failed the old pattern). Driven:
+`test_a_runner_box_changes_only_the_runner_and_a_box_elsewhere_never_does` RED on a RUNNER box naming
+`desk/day.py`, on a RUNNER box with no check (with `test_every_open_box_names_its_check`), and on a
+RUNGS box planted with a `drives:` check; green on the book as written.

@@ -591,8 +591,8 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
-      Remains (#2368, blocked 27 Nov): the ladder's eponymous test (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
-      {id: money-epon-room; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
+      Remains (#2368, blocked 27 Nov): the ladder's eponymous test (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows (box rungs-epon-spec-only, after which this box starts), then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
+      {id: money-epon-room; after: rungs-epon-spec-only; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
 - [x] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
       cancelling the zoo's stop never touches the desk's. The paper door has them first (paper-side-stops); its
@@ -674,10 +674,13 @@ day's trading and reconciliation are built, and any broker can stand behind them
       put-back itself (a way to rest a stop at a level in `desk/broker.py`; `running.recover` on paper),
       the list reaching him (R-MONEY-18); the SimCity census is split (#590). The put-back on paper is on main (#657, running.recover) and the day's list names each bare line (#191); remains: nothing of MONEY's (the Pretend put-back door, `put_stop_back`, is on main; the list reaching him was re-homed to PAPER as R-RUNNER-291 and landed there, #805, the evening message naming each lost stop)
       (plan steward, 27 Nov, builders lead's order: wide globs narrowed to the files the box names: the put-back in day/book/broker, SimCity's census in simcity.py, the check in test_day.py)
+      (hub-split, 28 Nov, O79/O77 A5's split (3): SimCity's census is its own box, money-restop-census, after this one)
       {id: money-restop; files: desk/day.py, desk/book.py, tests/unit/test_day.py, tests/unit/test_restop.py,
-      tests/unit/test_book.py, desk/simcity.py, tests/unit/test_simcity.py,
-      desk/broker.py, tests/unit/test_broker.py;
+      tests/unit/test_book.py, desk/broker.py, tests/unit/test_broker.py;
       after: money-working; waits: R-MONEY-53; check: tests/unit/test_day.py::test_a_stop_cancelled_by_hand_is_put_back_the_same_day}
+- [ ] SimCity's census counts no session held with no stop once a stop cancelled by hand is put back the same day (found by
+      SimCity: 98 sessions held with no stop; split from money-restop by hub-split, 28 Nov)
+      {id: money-restop-census; after: money-restop; files: desk/simcity.py, tests/unit/test_simcity.py; check: tests/unit/test_simcity.py::test_the_census_finds_no_session_held_with_no_stop}
 - [x] Emergencies in numbers: an emergency, a crash and a black swan each defined by measured
       falls, each with its action (EMG-01) {id: money-emergencies; files: desk/emergency.py,
       tests/unit/test_emergency*.py, manifest.toml}
@@ -725,24 +728,42 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       (plan steward, 27 Nov, builders lead's order: wide globs narrowed: orders.size/gate/thin, day._buy, the gain's source in strategy.py, SimCity's traded_value in simcity.py, and the fixtures the box names)
+      (hub-split, 28 Nov, O79/O77 A5's split (2): this box keeps the 1% cap fed by `day._buy`, its check in test_day.py;
+      SimCity's file and test dropped, which its check does not need; the expected-gain flag is money-thin-gain)
       {id: money-small; waits: 2026-11-29; after: paper-running-move; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
-      tests/unit/test_day.py, desk/simcity.py, tests/unit/test_simcity.py,
-      tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
+      tests/unit/test_day.py, tests/unit/test_restop.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
       (runner ops, 27 Nov: claim gap, strategy.py and its tests are MONEY files (manifest/money.toml:5), no RUNGS request needed)
       (coordinator 54, 22 Nov: not his: SIZ-10 and TRD-10 fix the numbers, a flag under twice the round-trip cost and a cap at 1% of the twenty-day traded value)
+- [ ] A trade whose expected gain is under twice its round-trip cost is flagged (TRD-10; split from money-small by
+      hub-split, 28 Nov): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a
+      Decision carries no expected gain); remains the gain's source in strategy.py and a caller in the day's buy
+      {id: money-thin-gain; waits: 2026-11-29; after: money-small; files: desk/strategy.py, tests/unit/test_strategy.py, desk/orders.py,
+      tests/unit/test_orders.py, desk/day.py, tests/unit/test_day.py; check: tests/unit/test_day.py::test_a_buy_whose_expected_gain_is_under_twice_its_round_trip_cost_is_flagged}
 - [ ] Time and gaps: a time stop after the strategy's declared holding period; a gap that
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Step 4 in #2363: `book.collect` takes lines, settings and tell and halts buying on a stop sold past GAP_LOSS (callers still pass none: day._stand_down, running.py, running_parts.py, send). Remains: those callers pass them, then delete `day._stand_down`'s body; each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
       (plan steward, 27 Nov, builders lead's order: desk/ and test globs narrowed to the modules the Remains name: book.collect's callers in day.py, gap_loss in orders.py and simcity.py, the time stop in strategy.py; the rules' own sell logic keeps eponymous_*.py and grimes)
-      {id: money-time-gaps; waits: 2026-11-29; after: paper-collect-callers; files: desk/day.py, desk/orders.py, desk/strategy.py,
-      tests/unit/test_day.py, tests/unit/test_day_tell.py, tests/unit/test_day_standing.py, tests/unit/test_orders.py, tests/unit/test_strategy.py, tests/unit/test_strategy_hold.py,
-      desk/simcity.py, tests/unit/test_simcity.py, tests/unit/test_simcity_gaps.py, desk/book.py, tests/unit/test_book.py,
-      desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
-      desk/grimes_parts.py; check: tests/unit/test_book.py::test_collect_halts_buying_on_a_stop_sold_past_gap_loss_from_every_caller}
+      (hub-split, 28 Nov, O79/O77 A5's split (1): the 20-file claim clashed with 7 of MONEY's 9 startable boxes; split
+      by file family, each part its own box and check: this box keeps the callers and `day._stand_down`;
+      money-hold-limits takes each rule's hold limit; money-gapped-collect takes `orders.gapped` at `book.collect`)
+      {id: money-time-gaps; waits: 2026-11-29; after: paper-collect-callers; files: desk/day.py,
+      tests/unit/test_day.py, tests/unit/test_day_tell.py, tests/unit/test_day_standing.py,
+      desk/book.py, tests/unit/test_book.py; check: tests/unit/test_book.py::test_collect_halts_buying_on_a_stop_sold_past_gap_loss_from_every_caller}
+- [ ] Each rule's hold limit from its own sell logic (STP-11, SIZ-09; split from money-time-gaps by hub-split, 28 Nov):
+      his ruling Sat 21 Nov 21:33; moves golden days (his yes recorded, R-MONEY-62), B5; eight more rules declared none
+      in #2224, #2276, #2288; the Grimes rules' hold limits move what they need into its parts file (runner ops 168, below)
+      {id: money-hold-limits; waits: 2026-11-29; after: money-epon-room; files: desk/strategy.py, tests/unit/test_strategy.py, tests/unit/test_strategy_hold.py,
+      desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, desk/grimes_parts.py, tests/unit/test_grimes*.py,
+      tests/scenes/test_scenes.py; check: tests/unit/test_strategy_hold.py::test_every_rule_declares_a_hold_limit_from_its_own_sell_logic}
       (runner ops 168, 23 Nov 22:0x, chat 167's order: desk/grimes.py holds 799 of its 800 lines, so the Grimes rules' hold
       limits move what they need into desk/grimes_parts.py (manifest row claimed); desk/ room comes from money-epon-room, above it in this book)
       (runner ops 106, 23 Nov, coordinator 103's D1: claim widened to the files its Remains name, the rules' sell logic and book.collect; the golden days move on his recorded yes)
       (coordinator 54, 22 Nov: settled: his yes to the golden days moving is recorded in STATUS, R-MONEY-62)
+- [ ] A gap that jumps the stop is judged at `book.collect` by `orders.gapped` (STP-10; split from money-time-gaps by
+      hub-split, 28 Nov): once the callers pass lines, settings and tell, `orders.gap_loss`/`gapped` read at `book.collect`,
+      and SimCity's gap scenario holds it against the loss limit
+      {id: money-gapped-collect; waits: 2026-11-29; after: money-time-gaps; files: desk/orders.py, tests/unit/test_orders.py, desk/simcity.py,
+      tests/unit/test_simcity.py, tests/unit/test_simcity_gaps.py, desk/book.py, tests/unit/test_book.py; check: tests/unit/test_simcity_gaps.py::test_a_gap_past_the_stop_is_judged_at_collect_against_the_loss_limit}
 - [x] Fills realistic: spread and slippage in every fill, from the one cost model (TRD-09)
       {id: money-fills; files: desk/broker.py, desk/orders.py, desk/book.py,
       tests/unit/test_broker*.py, tests/unit/test_orders*.py, tests/unit/test_book*.py,
@@ -762,8 +783,9 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Sharpe; currency gains and losses on dollar holdings reported apart from trading
       profit; a fall from the book's highest point alerted on paper (BIC-03, BIC-04, BIC-05). BIC-05 on main (#1516); BIC-04 on main for closed trades (#1542, #1569) and open holdings (#1596); BIC-03 interest told daily at `RISK_FREE` beside profit (#1560, #1584). Remains: `RISK_FREE` in every Sharpe (lab, R-MONEY-65), then drop "interest inside the day's profit" from the box: interest stays beside profit as its own column and daily line, since profit must equal the ledger (#1861, decided). `RISK_FREE` in every Sharpe is RUNGS's request R-MONEY-65; the saved record is money-saved-fx, done
       (plan steward, 27 Nov, builders lead's order: SimCity globs dropped, the box names no SimCity work; interest is the day's column, its check in test_day.py)
-      {id: money-honest; waits: R-MONEY-65; files: desk/day.py, desk/book.py, tests/unit/test_day.py,
-      tests/unit/test_book.py, tests/scenes/test_scenes.py; check: tests/unit/test_day.py::test_interest_is_its_own_column_beside_profit_at_risk_free}
+      (hub-split, 28 Nov, O79/O77 A5's split (3): the book's file and test dropped: the Remains name the day's column and lab/'s Sharpe, no book work)
+      {id: money-honest; waits: R-MONEY-65; files: desk/day.py, tests/unit/test_day.py,
+      tests/scenes/test_scenes.py; check: tests/unit/test_day.py::test_interest_is_its_own_column_beside_profit_at_risk_free}
 - [x] Currency and interest kept in the day's saved record, beside profit, so a later day
       reads them back unchanged; no golden day's numbers move (R-MONEY-66, split from
       money-honest by runner ops Sun 22 Nov 08:5x: that box's claim lacked these files and
@@ -994,6 +1016,7 @@ his PC with the desk's own client id (222), never 4001.
 - [ ] Windows starts the supervisor and `tell` at boot: a new Windows task on his PC (his yes in chat, Sun 22 Nov 09:5x: "Yes, add it")
       Done: `python -m desk.supervisor install ROOT` makes both schtasks, each starting in the code folder (#2102, #2110). Remains: he runs it once from an administrator console on his PC (tasks run as that user, so KESTREL2_DATA and Telegram settings are seen)
       (plan steward, 27 Nov: his yes is recorded, after-first-light.md line 487, Sun 22 Nov 09:5x, "Yes, add it"; no question waits. The wait stays for his hand, not his answer: `schtasks /SC ONSTART` runs only from a console he opens as administrator (desk/supervisor.py:31), and no session may elevate or enter his password, hard line: credentials)
+      (coordinator 320, 28 Nov: the supervisor is the desk's one scheduler, DECISIONS 28 Nov 'one owner of the desk's schedule'; once this box ticks, the runner's `daily.py` JOBS stand-in is retired, never before)
       {id: paper-supervisor-windows; files: desk/supervisor.py, tests/unit/test_supervisor.py; waits: operator; check: tests/unit/test_supervisor.py::test_the_install_receipt_proves_both_tasks_started_at_boot}
 - [x] The running process always on main's latest code, and a money-path change reaching
       it only at a safe point, never mid-send (OPS-05, OPS-16) (#752: the supervisor pulls main fast-forward only between runs with every job's lock held; a failed pull is a receipt and the old code runs on; remains: Windows starting the supervisor)
@@ -1073,8 +1096,10 @@ his PC with the desk's own client id (222), never 4001.
       or last account read stalls still ends REHEARSAL NO-GO, never a bare TimeoutError: the line names that read
       ('the account read before the run stalled: <message>', or after it) and the step tally ('199 of 199 steps
       passed'); a failed step is told by its first fault's message, not its class alone. The account left as
-      found stays unproven, so it stays NO-GO
-      {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally}
+      found stays unproven, so it stays NO-GO. The tally counts only the steps that ran: a rehearsal stopped early
+      at step 10 of 199 reads '9 of 199 steps passed, 190 not run', never '198 of 199' (O105/O109, coordinator 318,
+      28 Nov: #2496 landed with its blind review BLOCKED on this, so the box stays open)
+      {id: nogo-line-names-cause; files: desk/command.py, tests/unit/test_command*.py; check: tests/unit/test_command.py::test_an_early_stopped_rehearsal_counts_only_the_steps_it_ran}
 
 ## Phase 4 — the ladder
 
@@ -1344,6 +1369,11 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       on ours. The bar for twenty-one trials is high and most are expected to fail: that is
       the information (BT-15, STR-14). Step 1 built (#1721): each rule's published test written down in `published_epon.TESTED` (only Faber has an author's own test); Step 2 built (#1804, #1829): Faber's printed figures word for word (compounded 10.18%, drawdown 42.24%, ~70% invested), and `lab/reproduce.py` takes an eponymous rule and measures CAGR, drawdown, time invested (R-RUNGS-37). Remains: Faber's figure on file in `reproduce.FIGURES` (tolerances, fixed before a run: CAGR within 0.5 points, drawdown 3, invested 5), which needs the S&P 500 total-return monthly series from 1901 held through the one writer (R-RUNGS-38, 39, DATA) and a monthly line with its own calendar (the desk's Faber rule judges a month-end on the next bar; desk files, outside this claim)
       {id: rungs-epon-first; files: lab/reproduce.py, tests/unit/test_lab_reproduce.py, lab/ladder_sets.py, lab/published_epon.py, tests/unit/test_lab_published_epon.py; waits: R-RUNGS-38; check: tests/unit/test_lab_reproduce.py::test_faber_reproduces_his_printed_figures_within_tolerance}
+- [ ] The ladder's eponymous test accepts spec-only catalogue rows (R-MONEY-77, #2368; for money-epon-room, which
+      deletes seven eponymous Python files once this lands): `both == python` must hold with spec-only rows, so the
+      test compares set(both) - set(python) with the catalogue rows of deleted rules; the EPON rule list and its rows
+      are unchanged (hub-split, 28 Nov, O79: R-MONEY-77 had no RUNGS box, so money-epon-room could not start)
+      {id: rungs-epon-spec-only; files: tests/unit/test_lab_ladder_epon.py; check: tests/unit/test_lab_ladder_epon.py::test_the_set_from_the_specs_matches_the_python_rules_beside_rows_whose_file_is_gone}
 - [x] **Published figures without buying books** (his ruling, 14 November): where an
       author's own table is not to be had free, the best published replication found on the
       internet stands in, labelled secondary, with its source, date, rules and period
@@ -1369,7 +1399,8 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
 - [ ] His paramount case: long and inverse leveraged-ETP trend strategies through the ladder
       (STR-18). Built: set LEV, six trend rules on the leveraged lines (#423). Remains: inverse
       leveraged lines, once a Line may state an inverse fund (R-RUNGS-21, R-RUNGS-22); a real run of LEV
-      {id: rungs-leveraged; files: *; after: rungs-trustworthy; waits: R-RUNGS-21; check: tests/unit/test_lab_ladder_sets.py::test_set_lev_holds_inverse_leveraged_lines}
+      (hub-split, 28 Nov, O79/O77 A5's split (4): '*' named as the set's own code and tests; the Line's inverse field is DATA's, the wait R-RUNGS-21)
+      {id: rungs-leveraged; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; after: rungs-trustworthy; waits: R-RUNGS-21; check: tests/unit/test_lab_ladder_sets.py::test_set_lev_holds_inverse_leveraged_lines}
 - [ ] The ladder prices an overnight holding (card holding-overnight, R-RUNNER-374; his 'Yes, card it' Thu 19 Nov
       ~22:0x, SETs GAP 1-9; held until the pre-registered EPON re-run has finished, since it changes lab/rung.py):
       one holding model, no second engine: a spec field holding ('next_open' the default, 'overnight') read by
@@ -1514,6 +1545,37 @@ green on main. Designs, pre-mortems and planted breaks: the runner's notes,
 - [ ] Q6 each strategy beside simply holding its market
 - [ ] Q7 a one-page runbook: if this happens, do that
 - [ ] Q8 market events in the calendar: no new entry into a known event
+
+### The runner lane's book — the runner hands out its own work (design item 8, O113)
+
+The runner's own changes are boxes here, handed out by its RUNNER slot (one session at a
+time, in its own worktree of the runner's repository, never this one), so the build needs no
+seat to start a builder. A box names only `runner:<path>` (the runner's repository) and
+`drives:<path>` (its drives) files, and its check is the drive that proves it: the runner
+runs it on master before a hand-out (green is a tick), and a box reaches master only green,
+then goes live through the go-live gate. The runner's ratchet holds it under its ceiling, so a box subtracts before it adds.
+
+- [ ] The runner hands out RUNNER boxes and lands what they build: `RUNNER` joins its
+      lanes (its one slot is `BUDGET.json`'s), with its model, effort and reviewer; its
+      session starts on a branch of its own worktree of the runner's repository, briefed
+      with the box. The runner's repository has no remote, so the branch is never pushed
+      nor deleted unlanded: at a BUILT ending it is rebased onto master, the drives covering
+      its files run, and only green fast-forwards master; red keeps the branch and holds the
+      box on its ending. Until this lands no RUNNER box is handed out (design item 8 (b), (e))
+      {id: runner-lane; files: runner:runner.py, runner:hooks/covering.py, drives:drive_runnerlane.py; check: drives:drive_runnerlane.py}
+- [ ] Pre-flight for a RUNNER box runs its `drives:` check on an export of master, never
+      pytest: green is a tick, never a hand-out
+      {id: runner-preflight; files: runner:preflight.py, drives:drive_runnerpreflight.py; check: drives:drive_runnerpreflight.py}
+- [ ] A runner commit may name a RUNNER box id of main's plan beside an O, G or item id
+      (design item 8 (d))
+      {id: runner-boxid; files: runner:hooks/boxid.py, drives:drive_boxid.py; check: drives:drive_boxid.py}
+- [ ] One writer per path from the boxes: at hand-out the runner writes the session's
+      `state/writers.json` row from its box's runner: files and drops it at the run's end; a
+      second box naming a held file waits (design item 8 (c))
+      {id: runner-writers; files: runner:claimfile.py, drives:drive_boxwriters.py; after: runner-lane; check: drives:drive_boxwriters.py}
+- [ ] The tick: the runner opens the PLAN tick pull request for a RUNNER box only when the
+      go-live record of a head holding its commit is green (design item 8 (f))
+      {id: runner-tick; files: runner:rounds.py, drives:drive_runnertick.py; after: runner-lane; check: drives:drive_runnertick.py}
 
 ## The requirements
 

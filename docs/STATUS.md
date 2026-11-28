@@ -50,6 +50,7 @@ everything on main, so two green lanes cannot combine into a red main.
 
 ### Found, not fixed
 
+- **The runner hung twice on Sat 28 Nov (18:04, 18:32; 12-13 min each until the watchdog).** Stacks show the main loop in vigil._write under runner.LOG and a lane thread in slots.release under CLAIMS_LOCK: a suspected lock-order inversion, unproven (chat seat 295; O115, O116).
 - **`docs/PLAN.md`'s "Current objective" is stale.** It still names the money lane's
   kill switch and drill; his goal for Mon 30 Nov 08:00 is all five lane books (57 open
   boxes, graduation gates excluded), with the RUNGS ladder judging 24x7 and Greenkeeper

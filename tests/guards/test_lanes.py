@@ -53,8 +53,11 @@ WAIT = re.compile(r"R-[A-Z]+-\d+|\d{4}-\d\d-\d\d|operator")
 BOX = re.compile(r"^- \[[ x]\] (.*(?:\n[ \t]+\S.*)*)", re.MULTILINE)  #: a box, wrapped lines too
 #: a lane book's item at any depth, its wrapped lines (never a nested box's) read with it
 ITEM = re.compile(r"^([ \t]*)- \[([ x])\] (.*(?:\n[ \t]+(?!- \[)\S.*)*)", re.MULTILINE)
-#: a check is a pytest node id: a test file under tests/ and its test function
-CHECK = re.compile(r"tests/[a-z0-9_/]+\.py::test_[a-z0-9_]+")
+#: a check is a pytest node id: a test file under tests/ and its test function; a RUNNER box's,
+#: a drive of the runner's drives folder (the runner runs it; this repository cannot)
+CHECK = re.compile(r"tests/[a-z0-9_/]+\.py::test_[a-z0-9_]+|drives:drive_[a-z0-9_]+\.py")
+RUNNER = "runner"  #: the lane whose boxes change the runner, never a file of this repository
+OUTSIDE = ("runner:", "drives:")  #: a RUNNER box's files: the runner's repository and its drives
 #: never in a box's files: a lane never changes manifest.toml, its own manifest file is its own
 #: outside any claim, and the train folds the documents, so naming one only queues boxes (G30)
 HUBS = ("manifest.toml", "manifest/*.toml", "docs/STATUS.md", "docs/PLAN.md")
@@ -313,10 +316,38 @@ def test_every_open_box_names_its_check() -> None:
     )
 
 
+def test_a_runner_box_changes_only_the_runner_and_a_box_elsewhere_never_does() -> None:
+    """THE RUNNER LANE'S BOOK (design item 8, O113: the runner hands out its own work, so the
+    build needs no seat to start builders). A RUNNER box names only `runner:` and `drives:`
+    files and a `drives:` drive as its check, which the runner runs; a lane box of this
+    repository names neither, and its check stays a test this repository runs."""
+    wrong = []
+    for lane, boxes in _open_work((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")).items():
+        for text in boxes:
+            fields = _box_fields(text)
+            name = (fields.get("id") or [text[:60]])[0]
+            ours = [*fields.get("files", []), *fields.get("check", [])]
+            if lane == RUNNER:
+                wrong += [f"{lane}: {name} names {p}" for p in ours if not p.startswith(OUTSIDE)]
+                if not any(c.startswith("drives:") for c in fields.get("check", [])):
+                    wrong.append(f"{lane}: {name} names no drives: check")
+            else:
+                wrong += [f"{lane}: {name} names {p}" for p in ours if p.startswith(OUTSIDE)]
+    assert not wrong, (
+        "a RUNNER box names only runner:/drives: files and a drives: check; a box of any "
+        f"other lane names none of them: {wrong}"
+    )
+
+
 def _checks(plan: str) -> dict[str, list[str]]:
-    """Each open lane box's id with the checks its note names."""
+    """Each open lane box's id with the tests its note names (a RUNNER box's drive is run by
+    the runner's pre-flight, never here)."""
     fields = (_box_fields(text) for boxes in _open_work(plan).values() for text in boxes)
-    return {f["id"][0]: f.get("check", []) for f in fields if f.get("id")}
+    return {
+        f["id"][0]: [c for c in f.get("check", []) if not c.startswith(OUTSIDE)]
+        for f in fields
+        if f.get("id")
+    }
 
 
 def _passes_at(base: str, check: str) -> bool:
