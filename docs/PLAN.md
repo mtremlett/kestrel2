@@ -1048,7 +1048,7 @@ his PC with the desk's own client id (222), never 4001.
       check: tests/unit/test_running.py::test_carried_orders_are_resent_once_at_the_next_step}
       (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
       (moved from MONEY's book, Builder 3b 27 Nov: what remains, running's resend of CARRIED ids, and its check are desk/running.py's, PAPER's; the lane wall refuses it to MONEY)
-- [ ] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
+- [x] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
       MONEY's 01:58 ending on zoo-own-side: 'desk/paper.py (per-side stops)'): read, set, move and cancel a
       resting stop by ticker and side, as methods beside today's, so the Broker interface and its one contract
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
