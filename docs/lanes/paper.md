@@ -653,3 +653,6 @@ Options: a longer job timeout or skipping the send (both rejected by the card); 
 
 ### 2026-11-28 — a side is the placing client id (#2476)
 Options: the order ref prefix (a hand list, pattern 18) or the client id (desk 222, the zoo's 223), the only thing the gateway tells apart. Client id chosen. His 13 Nov: "always go with recommended".
+
+### 2026-11-28 — recovery takes its collect as a required argument (#2498)
+Options: a default collect for `recover` (a caller could forget it and a gapped stop would not halt buying) or a required argument handed by the caller. Required chosen, so every ledger read goes through the one `running._collect`, which records the day's rates and then calls `book.collect` with the lines, the settings and a tell. paper-watcher, held back for lack of `desk/` room, is runner ops' claim gap: a deletion card of 100+ desk/ lines, taken on his "always go with recommended".
