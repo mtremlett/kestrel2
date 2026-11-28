@@ -36,36 +36,37 @@ key differs; one with no key (its bars could not be read) is tried again after 3
 row is appended only when it differs from the cell's last. A cut line is cut off.
 
 The sets as a command - SET EPON and the `python -m lab.ladder` door - are `lab/ladder_sets.py`.
+Split out of it (O79): the results file read by offset (`lab/ladder_kept.py`), the set's
+pre-flight (`lab/ladder_preflight.py`) and the eponymous rules' list (`lab/ladder_epon.py`).
 """
 
 from __future__ import annotations
 
 import hashlib
-import importlib
-import inspect
 import json
 import os
 import sys
 from collections import Counter
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
-import desk
 from desk import carry, keeper
 from desk.command import CAPITAL, POUND
 from desk.lines import DOLLARS, LINES, Line
 from desk.store import Bar
-from desk.strategy import STRATEGIES, Rule
-from lab import batch, cell, folds, published, reproduce, rulebook, rung, tape, trials, verdict
+from desk.strategy import STRATEGIES
+from lab import batch, cell, published, reproduce, rung, tape, trials, verdict
 from lab.batch import Bars
 from lab.cell import Cell
+from lab.ladder_kept import Kept
 from lab.ladder_map import rungs_built as rungs_built  #: its callers' name (R-RUNNER-571)
 from lab.ladder_parts import (
     FAILED,
+    MARKETS,
     RUNGS,
     Shared,
     _count,
@@ -76,19 +77,18 @@ from lab.ladder_parts import (
     _resolve,
     faults,
 )
+from lab.ladder_preflight import _priced, _unrated, preflight
 from lab.rung import Answer, Rates
 
-__all__ = ["FAILED", "RUNGS", "Shared", "_count", "_resolve"]  #: what other modules take from here
+#: What other modules take from here.
+__all__ = ["FAILED", "MARKETS", "RUNGS", "Shared", "_count", "_resolve"]
 ME = "lab.ladder"  #: this module as the cell knows it, however the process was started
 QUESTION = "set 1: does a published rule earn on one of the desk's lines?"
 #: The one window: from where the daily history is carried back to, to the last session
 #: before the set first ran. A later end is a new set of trials, on purpose.
 START, END = date(2000, 1, 1), date(2026, 11, 13)
 FOLDS = verdict.FOLDS
-#: The market each venue's lines are set beside: the S&P 500 in New York, the FTSE 100 in London.
-MARKETS = {"US": "SPY", "LSE": "ISF"}
 FOLDER, RESULTS = "ladder", "set1.jsonl"
-DESK = Path(desk.__file__).parent  #: the one list of eponymous files: this folder
 
 
 @dataclass(frozen=True)
@@ -117,57 +117,6 @@ def names(c: Cell) -> list[str]:
     return [trials.name(c)]
 
 
-class Kept:
-    """The results file read line by line into an index of offsets only: each cell's last whole
-    line (its answer now) is found by seek, and `end` is where the last whole line ends, so a
-    line a stop cut short is cut off. No row is held."""
-
-    def __init__(self, results: Path) -> None:
-        self.path = results
-        self._read()
-
-    def _read(self) -> None:
-        self.at, self.end, self.lines = {}, 0, 0
-        if not self.path.exists():
-            return
-        with self.path.open("rb") as file:
-            for line in file:
-                if not line.endswith(b"\n"):
-                    break
-                self.at[tuple(json.loads(line)["cell"])] = (self.end, len(line))
-                self.end += len(line)
-                self.lines += 1
-
-    def compact(self) -> None:
-        """When superseded lines outnumber live cells, the file is rewritten once with each cell's
-        last line only: a temp file beside it, then replaced: a stop leaves it whole."""
-        if self.lines - len(self.at) <= len(self.at):
-            return
-        fresh = self.path.with_suffix(".compact")
-        with fresh.open("wb") as out:
-            for offset, size in sorted(self.at.values()):
-                with self.path.open("rb") as file:
-                    file.seek(offset)
-                    out.write(file.read(size))
-            out.flush()
-            os.fsync(out.fileno())
-        fresh.replace(self.path)
-        self._read()
-
-    def get(self, key: tuple[str, ...]) -> verdict.Row | None:
-        """The cell's last line, read back from the file, or None."""
-        if key not in self.at:
-            return None
-        offset, size = self.at[key]
-        with self.path.open("rb") as file:
-            file.seek(offset)
-            return cast(verdict.Row, json.loads(file.read(size)))
-
-    def rows(self) -> Iterator[verdict.Row]:
-        """Every cell's last line, one at a time."""
-        return (cast(verdict.Row, self.get(key)) for key in self.at)
-
-
 def rates(ask: Callable[[Line, date], Sequence[Bar]] | None = None) -> dict[date, Decimal]:
     """Pounds per dollar for each day to the window's end, by `desk/carry.py`'s one rule: one over
     the pound's last close before the day while fresh, carried across a UK-only holiday, else none.
@@ -180,65 +129,6 @@ def rates(ask: Callable[[Line, date], Sequence[Bar]] | None = None) -> dict[date
     days = [first + n * keeper.DAY for n in range(1, (END - first).days + 1)]
     known = {day: rate for day in days if (rate := carry.pounds_per_dollar(closes, day))}
     return {day: rate for day in days if (rate := carry.carried(known, day))}
-
-
-def inputs(todo: Sequence[Cell], bars: Bars) -> Iterator[tuple[Cell, Sequence[Bar]]]:
-    """Each line the set's cells read, its own (or its proxy's) and its market's, from its first
-    bar to the window's end, once, one at a time: the set runner's pre-flight (L20). A line whose
-    bars cannot be read is its cell's to say, as it does now."""
-    seen, asked = set[tuple[str, date, date]](), set[tuple[Line, date, date]]()
-    for one in todo:
-        if (one.line, one.start, one.end) in asked:  #: a line's window is read once, not per rule
-            continue
-        asked.add((one.line, one.start, one.end))
-        try:
-            c, own, _ = _resolve(one, bars)
-            beside = next(line for line in LINES if line.symbol == MARKETS[c.line.venue])
-            held = bars(beside)
-        except FAILED:
-            continue
-        for line, read in ((c.line, own), (beside, held)):
-            if (line.symbol, c.start, c.end) not in seen:
-                seen.add((line.symbol, c.start, c.end))
-                yield Cell(c.strategy, line, c.start, c.end), read
-
-
-def preflight(todo: Sequence[Cell], bars: Bars, pounds: Rates) -> None:
-    """The set runner's pre-flight (L20) over `inputs`: a gap in a line's bars refuses the set; a
-    day with no pound rate does not, it is its cell's named reason (`_unrated`), judged again
-    once the one writer fills it from the stored DEXUSUK series (`desk/backfill.py`)."""
-    folds.preflight(
-        ((c, read) for c, read in inputs(todo, bars) if not _unrated(c, ((c.line, read),), pounds)),
-        pounds,
-    )
-
-
-def _unrated(c: Cell, read: Sequence[tuple[Line, Sequence[Bar]]], pounds: Rates) -> str | None:
-    """The first day in the cell's window one of its lines has a bar and no rate of pounds, named
-    as a gap; None when every such day has its rate."""
-    for line, bar in ((line, bar) for line, held in read for bar in held):
-        try:
-            if c.start <= bar.day <= c.end:
-                rung.rate(line, pounds, bar.day)
-        except ValueError as gap:  #: named, never passed over: the cell's reason
-            return f"a gap in the pound's rates, to be filled from DEXUSUK: {gap}"
-    return None
-
-
-def _priced(bars: Bars, pounds: Rates, rule: str, todo: Sequence[Cell]) -> Bars:
-    """The rule's lines as its pooled folds read them: a line with a day unrated in its own cell's
-    window (a proxy, in the widest of the rule's) raises, so the pool leaves it out and its gap is
-    its own cell's reason, never a FAULT in the folds of the lines beside it."""
-    mine = [one for one in todo if one.strategy == rule]
-
-    def read(line: Line) -> Sequence[Bar]:
-        own = [one for one in mine if one.line == line] or mine
-        span = Cell(rule, line, min(o.start for o in own), max(o.end for o in own))
-        if gap := _unrated(span, ((line, held := bars(line)),), pounds):
-            raise ValueError(gap)
-        return held
-
-    return read
 
 
 def begun(home: Path, todo: Sequence[Cell], plan: Plan) -> tuple[Path, int]:
@@ -343,29 +233,6 @@ def _one(
             | ({} if key is None else {"key": key})
             | {"error": f"{type(error).__name__}: {error}", "tried": now.isoformat()}
         )
-
-
-def eponymous(folder: Path = DESK, book: Path | None = None) -> tuple[str, ...]:
-    """Every rule of every `desk/eponymous_*.py`, then any the catalogue's specs add; a file with no
-    `EPONYMOUS` is refused. A rule that takes data (Zweig's breadth) is left out. A name in both is
-    one rule, listed once: the specs are read beside the Python rules, so none goes unregistered
-    when the Python ones go."""
-    for path in sorted(folder.glob("eponymous_*.py")):
-        module = importlib.import_module(f"{desk.__name__}.{path.stem}")
-        if not hasattr(module, "EPONYMOUS"):
-            raise ValueError(f"{module.__name__} names its rules in no EPONYMOUS mapping")
-    every = rulebook.eponymous(folder)
-    python = tuple(n for n, make in every.items() if not _needs_data(make))
-    return python + tuple(
-        n
-        for n, spec in rulebook.specs(book, folder).items()
-        if n not in python and not _needs_data(every.get(n) or rulebook._made(spec))
-    )
-
-
-def _needs_data(make: type[Rule]) -> bool:
-    """Whether the rule cannot be made without an argument."""
-    return any(p.default is p.empty for p in inspect.signature(make).parameters.values())
 
 
 def door(env: Mapping[str, str], argv: Sequence[str]) -> int:

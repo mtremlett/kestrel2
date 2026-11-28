@@ -21,7 +21,7 @@ from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows
 import desk
 from desk.orders import Settings
 from desk.store import Bar
-from lab import cell, ladder, ladder_sets, rulebook, rung, tape, verdict
+from lab import cell, ladder, ladder_epon, ladder_sets, rulebook, rung, tape, verdict
 from lab.cell import Cell, Record
 
 CLOCK = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -84,7 +84,7 @@ def test_a_rung_changed_runs_no_simulation_and_a_rule_changed_only_its_own(
 def test_the_rows_are_the_rows_there_were_cold_warm_and_with_no_tapes(
     tmp_path: Path, sims: list[Cell], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    rules = ladder.eponymous()
+    rules = ladder_epon.eponymous()
     todo = tuple(Cell(rule, VUSA, ladder.START, ladder.END) for rule in rules)
 
     def asked(home: Path) -> str:

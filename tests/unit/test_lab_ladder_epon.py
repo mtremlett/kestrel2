@@ -18,7 +18,7 @@ from test_lab_reproduce import _bars as _author
 import desk
 from desk import strategy
 from desk.lines import LINES
-from lab import grid, ladder, ladder_sets, published, reproduce, rulebook, verdict
+from lab import grid, ladder, ladder_epon, ladder_sets, published, reproduce, rulebook, verdict
 from lab.cell import Cell
 from lab.published_epon import EPONYMOUS_PUBLISHED
 from lab.reproduce import Fill
@@ -82,7 +82,7 @@ def test_the_set_reproduces_each_rule_judges_it_on_every_line_and_writes_the_tab
 def test_set_lev_judges_its_declared_trend_rules_on_the_leveraged_lines_only_in_its_own_register(
     tmp_path: Path,
 ) -> None:
-    assert set(ladder_sets.TREND) <= set(ladder.eponymous()) and len(ladder_sets.TREND) == 6
+    assert set(ladder_sets.TREND) <= set(ladder_epon.eponymous()) and len(ladder_sets.TREND) == 6
     held = ladder_sets.leveraged(LINES)
     assert {line.symbol for line in held} == {"3LGO", "2MU", "5QQQ"}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -107,10 +107,10 @@ def test_the_desks_folder_is_the_one_list_a_new_file_is_taken_and_keyed_a_bare_o
     bare.write_text("")
     planted = tmp_path / "eponymous_planted.py"
     planted.write_text("class X: ...\nEPONYMOUS = {'planted_x': X}")
-    assert ladder.eponymous(tmp_path, bare) == ("planted_x",)
+    assert ladder_epon.eponymous(tmp_path, bare) == ("planted_x",)
     (tmp_path / "eponymous_bare.py").write_text("X = 1")
     with pytest.raises(ValueError, match="desk.eponymous_bare names its rules in no EPONYMOUS"):
-        ladder.eponymous(tmp_path, bare)
+        ladder_epon.eponymous(tmp_path, bare)
 
 
 def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_python_rules(
@@ -119,7 +119,7 @@ def test_the_set_from_the_catalogues_specs_gives_the_rows_of_the_set_from_the_py
     """The specs are read beside the Python rules: same names, so the same cells and rows."""
     empty = tmp_path / "empty.toml"
     empty.write_text("")
-    python, both = ladder.eponymous(book=empty), ladder.eponymous()
+    python, both = ladder_epon.eponymous(book=empty), ladder_epon.eponymous()
     assert both == python  #: the one spec left out takes a breadth, run on ratio bars by a caller
     assert set(rulebook.specs()) - set(both) == {"zweig_breadth_thrust"}
     clock = lambda: datetime(2026, 11, 14, tzinfo=UTC)  # noqa: E731
@@ -136,7 +136,7 @@ def test_every_eponymous_file_of_the_real_desk_gives_a_rule_a_cell_and_a_first_r
 ) -> None:
     """On the real desk folder: each rule is found, makes a Cell and is judged on a tiny fixture."""
     files = sorted(Path(desk.__file__).parent.glob("eponymous_*.py"))
-    found = ladder.eponymous()
+    found = ladder_epon.eponymous()
     assert len(files) >= 16 and len(found) >= len(files) - 1
     assert "zweig_breadth_thrust" not in found  #: it takes a breadth no store holds: left out
     todo = [Cell(rule, VUSA, ladder.START, ladder.END) for rule in found]
@@ -154,4 +154,4 @@ def test_a_catalogue_row_with_no_python_file_is_listed_through_its_spec_not_refu
     tmp_path: Path,
 ) -> None:
     """With no eponymous file in the folder every spec row is still listed, no KeyError."""
-    assert set(ladder.eponymous(tmp_path)) == set(rulebook.specs())
+    assert set(ladder_epon.eponymous(tmp_path)) == set(rulebook.specs())

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lab import ladder, rulebook, universe
+from lab import ladder, ladder_epon, rulebook, universe
 
 
 def test_every_yardstick_is_a_line_of_its_venue_in_the_research_list() -> None:
@@ -15,7 +15,7 @@ def test_every_set_the_ladder_can_run_names_only_rules_the_rule_book_resolves() 
     book = rulebook.rules()
     for set_name, rules in {
         "set1": {c.strategy for c in ladder.cells()},
-        "EPON": set(ladder.eponymous()),
+        "EPON": set(ladder_epon.eponymous()),
     }.items():
         unknown = sorted(rules - set(book))
         assert not unknown, f"set {set_name} names rules the rule book lacks: {unknown}"

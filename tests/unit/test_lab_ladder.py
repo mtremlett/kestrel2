@@ -26,6 +26,7 @@ from lab import (
     deflated,
     folds,
     ladder,
+    ladder_kept,
     ladder_parts,
     ladder_sets,
     market,
@@ -419,7 +420,7 @@ def test_superseded_lines_compact_to_one_per_cell_and_a_stop_mid_rewrite_leaves_
     file = tmp_path / "set.jsonl"
     old = [{"cell": [k], "n": n} for n, k in enumerate("abaab")]
     file.write_bytes(b"".join(json.dumps(r).encode() + b"\n" for r in old))
-    before = ladder.Kept(file)
+    before = ladder_kept.Kept(file)
     last = {k: before.get(k) for k in before.at}
     whole = file.read_bytes()
 
@@ -432,6 +433,6 @@ def test_superseded_lines_compact_to_one_per_cell_and_a_stop_mid_rewrite_leaves_
     assert file.read_bytes() == whole  #: a stop mid-rewrite: the old file whole
     monkeypatch.undo()
     before.compact()
-    after = ladder.Kept(file)
+    after = ladder_kept.Kept(file)
     assert after.lines == 2 and {k: after.get(k) for k in after.at} == last
     assert file.read_bytes().count(b"\n") == 2

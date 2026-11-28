@@ -9,7 +9,7 @@ import re
 from importlib import import_module
 from pathlib import Path
 
-from lab import ladder, ladder_map
+from lab import ladder, ladder_kept, ladder_map
 
 ROOT = Path(__file__).parents[2]
 MODULE, TEST = r"lab/\w+\.py", r"tests/unit/test_lab_\w+\.py"
@@ -58,8 +58,8 @@ def test_the_index_holds_offsets_only_and_a_cut_line_is_cut_off(tmp_path: Path) 
     lines = [{"cell": ["a"], "n": 1}, {"cell": ["b"], "n": 2}, {"cell": ["a"], "n": 3}]
     body = b"".join(json.dumps(x).encode() + b"\n" for x in lines)
     results.write_bytes(body + b'{"cell": ["c"')
-    kept = ladder.Kept(results)
+    kept = ladder_kept.Kept(results)
     assert kept.end == len(body)
     assert [r["n"] for r in kept.rows()] == [3, 2] and kept.get(("c",)) is None
     assert all(isinstance(v, tuple) for v in kept.at.values())
-    assert ladder.Kept(tmp_path / "none").end == 0
+    assert ladder_kept.Kept(tmp_path / "none").end == 0
