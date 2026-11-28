@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from operator import attrgetter
 from types import MappingProxyType
 
 from desk.lines import Line
@@ -39,6 +40,12 @@ class Bar:
     volume: int
 
 
+def upto(bars: Sequence[Bar], day: date) -> int:
+    """How many of a line's bars, which run in day order, are dated by day: halved to it, never
+    walked (27 Nov: each SimCity day walked every bar of every line, and grew with the days)."""
+    return bisect_right(bars, day, key=attrgetter("day"))
+
+
 @dataclass(frozen=True)
 class Fault:
     day: date  #: the session it concerns
@@ -48,15 +55,17 @@ class Fault:
 
 
 def pound_on(rates: Rates, day: date) -> Decimal | None:
-    """The pound's newest close in dollars on or before day, if no older than RATE_AGE."""
-    days = sorted(rates)
-    last = days[bisect_right(days, day) - 1] if rates and day >= days[0] else None
-    return rates[last] if last and day - last <= RATE_AGE else None
+    """The pound's newest close in dollars on or before day, if no older than RATE_AGE: found by
+    the days it may fall on, never by sorting every close for each bar judged (27 Nov)."""
+    closes = (rates.get(day - timedelta(back)) for back in range(RATE_AGE.days + 1))
+    return next((close for close in closes if close is not None), None)
 
 
 def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> bool:
-    """The ratio of two closes is the pound's rate, or one over it, within the given fraction."""
-    return pound is not None and any(abs(ratio / r - 1) <= within for r in (pound, 1 / pound))
+    """The ratio of two closes is the pound's rate, or one over it, within the given fraction and
+    nearer it than no move: with the pound near a dollar (late 2022) a day's move is no currency."""
+    near = (abs(ratio / r - 1) for r in (pound, 1 / pound)) if pound is not None else ()
+    return any(off <= within and off < abs(ratio - 1) for off in near)
 
 
 def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool:

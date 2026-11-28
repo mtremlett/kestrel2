@@ -13,7 +13,7 @@ from pathlib import Path
 from desk import archive, bars, live, venues
 from desk.bars import Five
 from desk.lines import YARDSTICK, Line
-from desk.spans import Timed
+from desk.spans import EPOCH, Timed
 from desk.store import Refused
 
 RECENT = timedelta(days=7)  #: how far back a five-minute round asks: the week kept hot
@@ -147,25 +147,29 @@ def polled_round(
     return words, len(mine), refusals
 
 
-ROLLED = "SELECT * FROM bar WHERE span IN (?, ?)"
-HELD = "SELECT * FROM held WHERE span IN (?, ?)"
+ROLLED = (  #: every span the short database holds, its bars from a moment on, read by key
+    "SELECT b.* FROM held h JOIN bar b ON b.venue = h.venue AND b.symbol = h.symbol"
+    " AND b.span = h.span AND b.at >= ?"
+)
+HELD = "SELECT * FROM held"
 
 
-def roll(hot: Path) -> str:
-    """One run of `--roll`: the short database's one-minute and five-minute bars copied, source
-    kept and nothing changed, into the long one, which keeps every timeframe; in words."""
-    spans = (MINUTES, bars.FIVE)
+def roll(hot: Path, since: datetime = EPOCH) -> str:
+    """The short database's bars of every span it holds, from since (all, by default: the nightly
+    `--roll`; a keeper round gives the week kept hot), copied, source kept and nothing changed,
+    into the long one, which keeps every timeframe; in words. No list of spans is kept here
+    (failure pattern 18: one kept by hand left 15m and 30m behind)."""
     if not hot.is_file():
         raise FileNotFoundError(f"{hot}: no live day to roll")
     with (
         closing(sqlite3.connect(hot)) as src,
         closing(sqlite3.connect(bars.files(hot)[bars.DAILY], timeout=bars.WAIT)) as dst,
     ):
-        rows = src.execute(ROLLED, spans).fetchall()
-        held = src.execute(HELD, spans).fetchall()
+        rows = src.execute(ROLLED, (int((since - EPOCH).total_seconds()),)).fetchall()
+        held = src.execute(HELD).fetchall()
         with dst:
             for table in bars.SCHEMA:
                 dst.execute(table)
             dst.executemany(bars.PUT, rows)
             dst.executemany(bars.HOLD, held)
-    return f"roll: {len(rows)} one-minute and five-minute bars copied to the long database"
+    return f"roll: {len(rows)} bars of the live store copied to the long database"

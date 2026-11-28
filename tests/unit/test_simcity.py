@@ -9,21 +9,23 @@ import cProfile
 import csv
 import random
 import sys
+from collections import Counter
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import IO, Any
 
 import pytest
 
-from desk import book, day, orders, simcity, simcity_incidents, strategy
+from desk import book, day, orders, simcity, simcity_incidents, strategy, venues
 from desk.broker import Crash, Disconnected, Fault, Pretend
-from desk.lines import YARDSTICK
+from desk.lines import NO_TAX, YARDSTICK, Line
 from desk.orders import Settings
 from desk.simcity_census import Census, parts
 from desk.store import Bar
@@ -55,15 +57,37 @@ def busy(patch: pytest.MonkeyPatch, root: Path, worlds: tuple[int, ...]) -> simc
 def lived(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, simcity.Night, list[object]]:
     """One world of the fourteen months, lived once for every test here that reads it; with
     it, its life and its round trips, counted while its book still stood. It is a
-    world that meets every scenario, before the send path cancelled what a dead desk left."""
+    world that meets every scenario, before the send path cancelled what a dead desk left. And
+    what each of its days read and wrote of the desk's own files, by file: each open counted as
+    a read, each file swapped in (book_parts.keep) as a write, under "+" and the file's name."""
     root, live, seen = tmp_path_factory.mktemp("nights"), simcity._live, list[object]()
+    run, swapped = simcity._Life.live, Path.replace
+    was: Callable[..., IO[Any]] = Path.open
+    reads = list[Counter[str]]()
 
     def watched(life: simcity._Life) -> None:
         live(life)
-        seen.extend((life, life.trips))
+        seen.extend((life, life.trips, reads))
+
+    def counted(life: simcity._Life, on: date) -> day.Record:
+        reads.append(Counter())
+        return run(life, on)
+
+    def opened(path: Path, *args: Any, **kwargs: Any) -> IO[Any]:
+        if reads:
+            reads[-1][path.name] += 1
+        return was(path, *args, **kwargs)
+
+    def replaced(path: Path, target: str | Path) -> Path:
+        if reads:
+            reads[-1]["+" + Path(target).name] += 1
+        return swapped(path, target)
 
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(simcity, "_live", watched)
+        patch.setattr(simcity._Life, "live", counted)
+        patch.setattr(Path, "open", opened)
+        patch.setattr(Path, "replace", replaced)
         return root, simcity.run(root, MARKET, ROOM, RATES, NOW, (7,)), seen
 
 
@@ -77,7 +101,7 @@ def sound(tmp_path_factory: pytest.TempPathFactory) -> simcity.Night:
 def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_is_recorded(
     lived: tuple[Path, simcity.Night, list[object]],
 ) -> None:
-    root, night, (life, trips) = lived
+    root, night, (life, trips, _) = lived
     assert isinstance(life, simcity._Life) and trips, "no round trip in fourteen months"
     plain = [record for record in life.records if record.profit is not None]
     counts = (len(life.records), len(life.records) - len(plain), trips, life.deaths)
@@ -107,6 +131,81 @@ def test_a_world_of_the_fourteen_months_is_lived_with_every_fault_and_the_night_
         **{"profit": str(night.profit), "market": str(night.market)},
         **{"idle": "; ".join(night.idle), "broken": "; ".join(night.broken)},
     }
+
+
+def test_a_day_reads_the_desks_files_no_more_often_however_many_days_lie_behind_it(
+    lived: tuple[Path, simcity.Night, list[object]],
+) -> None:
+    """THE DEEP RUN'S READS PER DAY ARE FLAT. Each simulated day read the rates whole some
+    seventeen times and the records five, files that grow a row a day, so a day's work grew
+    with the days behind it: 0.3 s at day 50 of a world of the saved lines, 1.3 s at day 1,700,
+    and the 20 worlds never ended in the deep run's 7200 s (27 Nov: 01:03, 10:37, 12:40,
+    14:41). Each of the desk's files is read once until it is written (book_parts.read_once),
+    so a day reads each no more often than it writes it, and once more."""
+    reads = lived[2][2]
+    assert isinstance(reads, list) and len(reads) > 300, "fewer days than the fourteen months"
+    for name in (book.RATES, day.RECORDS, book.LEDGER):
+        often = [
+            (n, r[name], r["+" + name]) for n, r in enumerate(reads) if r[name] > r["+" + name] + 1
+        ]
+        assert not often, f"{name}: (day, reads, writes) read twice for a write: {often[:5]}"
+    written = {name: sum(r["+" + name] for r in reads) for name in (book.RATES, day.RECORDS)}
+    assert min(written.values()) >= lived[1].days, f"not written each day: no count {written}"
+    #: each is added to (book_parts.add), its reading grown by the day's rows: never read whole
+    #: again (27 Nov), so in all the world's days it is read but once or twice
+    assert all(sum(r[name] for r in reads) <= 2 for name in written), "read whole again by a day"
+
+
+def _repeating(symbol: str, base: int) -> tuple[Line, tuple[Bar, ...]]:
+    """A line whose every MONTH of sessions is the same rise and fall, so that a world, which deals
+    the months again, is the same market however they are dealt: each day's work is the same."""
+    line, bars = Line(symbol, "LSE", "GBP", 1, NO_TAX), list[Bar]()
+    for t, on in enumerate(venues.sessions("LSE", date(2020, 1, 2), date(2021, 6, 30))[:330]):
+        k = t % simcity.MONTH
+        rise = k if k < simcity.MONTH // 2 else simcity.MONTH - k
+        close = Decimal(base) * (100 + 3 * rise) / 100
+        start = bars[-1].close if bars else close
+        bars.append(Bar(on, start, max(start, close) + 1, min(start, close) - 1, close, 10_000))
+    return line, tuple(bars)
+
+
+def test_a_days_work_does_not_grow_with_the_days_the_desk_has_lived(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """THE DEEP RUN'S DAY IS FLAT (27 Nov): a world lives some 1,600 sessions, and a day that reads
+    every bar, fill, record and rate behind it again grew from 220k calls at day 50 to 1.12M at day
+    1,500, so twenty worlds never ended inside the deep run's 7200 s. In a market whose months are
+    alike, once every rule's window is full (200 sessions), the calls of a day 80 sessions on are
+    the calls of a day then, within a tenth: only the day's own work is done."""
+    market = dict(_repeating(f"R{n}", 40 + 5 * n) for n in (1, 2))
+    market[YARDSTICK] = next(iter(market.values()))
+    calls, live = list[int](), simcity._Life.live
+
+    def counted(life: simcity._Life, on: date) -> day.Record:
+        made = [0]
+
+        def profiled(_frame: object, event: str, _arg: object) -> None:
+            made[0] += event in ("call", "c_call")
+
+        sys.setprofile(profiled)
+        try:
+            return live(life, on)
+        finally:
+            sys.setprofile(None)
+            calls.append(made[0])
+
+    class Quiet(Census):  #: the census is a profiler too, and two cannot watch at once
+        def now(self, scenario: str | None) -> None:
+            self.scenario = scenario
+
+    monkeypatch.setattr(simcity, "Census", Quiet)
+    monkeypatch.setattr(simcity._Life, "live", counted)
+    monkeypatch.setattr(simcity, "EVENTFUL", 10**9)  #: the same plain days, nothing done to them
+    monkeypatch.setattr(simcity, "FAULTY", 10**9)
+    night = simcity.run(tmp_path, market, ROOM, {"GBP": Decimal(1)}, NOW, (7,))
+    assert night.trips >= 20 and len(calls) >= 320, f"{night.trips} trips in {len(calls)} days"
+    then, now = (sum(calls[at : at + 40]) / 40 for at in (200, 280))
+    assert now <= then * 1.1, f"a day's calls grew from {then:.0f} to {now:.0f}"
 
 
 def test_the_census_names_every_part_of_the_money_path_and_the_scenarios_that_ran_it(

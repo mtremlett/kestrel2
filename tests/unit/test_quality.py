@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import shutil
+import sqlite3
+from contextlib import closing
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -200,6 +203,26 @@ def test_rolloff_rows_lists_safe_only_a_file_whose_every_row_the_store_holds(
     assert held.exists() and lacking.exists()
 
 
+def test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it(tmp_path: Path) -> None:
+    seeded(tmp_path, set())
+    old = tmp_path / "old"
+    old.mkdir()
+    head = "symbol,day,open,high,low,close,volume\n"
+    (old / "held.csv").write_text(
+        head + f"SPY,{DAYS[0]},{bar(DAYS[0]).open},{bar(DAYS[0]).high},"
+        f"{bar(DAYS[0]).low},{bar(DAYS[0]).close},1000\n",
+        "utf-8",
+    )
+    (old / "lacking.csv").write_text(head + "SPY,2026-11-30,1,2,0,1,5\n", "utf-8")
+    (old / "store.parquet").write_bytes(b"\x00\xff")
+    path = quality.write_rolloff_rows(old, tmp_path, [SPY])
+    assert path == tmp_path / "rolloff_rows.json"
+    said = json.loads(path.read_text("utf-8"))
+    assert [Path(p).name for p in said["safe"]] == ["held.csv"]
+    assert [Path(p).name for p in said["kept"]] == ["lacking.csv", "store.parquet"]
+    assert len(list(old.iterdir())) == 3
+
+
 def test_an_archive_refusing_for_six_hours_turns_the_monitor_red(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     state = tmp_path / "archive.json"
@@ -301,6 +324,26 @@ def test_hover_judges_every_span_and_the_alarm_tells_only_of_change(tmp_path: Pa
     assert quality.announce("l", None) == "l\n"
 
 
+def test_a_venue_wide_hole_inside_a_held_session_is_named_and_one_quiet_line_is_not(
+    tmp_path: Path,
+) -> None:
+    isf, sgln = (next(ln for ln in LINES if ln.symbol == s) for s in ("ISF", "SGLN"))
+    price, path = Decimal(10), tmp_path / bars.LIVE
+    now, opened = datetime(2026, 11, 27, 21, tzinfo=UTC), datetime(2026, 11, 27, 8, tzinfo=UTC)
+    day = [opened + timedelta(minutes=5 * n) for n in range(102)]  # 08:00 to 16:25: the session
+    held = {isf: day[:94], sgln: day[13:94]}  # both stop at 15:45 (the outage); SGLN starts late
+    with bars.writing(path, bars.Source.IBKR) as round_:
+        for line, starts in held.items():
+            round_.five(line, [Five(t, price, price, price, price, 5) for t in starts])
+    said = "8 bars missing in its venue's feed, the first on 2026-11-27"
+    assert quality.cell(path, isf, "5m", now) == quality.cell(path, sgln, "5m", now) == said
+    assert quality.kind(said) == "hole"
+    with bars.writing(path, bars.Source.IBKR) as round_:  # the broker's bars into the hole
+        round_.five(isf, [Five(t, price, price, price, price, 5) for t in day[94:]])
+    assert quality.cell(path, isf, "5m", now) is None
+    assert quality.cell(path, sgln, "5m", now) is None  # its quiet morning and tail are its own
+
+
 def test_the_register_names_the_source_of_each_newest_bar(tmp_path: Path) -> None:
     path = seeded(tmp_path, set())
     assert quality.register(path, [SPY]) == ("IBKR paper 1", [])
@@ -366,3 +409,28 @@ def test_an_intraday_gap_is_asked_of_the_broker_first_then_the_archive_and_no_ga
     asked.clear()
     quality.fill_cells(path, [SPY], pulls, NOW)
     assert ("archive", "15m") not in asked and ("broker", "15m") not in asked
+
+
+def test_a_daily_bar_moved_off_ibkr_is_a_fault_and_the_brokers_value_written_back_clears_it(
+    tmp_path: Path,
+) -> None:
+    path, day = seeded(tmp_path, set()), DAYS[3]
+    history = tmp_path / bars.HISTORY
+    with closing(sqlite3.connect(history)) as raw, raw:  # the old writer's relabel (27 Nov)
+        raw.execute(
+            "INSERT INTO correction SELECT *, 'archive' FROM bar WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+        raw.execute(
+            "UPDATE bar SET source = 'archive', volume = 7 WHERE symbol = ? AND at = ?",
+            ("SPY", day.toordinal()),
+        )
+    assert quality.cell(path, SPY, "daily", NOW) == "1 days moved off IBKR, the first 2026-11-12"
+    assert quality.kind("1 days moved off IBKR, the first x") == "source"
+    assert not quality.hover({"live": path}, [SPY], NOW)[1]
+    with bars.writing(path, bars.Source.IBKR) as held:  # the broker's value, through the writer
+        held.days(SPY, [bar(day)])
+    assert quality.cell(path, SPY, "daily", NOW) is None
+    with closing(sqlite3.connect(history)) as raw:
+        kept = raw.execute("SELECT volume, source, replaced_by FROM correction").fetchall()
+    assert kept == [(1000, "IBKR paper", "archive"), (7, "archive", "IBKR paper")]  # none deleted
