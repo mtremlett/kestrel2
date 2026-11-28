@@ -251,8 +251,16 @@ def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]
         try:
             running.step(desk, at)
         except Exception as fault:  # noqa: BLE001 - a failed step is the rehearsal's finding
-            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}")
+            failed.append(f"{at:%H:%M} UTC {type(fault).__name__}: {fault}")
     return failed
+
+
+def _changes(found: Found, before: paper.Account, door: placing.Shut) -> list[str]:
+    """How the account differs from as found; a stalled last read leaves it unproven, so NO-GO."""
+    try:
+        return found.changes(before, paper.whole(door))
+    except NAMED as why:
+        return [f"the account read after the run stalled: {why}"]
 
 
 def rehearse(
@@ -267,7 +275,11 @@ def rehearse(
     stops at once.
     A step that fails is counted and the next carries on; then the desk's own orders still
     working are cancelled and the account is read again, whatever happened."""
-    today, before = now.date(), paper.whole(paper.Door(paper.DESK))
+    today = now.date()
+    try:
+        before = paper.whole(paper.Door(paper.DESK))
+    except NAMED as why:
+        return False, f"REHEARSAL NO-GO: the account read before the run stalled: {why}."
     open_now = trading(now)
     barred = (
         f"{' and '.join(open_now)} trade now, soon or just ended, and an order it sent could fill"
@@ -293,9 +305,10 @@ def rehearse(
     desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)
     left = placing.Paper(listing.read(LINES, door), desk.root, lambda: now, door).cancel()
-    if wrong := _amiss(desk, on, left, found.changes(before, paper.whole(door))):
+    if wrong := _amiss(desk, on, left, _changes(found, before, door)):
         steps = f"; steps that failed: {', '.join(failed)}" * bool(failed)
-        return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}"
+        tally = f" ({len(moments) - len(failed)} of {len(moments)} steps passed)"
+        return False, f"REHEARSAL NO-GO: {'; '.join(wrong)}{steps}{tally}"
     words = " ".join(note.words for note in running_notes.notes(desk.root))
     orders, sent = words.count(" shares done"), words.count(": the broker says ")
     counts = (on, len(moments), len(failed), orders, sent, len(said), UNSENT * (not sent))
