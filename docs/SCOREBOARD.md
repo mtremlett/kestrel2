@@ -608,6 +608,18 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2297 R-RUNNER-523 built: row-checked roll-off listing, 1 test, +57 lines. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2308 R-RUNNER-532 step 1: the 1901 line is built from text, not yet stored. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2317 DATA: the restore check now covers five-minute, daily and hourly bars. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2307 R-RUNNER-555 polled 5-minute round now asks 27 lines (floor reached); its check failed only on a timed-out ladder shard (R-DATA-81). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2341 R-RUNNER-562 keeper judge made linear, test counted not timed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2321 R-RUNNER-560 done: polled keeper rounds no longer share keeper-live's gateway client id. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2361 R-RUNNER-567 archive no longer overwrites IBKR days (writer fix by source rank). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2408 data-consolidated: verdict line built; real run and his yes remain. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2409 data-rolloff-rows: list-writing command built and tested; runner call remains. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2426 data-collector done, 13 sources, earnings cross-check test green. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2438 data-monitor: archive wired into five-minute gap filling. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2439 data-monitor: archive fills 15m/30m cells (box not finished). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2267 data-tiers built and ticked. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2453 R-RUNNER-563 weekly roll-up follows restated days; IDTL 1wk keeper FAULT cleared at the writer. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2461 data-monitor: archive pull covers 1h (London); box not finished. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -757,6 +769,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2369 R-RUNNER-569 built: conformance settles its own earlier orders before it sends. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2381 R-RUNNER-564 built: conformance sizes through orders.size's live price. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2434 paper-watcher built: independent supervisor watcher, 3 tests. |
 
 ### GRID
 

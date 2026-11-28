@@ -337,7 +337,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Also #2285: `quality.fill_cells` asks broker first, archives behind, for each empty intraday cell; the real pull adapters (desk/history.py, desk/archive.py) are not yet passed from `__main__`. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation (#2258: `quality.escalate` names the model per red kind, Opus for a kind never seen, Sonnet for one seen; no caller yet, and Haiku's naming of the kind is open), gap filling for 15m-1wk, the two-store daily read. #2201: the one line also names each stale span (held but behind, e.g. "stale spans live/1h"; never-held spans stay counted as gaps). #2144: the hourly table also carries one row per database naming each red golden cell and why (SPY, QQQ, VUAG, IITU).
-      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py, desk/archive.py, tests/unit/test_archive.py, desk/history.py, tests/unit/test_history.py; waits: 2026-11-28; check: tests/unit/test_quality.py::test_a_stale_hourly_span_is_filled_then_judged_fresh}
+      Built (#2438, #2439, #2461): `archive.five_pull` answers 5m, 15m, 30m and London 1h cells for `fill_cells` (bars still forming never written); a US 1h cell is refused with its reason (archive hour starts at :30, the store's mark is the UTC hour). Remains: US 1h anchor ruling (desk/spans.py), 4h and 1wk by rollup from 5m, the broker pull from desk/history.py, runner job and hourly table, escalation caller, two-store daily read; the box's check test does not exist yet.
+      {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py, desk/archive.py, tests/unit/test_archive.py, desk/history.py, tests/unit/test_history.py; waits: 2026-11-29; check: tests/unit/test_quality.py::test_a_stale_hourly_span_is_filled_then_judged_fresh}
 - [x] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
       a rolled bar that differs from a held one is a FAULT, never a silent overwrite (canon B3)
@@ -377,7 +378,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       from the stored series, and a planted missing day is a named gap, never a FAULT
       Built (#1774, #1790): the nightly refresh fetches FRED's DEXUSUK (keyless) through the one writer (Source.FED_NOON) and names the pound's sessions with no rate. Built (#1902, #1910): `python -m desk.backfill POUND` fills the sessions with no rate from FRED's DEXUSUK (Source.FED_NOON, unjudged, one writer); a day the Fed gives none is named on stderr, exit 1. The ladder's half is RUNGS's own (rungs-pound-gap); lab/universe_history should import the FRED URL from desk/backfill (one home) box, rungs-pound-gap
       {id: data-pound-history; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/bars.py, tests/unit/test_bars*.py, lab/universe.py, tests/unit/test_lab_universe*.py, desk/backfill.py, tests/unit/test_backfill.py}
-- [ ] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
+- [x] **Data in tiers, for 4,000+ tickers** (research of 14 November, kept in the notes
       folder as `data_stack_2026-11-14.md`). Tier A: held, signalled and watched names, live
       1-minute from IBKR within his line allowance (100 now). Tier B: US breadth at 1 minute
       from one vendor feed, bought only when a strategy needs it, after the A-GATE. Tier C:
@@ -385,7 +386,8 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       without touching a strategy. London breadth beyond IBKR's lines runs at 5 or 15
       minutes. A name moves between tiers as it gains or loses a signal or position (DAT-01,
       DAT-05)
-      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py; after: data-two-stores, money-epon-room; waits: 2026-11-28; check: tests/unit/test_tiers.py::test_a_line_moves_tier_as_it_gains_or_loses_a_signal}
+      Built (#2267): `desk/tiers.py`: Tier A held, signalled, watched names at 1 minute from the broker up to the 100-line allowance (an over-allowance London name at 15 minutes), Tier B vendor not bought (NotImplementedError, never a fill), Tier C daily from the archive; each tier's source one Feed. Left for after the A-GATE: the keeper reading placements, the Tier B vendor feed.
+      {id: data-tiers; files: desk/tiers.py, tests/unit/test_tiers.py; after: data-two-stores, money-epon-room; check: tests/unit/test_tiers.py::test_a_line_moves_tier_as_it_gains_or_loses_a_signal}
 - [x] The calendars carried past 2027, before 2027 ends
       {id: data-calendar-years; files: desk/venues.py, tests/unit/test_venues*.py}
 - [x] Deep history: daily bars back to 2000 wherever the archive has them, the calendars
@@ -408,6 +410,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       drive). His mark_the_trend programs are retired (his word, 14 November), so
       `C:\mtt_cache` is treated like the other stores (DQ-05, OPS-07)
       Built (#2205): `python -m lab.headstart check` sets each IMPORT-tagged old store beside the one store per ticker (five-minute bars: counts, price checksum at shared moments, first missing moments named) and drills a restore on a scratch copy; nothing written or deleted. Daily rows compared too (#2274, `compare_days`). Hourly bars compared too (#2317). Remains: the real run's output; deletion waits on his yes, asked once both pass
+      Built (#2408): `lab.headstart check` ends with a verdict per old store, 'deletable on his yes' only when every five-minute, daily and hourly comparison matched, something was compared, and the restore drill read back clean; else 'KEEP: not proven'. Remains: the real run on the PC, then his yes.
       {id: data-consolidated; waits: operator; files: lab/headstart.py, tests/unit/test_lab_headstart.py; after: data-deep-history, data-two-stores; check: tests/unit/test_lab_headstart.py::test_an_old_store_is_named_deletable_only_once_counts_checksums_and_the_drill_pass}
 - [x] 2MU's five real moves recorded from a second source, or its reason confirmed
       {id: data-2mu; files: desk/lines.py, tests/unit/test_lines.py, desk/store.py, tests/unit/test_store.py}
@@ -469,6 +472,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       first: a file with no byte twin whose rows the store holds is listed safe; one with a row the store lacks
       is kept and named
       Built (#2297, R-RUNNER-523): `quality.rolloff_rows` lists a CSV of daily bars whose rows the store holds as safe to roll, any other file kept; parquet stores always kept. `quality rolloff-rows <folder>` writes the list to `rolloff_rows.json` in the data home (#2409); its check verified on main bbe8c837 by coordinator 281. The runner job that reads it is runner work, outside this repository.
+      Built (#2409): the command writes `rolloff_rows.json` atomically; remains: the runner job that calls it.
       {id: data-rolloff-rows; files: desk/quality.py, tests/unit/test_quality*.py; after: data-disk-rolloff; check: tests/unit/test_quality.py::test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it}
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
@@ -478,16 +482,18 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       any pacing refusal halves the rate); daily bars for every ticker (DAT-01, DAT-05)
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
       Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Also (#1916): `keeper_live.polled_round` asks a rota's next `rate` lines for one-minute bars, counts requests and pacing refusals for `pace`; not yet in keeper.main (the rate must persist between runs). Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
-      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; check: tests/unit/test_keeper_live.py::test_the_polled_round_counts_every_request_and_paces_by_keeper_pace}
-- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+      Built (#2307, #2321): the polled 5-minute round asks 27 lines (LINES plus five watch-only US names in `lines.WATCHED`, never traded) and each polled round opens its own gateway client id (227 to 229).
+      {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; waits: 2026-11-29; check: tests/unit/test_keeper_live.py::test_the_polled_round_counts_every_request_and_paces_by_keeper_pace}
+- [x] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
       London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
       BLS, BEA, EIA), earnings calendars (Finnhub and Alpha Vantage, cross-checked), and news
       with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
       it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
-      Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources); the Alpha Vantage earnings CSV's own reader (#1791). Remains: the cross-check of Finnhub dates: no code compares the two, a disagreement is flagged by name.
+      Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources); the Alpha Vantage earnings CSV's own reader (#1791).
       (plan steward, 28 Nov, coordinator 277: NOT met: #1791 keeps both sources' dates but nothing compares them; the named check never existed, so check: names the test to write, red while two dates disagree unflagged)
+      Built (#2426): the named check exists and passes: both vendors' earnings dates kept, agreeing on one date, an unheld ticker and a date past 14 days left out; 13 sources.
       {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_earnings_dates_that_disagree_between_finnhub_and_alpha_vantage_are_flagged}
 - [x] **Every hole in the research store's daily history listed by one rule** (R-RUNGS-40; his
       28 Nov: "if there are gaps then the greenkeeper process needs to backfill them all"): a
@@ -964,9 +970,7 @@ his PC with the desk's own client id (222), never 4001.
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
-- [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
-      Remains: #2107 was red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines
-      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
+- [x] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
