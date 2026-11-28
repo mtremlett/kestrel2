@@ -315,6 +315,21 @@ def test_a_process_apart_from_the_desk_reads_the_account_less_the_desks_holdings
     assert paper.whole(apart) == account
 
 
+def test_two_sides_stops_on_one_ticker_are_read_apart_and_the_zoos_cancelled_leaves_the_desks() -> (
+    None
+):
+    desk, zoo = (
+        _order("7", "SELL STP", "desk-stop", "PreSubmitted", 10),
+        _order("8", "SELL STP", "zoo-stop", "PreSubmitted", 10, "223"),
+    )
+    both, _ = _read(ACCOUNTS, READY, *_account([FLAT], desk[0], desk[1], zoo[0], zoo[1]))
+    assert [o.ref for o in paper.stops_of(both, "AAPL", paper.DESK)] == ["desk-stop"]
+    assert [o.ref for o in paper.stops_of(both, "AAPL", paper.DESK + 1)] == ["zoo-stop"]
+    after, _ = _read(ACCOUNTS, READY, *_account([FLAT], desk[0], desk[1]))
+    assert [o.ref for o in paper.stops_of(after, "AAPL", paper.DESK)] == ["desk-stop"]
+    assert paper.stops_of(both, "SMGB", paper.DESK) == ()
+
+
 def test_the_newest_bars_are_asked_read_only_and_read_whole(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
