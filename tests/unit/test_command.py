@@ -263,6 +263,33 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     assert "; the kill switch is on, pulled at 2026-11-16 07:15 UTC: his word." in line
 
 
+def test_a_stalled_account_read_ends_no_go_naming_the_read_and_the_step_tally(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _world(monkeypatch)
+    fast_store(tmp_path / keeper.HOT, 51)
+    reads, whole = [0], paper.whole
+    monkeypatch.setattr(running, "step", lambda *_: None)
+
+    def stall(door: paper.Door | None = None) -> paper.Account:
+        reads[0] += 1
+        if reads[0] == stalls[0]:
+            raise TimeoutError("no answer in 30 s")
+        return whole(door)
+
+    stalls = [1]
+    monkeypatch.setattr(paper, "whole", stall)
+    assert _run(tmp_path, SUNDAY, "--rehearse") == 1
+    assert capsys.readouterr().out == (
+        "REHEARSAL NO-GO: the account read before the run stalled: no answer in 30 s.\n"
+    )
+    reads[0], stalls[0] = 0, 3  #: the cancel reads once between
+    assert _run(tmp_path, SUNDAY + timedelta(seconds=1), "--rehearse") == 1
+    line = capsys.readouterr().out
+    assert "the account read after the run stalled: no answer in 30 s" in line
+    assert "199 of 199 steps passed" in line
+
+
 def test_a_rehearsal_whose_next_step_would_pass_its_time_stops_and_names_it(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
