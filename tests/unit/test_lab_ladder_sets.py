@@ -245,10 +245,15 @@ def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a
     monkeypatch.setattr(history_bars, "reader", lambda _: holed)
     monkeypatch.setattr(history_bars, "pounds", lambda _: {})
     monkeypatch.setattr(history_bars, "lines", lambda _: (VUSA,))
-    phone: list[str] = []
+    phone: list[object] = []
+
+    def door(keys: object) -> messenger.Post:
+        phone.append(keys)  #: opened only to tell his phone
+        return len
+
     env = {"KESTREL2_DATA": str(tmp_path)}
     with pytest.raises(SystemExit) as ended:
-        ladder_sets.main(env, [], lambda _: phone.append)  # type: ignore[arg-type,return-value]
+        ladder_sets.main(env, [], door)
     assert ended.value.code == ladder_sets.WAITS != 1  #: a wait for the greenkeeper, not a fault
     said = capsys.readouterr()
     assert said.err.startswith("ladder: the set waits for the store's next fill: ")
@@ -278,8 +283,12 @@ def test_each_finished_set_writes_its_results_file_and_summary(tmp_path: Path) -
         assert cell["rungs"] and all(len(why) == 2 and why[1] for why in cell["rungs"].values())
     phone: list[str] = []
 
+    def post(text: str) -> int:
+        phone.append(text)
+        return len(phone)
+
     def door() -> messenger.Post:
-        return lambda text: phone.append(text) or len(phone)
+        return post
 
     assert ladder_sets.told(tmp_path, said, noon, door) == "telegram: told, message 1"
     ladder_sets.told(tmp_path, said, noon, door)  #: the same answer the same day: told once
