@@ -105,7 +105,7 @@ from desk.ended import action, reasons
 from desk.lines import LINES, Line
 from desk.listing import Listing
 from desk.orders import Order
-from desk.running import VENUES
+from desk.running_notes import VENUES
 
 MARKETS = {"london": "LSE", "us": "US"}  #: the command's word for each venue
 CLIENT = 223  #: the conformance desk's own client id at the gateway: the desk's is paper.DESK

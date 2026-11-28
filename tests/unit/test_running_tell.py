@@ -11,7 +11,7 @@ import pytest
 from test_reports import IITU
 from test_running import DIP, ID, MON, VOLUME, _desk, _told
 
-from desk import halt, running
+from desk import halt, rounds, running
 from desk.broker import Pretend
 from desk.messenger import Undelivered
 from desk.orders import Order, Sale
@@ -33,7 +33,7 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
         raise Unprotected(f"{order.order_id}: these do not agree")
 
     monkeypatch.setattr(broker, "place", disagree)
-    running._round(desk, broker, "LSE", MON)  # type: ignore[arg-type]
+    rounds._round(desk, broker, "LSE", MON)  # type: ignore[arg-type]
     post.side_effect = [
         1,
         Undelivered("down"),
@@ -52,7 +52,7 @@ def test_a_broker_that_disagrees_after_an_order_has_gone_reaches_him_once_naming
     quiet, door = _desk(tmp_path / "quiet", IITU=DIP)
     fine = Pretend({IITU: (*DIP, today)}, {})
     fine.open(MON.date())
-    running._round(quiet, fine, "LSE", MON)  # type: ignore[arg-type]
+    rounds._round(quiet, fine, "LSE", MON)  # type: ignore[arg-type]
     running._say(quiet, MON, running.UNASKED)
     assert not any("do not agree" in words for words in _told(door)) and _told(door), "morning only"
     assert not halt.in_force(quiet.root)

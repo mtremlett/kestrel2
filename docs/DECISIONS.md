@@ -2962,3 +2962,17 @@ readers; (b) carve one deletion box: the same refusal, plus a claim of hub files
 for the half its lane can do, and leave the deletion to the builder's request R-RUNNER-127 that
 STATUS already names: chosen. Deleting code is not deleting data (git keeps it), so no hard line
 waits; it waits on the readers moving to the rows, after EPON's re-run.
+
+## 28 Nov - desk/running.py split along its rounds (his 07:4x (g) and 15:1x "do it now", O79)
+MONEY ended money-small and money-time-gaps BLOCKED on PAPER's step file and its tests (15:10), and
+money-round-cap, R-MONEY-76 (zoo-own-side) and the resend all live in the step's rounds. Options: (a)
+widen MONEY's claims into PAPER's files: refused by the lane wall (27 Nov, a box names only its lane's
+files); (b) move the boxes to PAPER's book: PAPER has 2 slots and MONEY 10, and the rounds are the
+money path; (c) split the file along its seams, pure restructuring, logic unchanged: chosen. The Desk
+and its notes record go to `desk/running_notes.py` (PAPER); each venue's daily round and the round owed
+again to `desk/rounds.py` (MONEY); the intraday and zoo rounds to `desk/bar_rounds.py` (MONEY); the
+step, the check, the drill and his messages stay in `desk/running.py` (PAPER, 571 to 257 lines). Their
+tests moved by file (`test_rounds_again.py`, `test_rounds_restop.py`, `test_bar_rounds.py`), bodies
+unchanged but for the module each name now lives in. The halves of money-small and money-time-gaps
+still in PAPER's files become PAPER boxes (paper-running-move, paper-collect-callers), the MONEY boxes
+`after:` them (the wall's own rule); money-round-cap returns to MONEY's book on `desk/rounds.py`.
