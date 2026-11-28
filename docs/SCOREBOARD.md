@@ -271,6 +271,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2333 R-RUNNER-534 done: one differing line no longer stops London or the zoo. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2354 R-RUNNER-510 fault matrix: 7 of 325 cells built. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2363 R-RUNNER-542 part: a gap past the loss limit halts buying at collect; no caller passes lines yet. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2368 money-epon-room blocked: deleting the seven twinned rule files turns a RUNGS test red; nothing deleted. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2379 zoo-own-side built and reverted on blind review (mixed lines need per-side stops and holders); no box ticked. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2440 money-deep-stack ticked: deep SimCity's hang now leaves full-stack evidence at 7,200 s. |
 
 ### DATA
 
