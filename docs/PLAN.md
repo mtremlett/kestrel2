@@ -463,12 +463,12 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
 - [x] Disk watched; old research files roll off by rule (OPS-07)
       Built (#1098, #1107, #2122): `python -m desk.quality` goes red under 10% free on the store's drive; `quality.rolloff(old, kept)` / `python -m desk.quality rolloff <folder>` deletes only a file whose same-named copy in the store matches byte for byte; every other file is listed for his yes. The rest was carved out (coordinator 173): the job calling rolloff on red is runner work; the row-check is the box below.
       {id: data-disk-rolloff; files: desk/quality.py, tests/unit/test_quality*.py}
-- [ ] Old research files with no byte twin in the store are checked row by row against market.db before any
+- [x] Old research files with no byte twin in the store are checked row by row against market.db before any
       roll-off (carved from data-disk-rolloff, coordinator 173): a file whose every row the store holds is listed
       as safe to roll; any other is kept and named. Deletion beyond byte twins keeps his wait. Gate, written
       first: a file with no byte twin whose rows the store holds is listed safe; one with a row the store lacks
       is kept and named
-      Built (#2297, R-RUNNER-523): `quality.rolloff_rows` lists a CSV of daily bars whose rows the store holds as safe to roll, any other file kept; parquet stores always kept. Remains: the runner job calling it.
+      Built (#2297, R-RUNNER-523): `quality.rolloff_rows` lists a CSV of daily bars whose rows the store holds as safe to roll, any other file kept; parquet stores always kept. `quality rolloff-rows <folder>` writes the list to `rolloff_rows.json` in the data home (#2409); its check verified on main bbe8c837 by coordinator 281. The runner job that reads it is runner work, outside this repository.
       {id: data-rolloff-rows; files: desk/quality.py, tests/unit/test_quality*.py; after: data-disk-rolloff; check: tests/unit/test_quality.py::test_rolloff_rows_writes_its_list_where_the_runner_job_reads_it}
 - [ ] **IBKR's capacity, no new spend, 10% kept spare** (research of 14 November,
       `free_data_2026-11-14.md` in the notes folder): 90 tickers streamed live, 1-minute bars
@@ -1222,8 +1222,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
   - [x] B3 the catalogue, one TOML row per strategy with its source and known-answer case;
         a guard: unique names, known blocks only, a source and a case on every row.
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
-  - [ ] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven,
-        then their Python files deleted. Built: 20 of 21 in the catalogue (#873); Zweig waits on breadth data
+  - [x] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven.
+        Built: all 21 rows trade as their Python twins (#873, #1382, #1430, #1464); Zweig on breadth bars (#2425).
+        Deleting the Python files is R-RUNNER-127, a builder's: the files are MONEY's and the zoo, the ladder,
+        promotion and the rulebook read them (coordinator 281, `docs/DECISIONS.md`)
         {id: rungs-rows-as-rules; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-spec; check: tests/unit/test_lab_catalogue.py::test_zweig_breadth_thrust_row_trades_as_its_python_twin}
   - [ ] B5 variants generated from a row's setting ranges, every one counted as a trial. Built: `lab/variants.py` (#364) makes every combination and counts trials; one home after #1307/#1315; a repeated value in a range is refused (#1321). Rows with ranges: Donchian 3x4 (#1459), RSI-2 3x3 (#1469), Williams %R 3x3 (#1473), Keltner 3x3 (#1489), Connors three-day 3x3 (#1496), Connors %b 3x3x3 (#1503; first row ranging two settings in one place), Turtle Soup 3x3 (#1521), Jegadeesh 3x3 (#1529), Zanger (#1527), Bollinger squeeze 3x3 (#1538), Kell 3x3 (#1543), Donchian fade 3x3 (#1546), Minervini 3x3 (#1551), Clenow 3x3 (#1564), Weinstein ago 3x1 (#1570), Mansfield 3x3 (#1578), Faber and dual momentum 3x3 each (#1587, joined key `entry+exit` in #1574), Zweig's hold 115/230/345 (#1595), Darvas's box sessions 2/3/4 (#1604), DeMark's setup length 7/9/11 (#1615); a row's name may not carry `[` (#1591); set VAR enters all 84 variants as trials before any run (#1535); a rule's variants count in its trials family (#1507), validated on entry by `Spec.parse`; a test holds each to the plateau's rules with the published setting at the centre. `lab/variants.py` reads `lab.spec` alone (#1620), so R-RUNGS-33 is unblocked for GRID. Remains: judging the variants through the grid chain (GC; needs R-RUNGS-33, `lab/rulebook.rule` resolving a variant's name; settle one trial name per judged variant); entering the new rows' variants in the register from a caller; every row with a setting is ranged (Weinstein's shared 150-day lookback is deliberately not ranged); fast and desk engines disagree on `clenow_momentum[entry.n=60,exit.n=50]` (bar 830), so hold every variant to parity, quicker than 80 s, before judging through the fast grid
         {id: rungs-b5; files: lab/spec.py, lab/variants.py, lab/catalogue.toml, tests/unit/test_lab_variants.py; waits: R-RUNGS-33; check: tests/unit/test_lab_variants.py::test_every_variant_matches_the_desk_engine_before_it_is_judged}

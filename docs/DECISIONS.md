@@ -2951,3 +2951,14 @@ was RED on main with 16 hub entries in 15 boxes; with the hubs stripped it was g
 on the 10 SimCity incident boxes planted in MONEY's book on desk/simcity.py,
 desk/simcity_incidents.py and tests/unit/test_simcity_incidents.py (15, 15 and 16 boxes against
 10 slots). A file named by a glob counts once per box for every tracked file it matches.
+
+## 28 Nov - rungs-rows-as-rules ticked; deleting the twins stays R-RUNNER-127 (coordinator 281)
+B4 asked for the rows proven identical, then the 19 `desk/eponymous_*.py` files deleted. Its check
+passes on main, but the files are still there: they are MONEY's, the zoo's daily rules import 11 of them,
+and the ladder's EPON set, promotion and the rulebook find their rules by them (1,623 lines, 925 of tests).
+Sessions handed the box ended empty (patterns 12, 22). Options: (a) widen the claim to the 19 files:
+refused by the 27 Nov ruling above (a lane box names only its lane's files) and still short of their
+readers; (b) carve one deletion box: the same refusal, plus a claim of hub files (G30); (c) tick B4
+for the half its lane can do, and leave the deletion to the builder's request R-RUNNER-127 that
+STATUS already names: chosen. Deleting code is not deleting data (git keeps it), so no hard line
+waits; it waits on the readers moving to the rows, after EPON's re-run.
