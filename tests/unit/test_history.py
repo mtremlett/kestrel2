@@ -72,6 +72,20 @@ def test_the_bars_are_those_from_since_and_before_the_day_asked() -> None:
     assert got[1] == Bar(date(2026, 11, 13), prices[0], prices[1], prices[2], prices[3], 53638)
 
 
+def test_a_volume_the_broker_gives_as_a_decimal_is_read_in_whole_shares() -> None:
+    """IBKR gives a volume as a decimal where shares trade in parts (the greenkeeper's run of 28
+    Nov died on '2831.4'): read once here, to the nearest whole share; -1 is none; else refused."""
+    for given, read in (("2831.4", 2831), ("2831.5", 2832), ("53638", 53638), ("-1", 0)):
+        wire = conversation(TAPE.replace("|53638|", f"|{given}|"))
+        paper.start(wire, lambda _: None)
+        got = history.ask(wire, lambda _: None, VUAG, DAY, SINCE)
+        assert isinstance(got, tuple) and got[1].volume == read
+    wire = conversation(TAPE.replace("|53638|", "|1e9|"))
+    paper.start(wire, lambda _: None)
+    with pytest.raises(ValueError, match="'1e9' is no plain number"):
+        history.ask(wire, lambda _: None, VUAG, DAY, SINCE)
+
+
 def test_a_line_the_broker_will_not_give_is_refused_in_its_words() -> None:
     wire = conversation(NONE)
     paper.start(wire, lambda _: None)
