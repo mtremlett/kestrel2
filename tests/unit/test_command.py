@@ -37,6 +37,7 @@ from desk import (
     placing,
     pnl,
     running,
+    running_notes,
     venues,
 )
 from desk.lines import LINES, Line
@@ -112,7 +113,7 @@ def test_a_step_does_the_days_work_under_the_data_folder_and_fails_by_name_witho
     with pytest.raises(messenger.Undelivered, match="no TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"):
         _run(tmp_path, MON.replace(hour=9, minute=5))
     desk = tmp_path / "desk"
-    (note,) = running.notes(desk)
+    (note,) = running_notes.notes(desk)
     assert note.what == "orders LSE" and "none sent in this round" in note.words
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8") and not messenger.deliveries(desk)
     assert ASKED and {home for home, _ in ASKED} == {tmp_path}
@@ -162,7 +163,7 @@ def test_the_preflight_says_ready_or_names_each_thing_that_is_not_and_sends_no_o
         "(kept before); halts: "
         "none in force.\n"
     )
-    assert clearance.checks(desk)[-1].found == () and not running.notes(desk)
+    assert clearance.checks(desk)[-1].found == () and not running_notes.notes(desk)
     assert book.rate(desk, "USD", MON.date()) == Decimal("0.8")  # the pound is kept
     called = halt.call(desk, MON, "a crash")  # a halt: ready, and said at the front
     assert _run(tmp_path, MON, "--preflight", **KEYS) == 0
@@ -202,7 +203,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     answers, whole, script = _world(monkeypatch), running.step, dict[int, dict[bytes, Said]]()
     fast_store(tmp_path / keeper.HOT, 51)
 
-    def step(desk: running.Desk, now: datetime) -> None:
+    def step(desk: running_notes.Desk, now: datetime) -> None:
         answers.update(script.get(now.hour * 100 + now.minute, {}))
         whole(desk, now)
 
@@ -223,7 +224,7 @@ def test_the_rehearsal_lives_the_last_session_again_on_its_own_record_with_no_ma
     )
     (scratch,) = (tmp_path / "desk" / "rehearsals").iterdir()
     assert [record.day for record in day.records(scratch)] == [FRI]
-    assert [note.what for note in running.notes(scratch)] == ["orders LSE", "orders US"]
+    assert [note.what for note in running_notes.notes(scratch)] == ["orders LSE", "orders US"]
     assert [path.name for path in (tmp_path / "desk").iterdir()] == ["rehearsals"]
     # a step that fails is named and the next carries on, as in the day: one bad reading at
     # London's open and it is GO all the same, saying so; every reading bad, and it is not
@@ -323,7 +324,7 @@ def test_the_rehearsal_runs_beside_a_held_account_and_leaves_its_holdings_and_st
     for said, end in cases.items():
         answers[tp.ACCOUNT], answers[tp.FILLS] = account, [*real, END]
 
-        def step(desk: running.Desk, now: datetime, end: Said = end) -> None:
+        def step(desk: running_notes.Desk, now: datetime, end: Said = end) -> None:
             whole(desk, now)
             if (now.hour, now.minute) == (22, 0):
                 answers[tp.ACCOUNT] = end

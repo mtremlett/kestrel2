@@ -337,7 +337,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       wire: a runner job every 5 minutes, 7 days, and the hourly Telegram table; gate: a contract test where a
       planted stale span, missing day and stale golden line each turn the line red, and the alarm sends red once and green once
       Built (#1654): `desk.quality.hover` (freshness line, exit 0/1) and `alarm` (red once, 30-minute reminder, one green). Also built (#1658, #1689): the monitor reads the archive's six-hour outage alarm; `hover` keeps its alarm state in hover_alarm.json and prints `SEND: <message>` (the runner's line, via `announce`) when it speaks (#1736, #1769, #1782), and `table` gives the per-span line for the hourly report; #1699 adds `register` (a report, not a red); #1809 reds a missing day inside a golden line's history (golden lines only); #1832 judges both databases (market_history.db and market_live.db), the worst cell naming its database, a missing database fails loudly (history reads red on stale spans until gap filling exists). Also #1850: `table` covers both databases (one table, db-prefixed rows, each database's register); #1860: the worst cell names a golden line's fault first. Also #2285: `quality.fill_cells` asks broker first, archives behind, for each empty intraday cell; the real pull adapters (desk/history.py, desk/archive.py) are not yet passed from `__main__`. Remains: the 5-minute runner job posting SEND lines and the hourly table to Telegram (runner; see STATUS), the Haiku/Sonnet/Opus escalation (#2258: `quality.escalate` names the model per red kind, Opus for a kind never seen, Sonnet for one seen; no caller yet, and Haiku's naming of the kind is open), gap filling for 15m-1wk, the two-store daily read. #2201: the one line also names each stale span (held but behind, e.g. "stale spans live/1h"; never-held spans stay counted as gaps). #2144: the hourly table also carries one row per database naming each red golden cell and why (SPY, QQQ, VUAG, IITU).
-      Built (#2438, #2439, #2461): `archive.five_pull` answers 5m, 15m, 30m and London 1h cells for `fill_cells` (bars still forming never written); a US 1h cell is refused with its reason (archive hour starts at :30, the store's mark is the UTC hour). Remains: US 1h anchor ruling (desk/spans.py), 4h and 1wk by rollup from 5m, the broker pull from desk/history.py, runner job and hourly table, escalation caller, two-store daily read; the box's check test does not exist yet.
+      Built (#2438, #2439, #2461): `archive.five_pull` answers 5m, 15m, 30m and London 1h cells for `fill_cells` (bars still forming never written); a US 1h cell is refused with its reason (archive hour starts at :30, the store's mark is the UTC hour). Remains: US 1h anchor ruling (the spans module, DATA's own, its own box when ruled), 4h and 1wk by rollup from 5m, the broker pull from desk/history.py, runner job and hourly table, escalation caller, two-store daily read; the box's check test does not exist yet.
       {id: data-monitor; files: desk/quality.py, tests/unit/test_quality.py, desk/archive.py, tests/unit/test_archive.py, desk/history.py, tests/unit/test_history.py; waits: 2026-11-29; check: tests/unit/test_quality.py::test_a_stale_hourly_span_is_filled_then_judged_fresh}
 - [x] Derived spans rolled, never fetched: 15m, 30m, 1h and 4h rolled from five-minute bars and 1wk from daily,
       into the history database as `rollup:<from>` on every keeper round, so they are as fresh as their base;
@@ -590,7 +590,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Written first (chat 167, 22:0x: today the seven gone raise KeyError weekly_reversal_jegadeesh): the EPON rule
       list is unchanged without the seven files, and each served row gives the same decisions as its Python twin on
       a fixture (the donchian twin test's way), so EPON's book does not change.
-      Remains (#2368, blocked 27 Nov): `tests/unit/test_lab_ladder_epon.py` (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
+      Remains (#2368, blocked 27 Nov): the ladder's eponymous test (RUNGS's, R-MONEY-77) must accept spec-only catalogue rows, then delete the seven files, their tests and manifest/money.toml rows; the claim needs both files.
       {id: money-epon-room; files: tests/unit/test_eponymous_connors.py, desk/eponymous_dan_zanger.py, desk/eponymous_demark_sequential.py, desk/eponymous_kell_breakout.py, desk/eponymous_mansfield_rs_momentum.py, desk/eponymous_minervini_breakout.py, desk/eponymous_swing.py, desk/eponymous_weinstein_stage.py, tests/unit/test_eponymous_dan_zanger.py, tests/unit/test_eponymous_demark_sequential.py, tests/unit/test_eponymous_kell_breakout.py, tests/unit/test_eponymous_mansfield_rs_momentum.py, tests/unit/test_eponymous_minervini_breakout.py, tests/unit/test_eponymous_swing.py, tests/unit/test_eponymous_weinstein_stage.py, docs/lanes/money.md; check: tests/unit/test_eponymous_connors.py::test_every_eponymous_module_declares_unique_runnable_rules}
 - [x] The desk's stop and the zoo's stop on one ticker rest apart (coordinator 284, 28 Nov; for zoo-own-side):
       the pretend broker and the Broker interface keep each resting stop by ticker and side, so moving or
@@ -605,7 +605,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Remains (#2137, #2152): the daily round's pounds-room and total on main; per-side share counts in desk/book.py, once the stops rest apart by side (paper-side-stops, then money-side-stops; coordinator 284, 28 Nov: stops are keyed by ticker alone, so the zoo's one share beside the desk's holding has no stop of its own)
       wire: the desk-day job's zoo round; gate: the evening's 36 refusals (AAPL, TSLA, NVDA among them) replayed as a
       test pass, written first with their refusal words; an A6 blind review before the train
-      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); the intraday round's refusal is PAPER's (R-MONEY-76). Waits: operator
+      Blocked (#2379, blind review, reverted): per-side counts need per-side stops and holders first (one broker stop per line under the newest buy's id; day._holders is 'last buyer'; zoo counts can go negative); the intraday round's refusal, PAPER's when this was written (R-MONEY-76), is MONEY's own since the hub split of 28 Nov, in the intraday rounds' module. Waits: operator
       {id: zoo-own-side; after: money-side-stops; files: desk/day.py, desk/orders.py, desk/book.py, tests/unit/test_orders*.py, tests/unit/test_day*.py, tests/unit/test_book*.py; check: tests/unit/test_day.py::test_the_evenings_36_zoo_refusals_replayed_each_send_one_share}
 - [ ] Connors' Double 7's as a desk rule (R-RUNGS-10): `desk/eponymous_connors_double_7.py` is a
       MONEY file, but the ladder finds every eponymous desk module, and RUNGS' published list
@@ -724,7 +724,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       (SIZ-10, TRD-10). On main: the 1% cap in `orders.size` (`orders.traded_value`, `LIQUIDITY`, #1690) and in `orders.gate`, which takes `traded` (#1796), fed by nothing yet. Remains: `day._buy` feeding it (restore 3bf88fa2's day.py change; fixtures volume 10**7 in test_restop, test_running, test_running_tell, which needs a card claiming them); the expected-gain flag (TRD-10): `orders.thin(order, gain)` is on main (#1891, pure, flags rather than skips, not yet called: a Decision carries no expected gain; remains the gain's source and a caller)
       (runner ops 108, 23 Nov, stall watch 01:0x: claim adds tests/unit/test_restop.py; the two running tests' fixtures are PAPER's, set first by paper-small-volume)
       (plan steward, 27 Nov, builders lead's order: wide globs narrowed: orders.size/gate/thin, day._buy, the gain's source in strategy.py, SimCity's traded_value in simcity.py, and the fixtures the box names)
-      {id: money-small; waits: 2026-11-29; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
+      {id: money-small; waits: 2026-11-29; after: paper-running-move; files: desk/orders.py, desk/day.py, tests/unit/test_orders.py,
       tests/unit/test_day.py, desk/simcity.py, tests/unit/test_simcity.py,
       tests/unit/test_restop.py, desk/strategy.py, tests/unit/test_strategy.py; check: tests/unit/test_day.py::test_a_buy_is_capped_at_one_percent_of_twenty_day_traded_value}
       (runner ops, 27 Nov: claim gap, strategy.py and its tests are MONEY files (manifest/money.toml:5), no RUNGS request needed)
@@ -733,7 +733,7 @@ day's trading and reconciliation are built, and any broker can stand behind them
       jumps the stop held against the loss limit; a hold limit and gap sizing for the
       leveraged lines (STP-11, STP-10, SIZ-09). Step 1 on main (#845): time stop in `strategy._run`, `orders.gap_loss`/`gapped`. Step 2 on main (#1449): the time stop ages from the book's fill date. Step 3 on main (#1504): a gapped stop halts buying (`day._stand_down`). Step 4 in #2363: `book.collect` takes lines, settings and tell and halts buying on a stop sold past GAP_LOSS (callers still pass none: day._stand_down, running.py, running_parts.py, send). Remains: those callers pass them, then delete `day._stand_down`'s body; each rule's hold limit from its own sell logic (his ruling Sat 21 Nov 21:33; moves golden days, strategy files outside the 17-file claim, B5; eight more rules declared none in #2224, #2276, #2288; re-card only with a narrowed claim per rule), then `orders.gapped` at `book.collect`.
       (plan steward, 27 Nov, builders lead's order: desk/ and test globs narrowed to the modules the Remains name: book.collect's callers in day.py, gap_loss in orders.py and simcity.py, the time stop in strategy.py; the rules' own sell logic keeps eponymous_*.py and grimes)
-      {id: money-time-gaps; waits: 2026-11-29; files: desk/day.py, desk/orders.py, desk/strategy.py,
+      {id: money-time-gaps; waits: 2026-11-29; after: paper-collect-callers; files: desk/day.py, desk/orders.py, desk/strategy.py,
       tests/unit/test_day.py, tests/unit/test_day_tell.py, tests/unit/test_day_standing.py, tests/unit/test_orders.py, tests/unit/test_strategy.py, tests/unit/test_strategy_hold.py,
       desk/simcity.py, tests/unit/test_simcity.py, tests/unit/test_simcity_gaps.py, desk/book.py, tests/unit/test_book.py,
       desk/eponymous_*.py, tests/unit/test_eponymous*.py, desk/grimes.py, tests/unit/test_grimes*.py, tests/scenes/test_scenes.py,
@@ -866,6 +866,18 @@ day's trading and reconciliation are built, and any broker can stand behind them
       Remains (#2474, per-world allowance on main: PER_WORLD 360 s x worlds asked; a night of 20 keeps 7200 s): on a machine with the store, time ONE world on #2187's parent and merge, profile its body, fix the biggest cost red-first, find why the book is not the broker's on 1,638 of 1,939 days; then lower PER_WORLD to what a world takes.
       {id: simcity-full-phase-limit; files: desk/simcitycmd.py, desk/simcity.py, desk/strategy_parts.py, tests/unit/test_simcity_cmd.py; check: tests/unit/test_simcity_cmd.py::test_the_full_run_ends_inside_its_time_and_the_limit_still_names_a_hang}
 
+- [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2;
+      failure pattern 24): each market order waits for its fill and the runner ends the desk step at its time, so a
+      round sends at most the step's time over the fill wait, the desk's own orders first; the rest are not sent, each
+      kept in the day's record as carried and sent once more at the next step as <id>-r1. Rejected: zoo orders that do
+      not wait (a second send path), a longer timeout. Built: the cap in the day's send and its carried list (#1823,
+      #2036, #2084), its constants in paper's module beside the fill wait (#1906, #2008), the carried ids resent by the
+      round owed again (R-RUNNER-473). Remains: an A6 blind review of the money path, then a zoo-on rehearsal that says
+      GO before the zoo returns (waits: operator)
+      (hub split, 28 Nov: the daily rounds and the round owed again left the step's file for desk/rounds.py, MONEY's,
+      so this box is back in MONEY's book, its check beside the resend's tests)
+      {id: money-round-cap; waits: operator; files: desk/rounds.py, tests/unit/test_rounds*.py;
+      check: tests/unit/test_rounds_again.py::test_carried_orders_are_resent_once_at_the_next_step}
 ## Phase 3 — the money path, on paper
 
 Begun alongside phase 2 by his ruling of 13 November: "Five lanes, phase 3 now".
@@ -1003,7 +1015,7 @@ his PC with the desk's own client id (222), never 4001.
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
       counted; no Windows task, no gateway, nothing of his (builders lead, 27 Nov: PAPER had no box buildable and
-      provable through SimCity without the operator). The claim is the test alone: desk/supervisor.py is held by two
+      provable through SimCity without the operator). The claim is the test alone: the supervisor's module is held by two
       open boxes, PAPER's two slots; if SimCity needs a door for it, that door is a MONEY box first and this one waits on it
       {id: paper-supervisor-simcity; files: tests/unit/test_supervisor_simcity.py; check: tests/unit/test_supervisor_simcity.py::test_a_simcity_week_under_the_supervisor_restarts_a_killed_step_without_the_operator}
 - [x] Backups: the fill ledger and the day records copied twice, one copy off the PC, and a
@@ -1029,25 +1041,16 @@ his PC with the desk's own client id (222), never 4001.
       each line a volume of 10**7 shares a day, so the 1% liquidity cap money-small feeds from the trading day
       never shrinks their orders; no behaviour changes today; gate: both files green on main with the volume set (#1896)
       {id: paper-small-volume; files: tests/unit/test_running.py, tests/unit/test_running_tell.py}
-- [ ] A round never sends more orders than its step's time allows (coordinator 93's 20:5x ruling, option 2):
-      each market order waits `paper.FILL_SECONDS` (120 s) and the runner ends the desk step at 900 s, so a zoo
-      round of many one-share orders died mid-send (20 Nov, failure pattern 24). The step's time moves from
-      `desk/simcity_incidents.py:76` (STEP_SECONDS) to paper's module beside FILL_SECONDS, one home, never a copy;
-      a round sends at most (STEP_SECONDS - margin) // FILL_SECONDS orders, the desk's own first, and the rest are
-      not sent, each kept in the day's record as carried to the next step. Opus, A6 blind review (money path).
-      Rejected: zoo orders that do not wait (a second send path), a longer timeout. The zoo goes back on only
-      after this lands and a zoo-on rehearsal says GO; gate: a test, written first, where a planted round of 20
-      one-share orders sends only the cap and names the rest carried
-      (runner ops 106, 23 Nov, coordinator 103's D1: paper's module is PAPER's; its constants come from paper-step-time, then this box points simcity_incidents at them and drops its own)
-      (money-time-gaps waits to 2026-11-24: 5 sessions in a row landed no change, the doctor asks why; money-honest waits on R-MONEY-65, said in #1861; money-door-pound parked a day, MONEY-s10, canon A8)
-      (#2036: orders past the cap are listed on halt.morning as CARRIED, one count in day._room; remains: running._again resends CARRIED ids once FAILURE_PATTERNS names desk/running.py (R-MONEY-? to RUNNER OPS), then a fresh blind review. #1823: cap built, MAX_ORDERS = 7, the rest carried. #1906 put the constants in paper's module; #2008 the day and SimCity read them there and Blocker.CARRIED names carried orders. Remains: blind review (A6); zoo-on rehearsal GO before the zoo returns; waits to 2026-11-24: 2 sessions in a row landed no change, the doctor asks why)
-      (money-round-cap waits to 2026-11-24: stall watch 09:46, built on main; only a blind review and the zoo-on rehearsal remain, never a coding session)
-      (runner ops 168, 23 Nov 22:0x, chat 167's order: the claim adds desk/running.py and its tests for the CARRIED resend,
-      which pattern 20's naming of the zoo's path now allows; zoo-own-side, above it, holds the same files)
-      {id: money-round-cap; waits: operator; files: desk/running.py, tests/unit/test_running*.py;
-      check: tests/unit/test_running.py::test_carried_orders_are_resent_once_at_the_next_step}
-      (#2084: the cap acts once, in day._send; every carried order is intended, chained and listed; golden re-pinned. Remains: blind review, zoo-on rehearsal; money-round-whole waits: operator)
-      (moved from MONEY's book, Builder 3b 27 Nov: what remains, running's resend of CARRIED ids, and its check are desk/running.py's, PAPER's; the lane wall refuses it to MONEY)
+- [ ] The step's two ledger reads hand the book what it needs to halt on a gapped stop (for money-time-gaps, its
+      28 Nov ending: the book's collect takes the lines, the settings and a tell, and halts buying on a stop sold past
+      the gap loss, but the step's ledger update and the recovery after a restart still pass none): each records the
+      day's rates first and passes them, so a gapped stop halts buying whichever caller finds it. Edits only
+      {id: paper-collect-callers; files: desk/running.py, desk/running_parts.py, tests/unit/test_running.py; check: tests/unit/test_running.py::test_the_steps_ledger_and_recovery_hand_collect_the_lines_settings_and_tell}
+- [ ] The step's fixtures carry a real move (for money-small, its 28 Nov ending: a thin-trade flag in the day's buy
+      flags every fixture buy, since their flat bars give no expected gain, and the step's tests then count one note
+      too many): the fixtures of the step's tests give each line bars with a move and a volume, so a buy's expected
+      gain clears twice its cost and no fixture buy is flagged; no behaviour changes today
+      {id: paper-running-move; files: tests/unit/test_running.py, tests/unit/test_running_tell.py; check: tests/unit/test_running.py::test_the_fixtures_buys_clear_twice_their_round_trip_cost}
 - [x] The paper door keeps the desk's stop and the zoo's stop on one ticker apart (coordinator 284, 28 Nov;
       MONEY's 01:58 ending on zoo-own-side: 'desk/paper.py (per-side stops)'): read, set, move and cancel a
       resting stop by ticker and side, as methods beside today's, so the Broker interface and its one contract
