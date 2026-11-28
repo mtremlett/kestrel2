@@ -50,13 +50,13 @@ SPAN = date(2026, 7, 1), date(2026, 11, 30)
 VOLUME = 10**7  #: shares a day, so the 1% liquidity cap never shrinks an order
 DAYS = [date(2026, 10, 16) + timedelta(days=n) for n in range(29)]
 ACCOUNT, FILLS, ASKED = tp.ACCOUNT, tp.FILLS, tp.ASKED
-#: Twenty-one sessions to Friday the 13th: flat, and with a last close Bollinger's rule buys.
+#: Twenty-one sessions to Friday the 13th: a pound up and down, the last close one Bollinger buys.
 FLAT_, DIP = (
     tuple(
         Bar(on, c, c + 1, c - 1, c, VOLUME)
         for on, c in zip([d for d in DAYS if d.weekday() < 5], map(Decimal, closes), strict=True)
     )
-    for closes in ([40] * 21, [*[40] * 20, 36])
+    for closes in ([40 + n % 2 for n in range(21)], [*[40 + n % 2 for n in range(20)], 36])
 )
 #: The buy of 26 at 36 and its stop a tenth under, in pence, as the gateway is sent them; the
 #: stop as the broker then lists it, the buy ended, and its fill of that morning.
@@ -201,8 +201,14 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
 ) -> None:
     def recover(root: Path, *answers: Said) -> tuple[tuple[str, ...], list[bytes]]:
         sent = _gateway(monkeypatch, *answers[:1], *answers)  # the account as found is read first
+        broker = tp._paper(root)
         return running.recover(
-            root, tp._paper(root), LISTED, MON.date(), paper.Door(paper.DESK)
+            root,
+            broker,
+            LISTED,
+            MON.date(),
+            paper.Door(paper.DESK),
+            lambda: book.collect(root, broker),
         ), sent[1:]
 
     idle, part, unheld = (tmp_path / name for name in ("idle", "part", "unheld"))
@@ -336,7 +342,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     days = [date(2026, 11, n) for n in (13, 16, 17)]
     assert [r.day for r in day.records(missed.root)] == days
     assert "📅 Last day on record Tue 17 Nov" in _told(tuesday)[-1]
-    assert _told(asked) == days
+    assert _told(asked) == [days[-1], *days[:2]]  # today's first, for the collect
     assert _told(missed.held)[1:] == [  # after the crash watch's look
         on + timedelta(days=1) for on in days
     ]
