@@ -50,6 +50,18 @@ def reader(home: Path) -> Bars:
     return lru_cache(maxsize=4)(read)
 
 
+def holes(home: Path) -> dict[Line, tuple[date, ...]]:
+    """R-RUNGS-40: each research line's holes over its whole daily history, from its first bar
+    to its last, by the one rule the ladder's pre-flight refuses a set on (`Line.holes`), for the
+    greenkeeper to fill through the one writer; a line with none is left out."""
+    path, found = database(home), dict[Line, tuple[date, ...]]()
+    for line in lines(home):
+        days = [bar.day for bar in bars.daily(path, line)]
+        if days and (missing := line.holes(days, days[0], days[-1])):
+            found[line] = tuple(missing)
+    return found
+
+
 def facts(home: Path, series: str) -> dict[date, Decimal]:
     """One macro series' observations from the history database's facts, by day. Read only; a
     database without facts, or a day holding two values, raises naming the series."""
