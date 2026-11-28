@@ -19,6 +19,8 @@ from desk.lines import LINES, Line
 from desk.spans import Timed
 
 CLIENT = 226  #: the live reader's own client id at the gateway
+#: a polled round's own client id by its minutes: two conversations as one id are refused
+POLLED_CLIENTS = {5: 227, 15: 228, 60: 229}
 PACING = (
     3.0  #: seconds between asks: 20 lines a round, 40 asks in ten minutes, inside the limit of 60
 )
@@ -127,10 +129,11 @@ def minutes(
     wait: Wait = time.sleep,
     newest: NewestMinutes = newest_minutes,
     listed: Callable[..., dict[str, listing.Listing | listing.Unlisted]] = listing.kept,
+    client: int = CLIENT,
 ) -> Callable[[Line, datetime], tuple[Timed, ...]]:
     """The question of a line's ended one-minute bars since the last held in hot (an hour's if
     none), in the line's own currency. Refusals are worded as the five-minute question's."""
-    door = _door(home, wait, listed, mine := paper.Door(CLIENT))
+    door = _door(home, wait, listed, mine := paper.Door(client))
 
     def ask(line: Line, now: datetime) -> tuple[Timed, ...]:
         one = door(line, now)

@@ -42,6 +42,7 @@ from desk.bars import EPOCH, Five, Source
 from desk.bars_parts import B
 from desk.compare import doubt
 from desk.lines import LINES, Line
+from desk.spans import Timed
 from desk.store import STRETCH, Bar, Refused
 from lab.headstart_parts import (  # noqa: F401  # the readers, still reached as lab.headstart.<name>
     MARKET as MARKET,
@@ -165,7 +166,7 @@ class Tally:
     missing: tuple[datetime, ...]  #: the moments of old bars the one store holds none for
 
 
-def _sum(given: Iterable[Five]) -> str:
+def _sum(given: Iterable[Five | Timed]) -> str:
     rows = (
         f"{b.start:%Y%m%d%H%M} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given
     )
@@ -179,13 +180,65 @@ def compare(path: Path, answers: Mapping[Line, Iterable[Five] | Refused]) -> dic
     for line, given in answers.items():
         if isinstance(given, Refused):
             continue
-        old = sorted(given, key=lambda bar: bar.start)
         have = {bar.start: bar for bar in bars.five(path, line, EPOCH, AFTER_ALL)}
-        both = [bar for bar in old if bar.start in have]
-        same = _sum(both) == _sum(have[bar.start] for bar in both)
-        tallies[line] = Tally(
-            len(old), len(both), same, tuple(bar.start for bar in old if bar.start not in have)
-        )
+        tallies[line] = _tally(sorted(given, key=lambda bar: bar.start), have)
+    return tallies
+
+
+def _tally(old: Sequence[Five], have: Mapping[datetime, Five | Timed]) -> Tally:
+    both = [bar for bar in old if bar.start in have]
+    same = _sum(both) == _sum(have[bar.start] for bar in both)
+    return Tally(len(old), len(both), same, tuple(b.start for b in old if b.start not in have))
+
+
+def compare_hours(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds hourly bars of, them beside the one store's hourly bars at
+    path: counts, a checksum of the prices at the moments both hold, the moments only the old one
+    holds. A line the one store holds no hourly bar of: all missing."""
+    from lab import headstart_hours  # imports this module
+
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = headstart_hours.hours(line, where)
+        except (OSError, ValueError):  # this line's hours are not in that old store
+            continue
+        try:
+            have = {
+                b.start: b for b in bars.timed(path, line, headstart_hours.SPAN, EPOCH, AFTER_ALL)
+            }
+        except LookupError:
+            have = {}
+        tallies[line] = _tally(sorted(old, key=lambda bar: bar.start), have)
+    return tallies
+
+
+def _daily_sum(given: Iterable[Bar]) -> str:
+    rows = (f"{b.day:%Y%m%d} {b.open:.6f} {b.high:.6f} {b.low:.6f} {b.close:.6f};" for b in given)
+    return hashlib.sha256("".join(rows).encode()).hexdigest()
+
+
+def compare_days(path: Path, where: Path, lines: Iterable[Line] = LINES) -> dict[Line, Tally]:
+    """For each line an old store holds daily rows of, them beside the one store's daily bars at
+    path: counts, a checksum of the prices on the days both hold, the days only the old one
+    holds (each as midnight UTC). A line the one store holds nothing of: all missing."""
+    from lab import headstart_days  # imports this module
+
+    _, read = headstart_days.form(where)
+    tallies: dict[Line, Tally] = {}
+    for line in lines:
+        try:
+            old = sorted(read(line, where), key=lambda bar: bar.day)
+        except (OSError, ValueError, sqlite3.Error):  # this line is not in that old store
+            continue
+        try:
+            have = {bar.day: bar for bar in bars.daily(path, line)}
+        except LookupError:
+            have = {}
+        both = [bar for bar in old if bar.day in have]
+        same = _daily_sum(both) == _daily_sum(have[bar.day] for bar in both)
+        gone = tuple(datetime.combine(b.day, time(), UTC) for b in old if b.day not in have)
+        tallies[line] = Tally(len(old), len(both), same, gone)
     return tallies
 
 
@@ -281,18 +334,28 @@ def checked(register: Path, path: Path, scratch: Path) -> str:
     """Every old store the register tags IMPORT, set beside the one store at path, per line:
     counts, checksum, the first moments missing; then the restore drill in scratch. Nothing is
     written but the drill's copy, nothing deleted."""
-    bad = 0
+    off = dict[str, int]()
     for where in imports(register):
         how = reader(where)
-        found = compare(path, archive.gather(LINES, where, how[1])) if how else {}
-        for line, tally in found.items():
-            bad += not tally.same or bool(tally.missing)
-            named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
-            counts = f"old {tally.old}, held {tally.held}"
-            match = "match" if tally.same else "DIFFER"
-            sys.stdout.write(f"{where.name}: {line.symbol}: {counts}; {match}; missing {named}\n")
+        found = {"5m": compare(path, archive.gather(LINES, where, how[1])) if how else {}}
+        with suppress(ValueError):  # a store of no daily form has no daily rows to compare
+            found["1d"] = compare_days(path, where)
+        found["1h"] = compare_hours(path, where)
+        off[where.name] = not any(found.values())  # nothing compared proves nothing
+        for span, tallies in found.items():
+            for line, tally in tallies.items():
+                off[where.name] += not tally.same or bool(tally.missing)
+                named = ", ".join(f"{at:%Y-%m-%d %H:%M}" for at in tally.missing[:3]) or "none"
+                counts = f"old {tally.old}, held {tally.held}"
+                match = "match" if tally.same else "DIFFER"
+                row = f"{where.name}: {line.symbol} {span}: {counts}; {match}; missing {named}"
+                sys.stdout.write(row + "\n")
     restored = drill(path, scratch)
-    bad += sum(not t.same or bool(t.missing) for t in restored.values())
+    drilled = sum(not t.same or bool(t.missing) for t in restored.values()) + (not restored)
+    bad = sum(off.values()) + drilled
+    for name, count in off.items():
+        fate = "deletable on his yes" if not count and not drilled else "KEEP: not proven"
+        sys.stdout.write(f"{name}: {fate}\n")
     said = (
         f"headstart check: {bad} lines differ or miss bars; drill read back {len(restored)} lines"
     )

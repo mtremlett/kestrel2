@@ -80,7 +80,6 @@ def _judged(first: rung.Verdict) -> tuple[Answer, str]:
     return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
 
 
-ME = "lab.rung_ci"  #: this module as the cell knows it
 BLOCK = 20  #: days in a row to a block: a month of sessions, longer than most trades are held
 BLOCKS = 30  #: the fewest blocks of days to draw from, as the first rung asks thirty trades
 DRAWS = 5_000
@@ -134,7 +133,13 @@ def bootstrap_key(record: Record, rates: Rates) -> str:
     numpy whose draws they are, and the rates a line not in pounds is priced at."""
     made, c = record.key, record.key.cell
     days = sorted(day for day in rates if day <= c.end and c.line.currency != "GBP")
-    parts = [tape.rule_code(c.strategy), made.rung(ME).code, made.data, str(c), np.__version__]
+    parts = [
+        tape.rule_code(c.strategy),
+        made.rung(__name__).code,
+        made.data,
+        str(c),
+        np.__version__,
+    ]
     parts += [f"capital {CAPITAL}"]  #: the first rung sized every trade at it
     parts += [f"{day} {rates[day]}" for day in days]
     return hashlib.sha256("\n".join(parts).encode()).hexdigest()

@@ -153,9 +153,6 @@ def test_the_tree_is_inside_this_phases_ceiling() -> None:
         "Delete something or ask the operator to raise the ceiling on the pull request."
     )
     assert (
-        len(core) <= ceiling["product_files"]
-    ), f"desk/ has {len(core)} files, ceiling {ceiling['product_files']} for {phase}."
-    assert (
         _lines(lab) <= ceiling["lab_lines"]
     ), f"lab/ is {_lines(lab)} lines, ceiling {ceiling['lab_lines']} for {phase}."
 
@@ -192,7 +189,7 @@ def test_tests_never_outgrow_the_product() -> None:
     and change only with the operator's approval. Counting them too turned this guard
     red the moment the scenes were written before their code, as the canon requires.
     Ruled by the operator, 13 November 2026 (docs/DECISIONS.md)."""
-    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: 1.5, his ruling, 13 Nov
+    ratio = float(_budget()["unit_test_lines_per_product_line"])  #: his ruling, 13 Nov
     product, unit = _lines(_product()), _lines(sorted((ROOT / "tests" / "unit").rglob("*.py")))
     assert unit <= ratio * product, f"unit tests {unit} lines > {ratio} x product {product}"
 
@@ -218,6 +215,38 @@ def test_the_rulebooks_stay_short() -> None:
     )
 
 
+#: a number as written, thousands split by commas or underscores, or a fraction; never in a word
+NUMBER = re.compile(r"(?<![\w.])\d+(?:[,_]\d{3})*(?:\.\d+)?(?![\w]|\.\d)")
+#: where a limit is restated: the guards that enforce limits, and the rulebooks
+RESTATED = ("tests/guards/*.py", "CLAUDE.md", "CANON.md", "docs/FAILURE_PATTERNS.md")
+
+
+def _limits(value: Any) -> set[float]:
+    """Every number in BUDGET.json past a day of the month (a date is none), and any fraction."""
+    if isinstance(value, dict):
+        return {n for v in value.values() for n in _limits(v)}
+    if isinstance(value, list):
+        return {n for v in value for n in _limits(v)}
+    number = isinstance(value, int | float) and not isinstance(value, bool)
+    return {float(value)} if number and (value > 31 or value != int(value)) else set()
+
+
+def test_each_limit_has_one_home() -> None:
+    """TWO HOMES FOR ONE LIMIT (failure pattern 8; design item 7, 'every limit has one home that
+    pre-flight reads'). A ceiling copied into a guard or a rulebook stays behind when BUDGET.json
+    changes, and the copy is what a session reads (the runner's 8914 pin did this, 27 Nov). A guard
+    reads the number from BUDGET.json; a rulebook names the file, never the figure."""
+    limits = _limits(_budget())
+    copies = [
+        f"{path.relative_to(ROOT).as_posix()}:{row}: {token}"
+        for path in sorted({p for pattern in RESTATED for p in ROOT.glob(pattern)})
+        for row, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        for token in NUMBER.findall(line)
+        if float(token.replace(",", "").replace("_", "")) in limits
+    ]
+    assert not copies, f"BUDGET.json's limits written again outside it: {copies}"
+
+
 # ---------------------------------------------------------------- sprawl
 
 
@@ -231,6 +260,55 @@ def test_every_module_is_registered_in_the__manifest() -> None:
         "Add it and the one thing it owns to manifest/<lane>.toml, in the same change."
     )
     assert listed - actual == set(), f"in the manifest but absent: {sorted(listed - actual)}"
+
+
+#: a fragment's name: a module cut by size, not by what it owns (failure pattern 6)
+FRAGMENT = re.compile(r"_(?:parts?|more|extra|rest|bits|helpers?|misc|aux)\d*$|[a-z]\d$")
+
+
+def _git_out(*args: str) -> str:
+    return subprocess.run(  # noqa: S603
+        ["git", *args],  # noqa: S607
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
+def test_every_desk_module_has_one_owner_and_one_job() -> None:
+    """SPRAWL, held by ownership, not a file count (his 'Yes, all of it', 27 Nov). Each desk/
+    module is a row of one lane's manifest file, saying the one thing it owns; a module two
+    lanes list fails the loader."""
+    spec = manifest()
+    unowned = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if name.startswith("desk/")
+        and Path(name).name != "__init__.py"
+        and not (spec["owner"].get(name) and str(spec["modules"].get(name, "")).strip())
+    )
+    assert not unowned, (
+        f"desk/ modules with no lane or no stated job: {unowned}. Each is a row of "
+        'manifest/<lane>.toml: "desk/x.py" = "the one thing it owns".'
+    )
+
+
+def test_no_fragment_names_are_added() -> None:
+    """SPRAWL, by name. A module split off because its parent is full (`book_parts.py`,
+    `orders_parts2.py`) owns no concept of its own. Those on main may only fall; a change may
+    add none: name the new module for what it owns."""
+    base = _git_out("merge-base", "HEAD", "origin/main").strip()
+    was = set(_git_out("ls-tree", "-r", "--name-only", base, "--", *PRODUCT_DIRS).split())
+    added = sorted(
+        name
+        for name in (str(p.relative_to(ROOT)).replace("\\", "/") for p in _product())
+        if FRAGMENT.search(Path(name).stem) and name not in was
+    )
+    assert not added, (
+        f"fragment names added: {added}. Name a module for the one thing it owns, never its "
+        "parent's name plus a suffix (failure pattern 6)."
+    )
 
 
 def _imports(path: Path) -> set[str]:

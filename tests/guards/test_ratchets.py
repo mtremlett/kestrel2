@@ -9,6 +9,11 @@ main on every change, so no session has to keep a count up to date by hand:
   hours (21 November 2026). A file that grows is read a line at a time. A file that
   cannot grow (a source file, a small marker or config) says why on the same line:
   `# bounded: <why>`; a mark with no reason after it counts.
+- the file replaces in `desk/` and `lab/`: `path.replace(new)`, `path.rename(new)`,
+  `os.replace` and `os.rename`. On Windows a file replaced while another process reads it
+  refuses ("Access denied"): the store's daily files, a grid file and the runner's list on
+  16 November (failure pattern 19). Each shared file gets one locked writer; until then a
+  new writer reuses an old one, never adds a replace of its own.
 
 Approved in the after-first-light queue, 14 November 2026 (docs/DECISIONS.md).
 """
@@ -134,6 +139,39 @@ def test_whole_file_reads_never_rise() -> None:
     )
 
 
+#: what swaps one file for another: a path's replace or rename, and the os module's
+MOVES = frozenset({"replace", "rename"})
+
+
+def _replaces(source: str) -> list[tuple[int, int]]:
+    """Each call that replaces a file, by (line, column): `x.replace(y)` or `x.rename(y)` with
+    one argument (a text's replace takes two, a time's takes names), or `os.replace(a, b)`."""
+    return sorted(
+        (node.lineno, node.col_offset)
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in MOVES
+        and not node.keywords
+        and (
+            len(node.args) == 1
+            or (isinstance(node.func.value, ast.Name) and node.func.value.id == "os")
+        )
+    )
+
+
+def test_file_replaces_never_rise() -> None:
+    """A FILE REPLACED WHILE IT IS READ (failure pattern 19; design L16). Windows refuses the
+    swap while any reader holds the file, so each new replace is a new place for a live job to
+    fail. A change may route a writer through another's; it may not add a replace."""
+    before, now = _count(_base(), _replaces), _count_tree(_replaces)
+    grown = {p: (before.get(p, 0), n) for p, n in now.items() if n > before.get(p, 0)}
+    assert sum(now.values()) <= sum(before.values()), (
+        f"file replaces rise from {sum(before.values())} on main to {sum(now.values())}; "
+        f"files that grew (main, now): {grown}. Write through the file's existing writer."
+    )
+
+
 #: the smallest function body, in syntax nodes, whose copy counts as a duplicate
 DUPLICATE_NODES = 25
 #: where a name defined in desk/ or lab/ may be used
@@ -249,4 +287,31 @@ def test_constants_with_two_homes_never_rise() -> None:
         _two_homes(_sources(_base())),
         _two_homes(_sources(None)),
         "Import the constant from the one module that owns it (manifest.toml).",
+    )
+
+
+#: a ticked box of docs/PLAN.md, up to the next box or heading; its id from its braces
+TICKED = re.compile(r"^- \[x\] .*?(?=^- \[[ x]\] |^#|\Z)", re.MULTILINE | re.DOTALL)
+BOX_ID = re.compile(r"\{id: ([a-z0-9-]+)")
+
+
+def _ticked_with_remains(plan: str) -> list[str]:
+    """The ticked boxes whose note still says what remains: a tick its check did not earn."""
+    return [
+        m.group(1) if (m := BOX_ID.search(box)) else box[:60]
+        for box in TICKED.findall(plan)
+        if "Remains:" in box
+    ]
+
+
+def test_ticked_boxes_that_say_remains_never_rise() -> None:
+    """PROGRESS COUNTED IN ACTIVITY (failure pattern 3): a box ticked while its note says what
+    remains (money-simcity-withdrawn-day, 26 November: 'Remains: read the next deep run's
+    verdict', and the deep run never gave one) is counted as progress before its check passed.
+    A change may untick one or finish what remains; it may not tick another."""
+    _never_rise(
+        "ticked boxes in docs/PLAN.md whose note says Remains:",
+        _ticked_with_remains(_git("show", f"{_base()}:docs/PLAN.md")),
+        _ticked_with_remains((ROOT / "docs" / "PLAN.md").read_text(encoding="utf-8")),
+        "Leave the box unticked until its check passes, or finish what remains and drop the line.",
     )

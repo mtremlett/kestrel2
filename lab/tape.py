@@ -1,6 +1,7 @@
 """tape - THE LADDER'S EXPENSIVE STAGE, KEPT (R-RUNNER-118): a rule's trades on a line, one file
-each, stored compressed, keyed by what made them (rule's code, engine's, bars), so an edited
-rung runs no simulation. Written whole or not at all: aside, forced to disk, renamed.
+each (a cell's shuffles, one file for all of them: `resamples`), stored compressed, keyed by
+what made them (rule's code, engine's, bars), so an edited rung runs no simulation. Written
+whole or not at all: aside, forced to disk, renamed.
 
 ONE SIMULATION PER LINE (R-RUNNER-169): a rule is run once on a line, from its first bar to its
 last, and every window (the first rung's, each fold's) is cut from that tape by date. A rule sees
@@ -89,12 +90,7 @@ def kept(folder: Path, run: Run, code_of: Callable[[str], str] = rule_code) -> R
             held = Record(now, *pickle.loads(zlib.decompress(raw)))  # noqa: S301
         else:
             held = run(whole, bars)
-            folder.mkdir(parents=True, exist_ok=True)
-            aside = path.with_suffix(f".{os.getpid()}.new")  #: workers of a pass may share a tape
-            with (fresh := aside).open("wb", buffering=0) as out:
-                out.write(zlib.compress(pickle.dumps((held.bars, held.trades))))
-                os.fsync(out.fileno())
-            fresh.replace(path)
+            _write(path, (held.bars, held.trades))
         return _cut(c, held, bars)
 
     return tape
@@ -113,12 +109,67 @@ def _cut(c: Cell, whole: Record, bars: Sequence[Bar]) -> Record:
     return Record(cell.key(c, bars), inside, tuple(trades))
 
 
+def _write(path: Path, held: object) -> None:
+    """A tape written whole or not at all: aside, forced to disk, renamed."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    aside = path.with_suffix(f".{os.getpid()}.new")  #: workers of a pass may share a tape
+    with aside.open("wb", buffering=0) as out:
+        out.write(zlib.compress(pickle.dumps(held)))
+        os.fsync(out.fileno())
+    aside.replace(path)
+
+
+#: The tapes' folder and the engine they keep, while `on` holds: the innermost block's last,
+#: the bare engine the outermost one's (a nested block's engine is a kept one).
+_ON: list[tuple[Path, Run]] = []
+
+
+@contextmanager
+def resamples(c: Cell, bars: Sequence[Bar]) -> Iterator[Run]:
+    """A run for the cell's resampled histories (the shuffle rung's), its n-th call answered
+    from the n-th of one tape for the cell (S5): keyed by the rule's code, the engine's and the
+    cell's own bars, each entry kept with the data version of the history that made it, so a
+    history not the same is run again on the bare engine. Written whole as the block ends, if
+    it grew, even when the block is broken off, so what was run is kept; with no tapes on, each
+    history is run."""
+    if not _ON:
+        yield lambda c, history: cell.run(c, history)
+        return
+    folder, run = _ON[-1][0], _ON[0][1]
+    now = cell.key(c, bars)
+    text = "\n".join(("resamples", rule_code(c.strategy), now.code, now.data, str(c)))
+    path = folder / f"{hashlib.sha256(text.encode()).hexdigest()}.shuffles"
+    held: list[tuple[str, int, tuple[Trade, ...]]] = []
+    if path.exists():  # our own file, written whole by this module
+        raw = path.read_bytes()  # bounded: one cell's resamples, a hundred trade lists at most
+        held = pickle.loads(zlib.decompress(raw))  # noqa: S301
+    grew, asked = [False], [0]
+
+    def resampled(c: Cell, history: Sequence[Bar]) -> Record:
+        at, asked[0] = asked[0], asked[0] + 1
+        key = cell.key(c, history)
+        if at < len(held) and held[at][0] == key.data:
+            return Record(key, held[at][1], held[at][2])
+        made = run(c, history)
+        held[at:] = [(key.data, made.bars, made.trades)]  #: a changed history: those after too
+        grew[0] = True
+        return made
+
+    try:
+        yield resampled
+    finally:
+        if grew[0]:  #: every entry answers only its own history, so a part is safe to keep
+            _write(path, held)
+
+
 @contextmanager
 def on(folder: Path) -> Iterator[None]:
     """`cell.run` keeps tapes under folder for the length of the block."""
     before = cell.run
     cell.run = kept(folder, before)  # type: ignore[assignment]  # the one place it is swapped
+    _ON.append((folder, before))
     try:
         yield
     finally:
+        _ON.pop()
         cell.run = before

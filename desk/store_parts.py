@@ -9,6 +9,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
+from operator import attrgetter
 from types import MappingProxyType
 
 from desk.lines import Line
@@ -39,6 +40,12 @@ class Bar:
     volume: int
 
 
+def upto(bars: Sequence[Bar], day: date) -> int:
+    """How many of a line's bars, which run in day order, are dated by day: halved to it, never
+    walked (27 Nov: each SimCity day walked every bar of every line, and grew with the days)."""
+    return bisect_right(bars, day, key=attrgetter("day"))
+
+
 @dataclass(frozen=True)
 class Fault:
     day: date  #: the session it concerns
@@ -48,15 +55,17 @@ class Fault:
 
 
 def pound_on(rates: Rates, day: date) -> Decimal | None:
-    """The pound's newest close in dollars on or before day, if no older than RATE_AGE."""
-    days = sorted(rates)
-    last = days[bisect_right(days, day) - 1] if rates and day >= days[0] else None
-    return rates[last] if last and day - last <= RATE_AGE else None
+    """The pound's newest close in dollars on or before day, if no older than RATE_AGE: found by
+    the days it may fall on, never by sorting every close for each bar judged (27 Nov)."""
+    closes = (rates.get(day - timedelta(back)) for back in range(RATE_AGE.days + 1))
+    return next((close for close in closes if close is not None), None)
 
 
 def same_as_pound(ratio: Decimal, pound: Decimal | None, within: Decimal) -> bool:
-    """The ratio of two closes is the pound's rate, or one over it, within the given fraction."""
-    return pound is not None and any(abs(ratio / r - 1) <= within for r in (pound, 1 / pound))
+    """The ratio of two closes is the pound's rate, or one over it, within the given fraction and
+    nearer it than no move: with the pound near a dollar (late 2022) a day's move is no currency."""
+    near = (abs(ratio / r - 1) for r in (pound, 1 / pound)) if pound is not None else ()
+    return any(off <= within and off < abs(ratio - 1) for off in near)
 
 
 def _agree(line: Line, before: Bar, onward: Sequence[Bar], rates: Rates) -> bool:
@@ -118,6 +127,17 @@ def _untraded(kept: list[Bar], bar: Bar, rate: Decimal | None, faults: list[Faul
         faults.append(Fault(day, f"{day} {ASTRAY}: it has no volume"))
 
 
+def _unconfirmed(
+    line: Line, kept: list[Bar], sound: Sequence[Bar], faults: list[Fault], rates: Rates
+) -> None:
+    """The newest bar has no close after it: a step the pound's size is kept, and parks the line
+    until a later bar confirms it (R-RUNNER-492)."""
+    if len(kept) > 1 and kept[-1] is sound[-1] and line.leverage == 1:
+        last, pound = kept[-1], pound_on(rates, kept[-1].day)
+        if same_as_pound(last.close / kept[-2].close, pound, FX_STEP):
+            faults.append(Fault(last.day, f"{last.day} unconfirmed: a step the pound's size"))
+
+
 def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates) -> list[Bar]:
     """Drop a bar, or a short run, a hundredfold out of line with the days either side or in the
     other currency; keep any other move, a one-day crash too, as a lasting fault until recorded."""
@@ -151,4 +171,5 @@ def _priced(line: Line, sound: Sequence[Bar], faults: list[Fault], rates: Rates)
             )
             faults.append(Fault(bar.day, what, lasting=True))
         kept.append(bar)
+    _unconfirmed(line, kept, sound, faults, rates)
     return kept

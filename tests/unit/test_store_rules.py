@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from test_store import DAY, LONG, US, _bars, _scaled
+from test_store import DAY, LONG, POUND, US, _bars, _scaled
 
 from desk import store
 from desk.lines import Line
@@ -60,6 +60,11 @@ RULES: dict[str, tuple[Make, Line, str]] = {  # rule site -> (synthetic archive,
         "unit",
     ),
     "_priced:4": (lambda b: [*b[:-8], _scaled(b[-8], Decimal("1.7")), *b[-7:]], US, "moved from"),
+    "_unconfirmed:1": (  # newest bar, a pound-sized step: kept, told
+        lambda b: [*b[:-1], _scaled(b[-1], 1 / POUND)],
+        US,
+        "unconfirmed",
+    ),
     "_split:1": (
         lambda b: [*(_scaled(x, Decimal(1) / 500) for x in b[:30]), *b[30:]],
         replace(US, splits=frozenset({(b_day(30), Decimal(7))})),
@@ -126,7 +131,9 @@ def test_each_rule_fires_on_its_synthetic_row(site: str) -> None:
     clean = list(_bars(US, LONG))
     answer = make(clean)
     shelf = [_scaled(x, Decimal(1) / 100) for x in clean] if site == "_joined:1" else clean
-    faults = store.judge(line, answer, DAY, shelf=shelf if site.startswith("_joined") else None)[1]
+    rates = {x.day: POUND for x in clean} if site == "_unconfirmed:1" else {}
+    held = shelf if site.startswith("_joined") else None
+    faults = store.judge(line, answer, DAY, rates, shelf=held)[1]
     assert any(seen in f.what for f in faults), site
 
 
@@ -175,3 +182,17 @@ def test_a_bad_low_is_repaired_and_the_line_not_parked_but_a_fall_the_close_shar
     fall = replace(was, close=was.close / 3, low=was.close / 3)
     faults = store.judge(US, [*clean[:5], fall, *clean[6:]], DAY)[1]
     assert not any("low repaired" in f.what for f in faults)
+
+
+def test_a_quiet_day_while_the_pound_sits_near_a_dollar_is_no_change_of_currency() -> None:
+    """SPY, QQQ, IITU, VUAG and ten more, 28 September 2022 to mid-2023: with the pound at $1.03
+    to $1.12, a close up 2% on the day before sat within FX_FAR of the pound's rate, so every
+    ordinary move was a 'wrong unit' and about 2,750 true IBKR bars were withdrawn. A ratio is
+    the pound's only when it is nearer the pound's rate than no move at all."""
+    clean = [replace(x, close=x.close + n % 2) for n, x in enumerate(_bars(US, LONG))]  # +-2%
+    for pound in (Decimal("1.07"), Decimal("1.03")):
+        kept, faults, _ = store.judge(US, clean, DAY, {x.day: pound for x in clean})
+        assert kept == clean and not any("unit" in f.what for f in faults), pound
+    step = [*clean[:30], *(_scaled(x, 1 / POUND) for x in clean[30:])]  # IITU x0.662 still is
+    assert any("unit" in f.what or "moved" in f.what
+               for f in store.judge(US, step, DAY, {x.day: POUND for x in clean})[1])  # fmt: skip

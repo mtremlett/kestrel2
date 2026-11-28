@@ -47,27 +47,26 @@ FULL: list[Step] = [
 
 UNIT_DIR = "tests/unit"
 
-#: Seconds each slow unit file took in GitHub's check, measured on 22 Nov (draft #1627, one
-#: run of all five shares). A file not named here weighs its size at 20 KB a second. The 16 Nov
-#: table had gone stale as the ladder grew (the epon file 13 s -> 222 s), and share 4 held three
-#: of the four slowest files: 10-15 minutes against the 15-minute limit, main red. The unit step
-#: prints its slowest tests, so a stale entry shows in every log.
+#: Seconds each slow unit file took in GitHub's check, measured on 27 Nov (draft #2332, one
+#: run of all five shares, `--durations=0` summed per file): every file at 30 s or more. A file
+#: not named here weighs its size at 20 KB a second. The 22 Nov table had gone stale (tune and
+#: sweep 284 s and 226 s were 12 s; the known-answer rung's 134 s had no entry): share 2 ran
+#: 743 s beside share 5's 182 s. tests/unit/test_check.py holds the measured shares balanced.
 SECONDS = {
-    "test_lab_ladder_pool.py": 364,
-    "test_lab_ladder.py": 356,
-    "test_lab_tune.py": 284,
-    "test_lab_sweep.py": 226,
-    "test_lab_ladder_epon.py": 222,
-    "test_simcity.py": 168,
-    "test_simcity_incidents.py": 162,
-    "test_lab_shuffle.py": 51,
-    "test_lab_verdict.py": 49,
-    "test_lab_tape.py": 43,
-    "test_lab_cell.py": 40,
-    "test_command.py": 29,
-    "test_simcity_fills.py": 27,
-    "test_lab_ladder_spec.py": 27,
-    "test_lab_rung_placebo.py": 23,
+    "test_lab_ladder_pool.py": 459,
+    "test_lab_ladder.py": 409,
+    "test_lab_ladder_epon.py": 264,
+    "test_lab_rung_known_answer.py": 134,
+    "test_lab_rung_known_answer_noise.py": 340,  #: the PC, 26 Nov; planted at 80 seeds, 27 Nov
+    "test_simcity_incidents.py": 131,
+    "test_lab_tape.py": 125,
+    "test_simcity.py": 98,
+    "test_lab_rung_registry.py": 52,
+    "test_lab_chain.py": 50,
+    "test_lab_rung_golden.py": 46,
+    "test_lab_verdict.py": 37,
+    "test_lab_shuffle.py": 33,
+    "test_lab_ladder_sets.py": 30,
 }
 
 

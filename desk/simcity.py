@@ -19,7 +19,7 @@ from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
-from desk import book, broker, day, halt, kill, orders, strategy
+from desk import book, broker, day, day_money, halt, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
@@ -57,6 +57,7 @@ from desk.simcity_incidents import (
 from desk.simcity_parts import MONTH, Archive, Night, _behind, _gapped, _killed
 from desk.simcity_parts import _market as dealt
 from desk.store import Bar
+from desk.store_parts import upto
 from desk.strategy import Action
 
 Rates = Mapping[str, Decimal]  #: the pounds per unit of each currency, every day of the night
@@ -93,9 +94,11 @@ class _Counted(Pretend):
         super().__init__(archive, {})
         self._rng, self.met = rng, Counter[Fault | None]()
         self.buys = 0  #: the orders to buy that reached the door
+        self.bought = Counter[str]()  #: and of which line each was
 
     def place(self, order: Order | Sale) -> Report:
         self.buys += isinstance(order, Order)
+        self.bought[order.line.symbol] += isinstance(order, Order)
         if self._rng.randrange(FAULTY) == 0:
             self._faults[order.line.symbol] = self._rng.choice(tuple(Fault))
         waiting = self._faults.get(order.line.symbol)
@@ -149,16 +152,16 @@ class _Life:
     def live(self, on: date) -> day.Record:
         """One day whole, from the data saved by its end, and its record."""
         saved = {
-            x: [b for b in bars if b.day <= on]
-            for x, bars in self.market.items()
-            if bars[0].day < on
+            x: list(bars[: upto(bars, on)]) for x, bars in self.market.items() if bars[0].day < on
         }
-        scenario, buys = self.census.scenario, self.pretend.buys
+        scenario, buys = self.census.scenario, self.pretend.bought.copy()
         record = self._run(saved, on)
         self.census.now(scenario)
-        odd = set(record.mismatches) - book.adopted(self.desk, on)  #: strangers, sold, are none
-        quiet = not (odd and self.pretend.buys > buys)
-        self.promise("nothing is bought on a day the book is not the broker's", quiet)
+        odd = {m for m in record.mismatches if not day_money.is_owed(m)} - book.adopted(
+            self.desk, on
+        )
+        quiet = not any(self.pretend.bought[name] > buys[name] for name in odd)
+        self.promise("nothing is bought on a line the book is not the broker's on", quiet)
         held, stopped = book.positions(self.desk), dict(self.pretend.stops())
         net = Counter[str]()  #: shares of a stranger's not sold: none of the desk's lines
         for f in book.fills(self.desk):

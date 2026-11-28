@@ -252,7 +252,25 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2184 four rules' holding periods settled; fade's 20-session hold waits on its spec.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2187 money-simcity-withdrawn-day done; deep SimCity worlds live past a withdrawn day.
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2210 R-RUNNER-533 test pinned: reconcile books an unsent broker fill; root cause not yet found on the broker side.
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2212 money-fills-replay-unknown-rule done: fills-replay returns a verdict, not a crash. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2216 R-RUNNER-480: test pins one fills read per zoo buy. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2224 R-RUNNER-538 four eponymous rules declare their holding period (none, stated). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2243 money-size-live-price early test restored, 1 test line pair. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2248 R-RUNNER-481 zoo drops non-ISA lines; zoo now 9 London + 7 US lines. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2168 R-RUNNER-488 a line owed its close is refused by name, the rest trade; reworked after review block, one blocker fixed. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2275 R-RUNNER-535 done, gap-up sizing within room. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2276 R-RUNNER-539 met: four rules declare no holding period, each test red then green. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2287 money-simcity-withdrawn-day: withdrawn-day gate pinned by a test. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2288 R-RUNNER-540 met: four rules' holding periods stated from their own sell logic, tests pinned. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2300 R-RUNNER-514 half: replay sized with the live price; the live round still unprotected. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2298 money-stranger-stopped done: shares under the desk's own broker stop are no stranger, no double sale. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2335 R-RUNNER-554 test lands: a holed line sold before the close keeps the promise, desk/ unchanged. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2330 claim gap closed for money-small (desk/strategy.py and its tests named); no box ticked. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2324 R-RUNNER-541 done: three rules declare their hold limit (zweig 230 sessions, two none). |
 
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2333 R-RUNNER-534 done: one differing line no longer stops London or the zoo. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2354 R-RUNNER-510 fault matrix: 7 of 325 cells built. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2363 R-RUNNER-542 part: a gap past the loss limit halts buying at collect; no caller passes lines yet. |
 
 ### DATA
 
@@ -577,6 +595,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2205 R-RUNNER-525: old stores checked against the one store, restore drilled. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2208 R-RUNNER-524: history database kept fresh every keeper round; data-history-fine ticked. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2244 test only: keeper withdrawn-day contract extended. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2258 data-monitor: escalation rule added and pinned, caller still to come. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2263 DATA: store flags an unconfirmed newest-bar pound step. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2268 R-RUNNER-547 keeper fault: rollup calendar asks per day, not per candle. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2274 data-consolidated: daily comparison built; real run and hourly open. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2285 R-RUNNER-471 gap-driven backfill logic and test landed; adapters open. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2301 R-RUNNER-492 met: the unconfirmed pound-sized newest bar parks its line. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2304 R-RUNNER-531 step 1 of 3 (builder): rollup.monthly. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2297 R-RUNNER-523 built: row-checked roll-off listing, 1 test, +57 lines. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2308 R-RUNNER-532 step 1: the 1901 line is built from text, not yet stored. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2317 DATA: the restore check now covers five-minute, daily and hourly bars. |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
@@ -722,6 +750,10 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2102 paper-supervisor-windows: install command built, tested. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2109 R-RUNNER-478 done, desk/ -49 lines. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2110 paper-supervisor-windows: install command fixed to start in the code folder; box still needs the operator's one run. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2264 R-RUNNER-454 IDTL contract built in desk/listing.py. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
 
 ### GRID
 
@@ -767,6 +799,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2073 R-RUNNER-465 done, Cell.symbol removed. |
 | 2026-11-23 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2104 R-RUNNER-474 catalogue-only rows served by the rule book. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2190 R-RUNNER-364 part 2 of 5: lab/chain.py makes a published set's variants; fast check and mypy green. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2202 R-RUNNER-365 chain.sweep built and tested on the fixture book; the real ladder still refuses variant names (R-GRID-9). |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2227 R-RUNNER-366 built: chain.report writes the plateau centre per rule and line, PRE-REVIEW. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2247 R-RUNNER-367 done: lab.chain command, called by the sweep's pass. |
 
 ### RUNGS
 
@@ -1165,4 +1200,26 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-24 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2178 PAPER R-RUNNER-505 done: the day check sets the conformance desk's share apart, any ticker; five remains in STATUS. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2183 RUNGS rungs-each-rung ticked: waiting is empty, the vacuous FOLDED pin replaced by a map check driven red. |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2189 RUNGS R-RUNNER-497 pinned by test, no product change; red restored by planting the pool's memory reader. |
+| 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2218 RUNGS L15 blind review of the whole ladder done; its one blocking fault fixed (a stopped pass published old verdicts). |
 | 2026-11-26 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2175 RUNGS R-RUNNER-496 half built: noise refused, edge heard; the edge going forward waits on L17. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2195 PAPER R-RUNNER-507 done: the intraday round sends at most 7 new orders a step, the rest carried; blind review finding fixed. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2200 PAPER R-RUNNER-473 done: carried orders are sent again at the next step, once; test red then green. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2209 PAPER R-RUNNER-546 done: London conformance no longer stopped by a US holiday; 6 of 6 steps on VUAG. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2257 RUNGS set 1 publishes its table with "rungs built: n of 12", as EPON and LEV do (rungs-gate step). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2254 RUNGS R-RUNNER-550 done: the stress reason names every untested episode; golden row 1 gains "untested: the 2008 crash". |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2262 RUNGS R-RUNNER-551 done: the trials register's key sees the catalogue row. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2266 RUNGS rungs-secondary-figures done: RSI-2's secondary figure (Empirica Lab, SPY 1993-2026) and its range on file; RSI-2 is now a reproduction candidate. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2273 RUNGS #2270 closed as a duplicate of #2254; the golden change's B5 record restored to DECISIONS. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2278 RUNGS R-RUNNER-552 done: the regimes rung cuts at the line's own last bar, a tradeless half is THIN not FAULT. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2256 RUNGS R-RUNNER-548 done: fake shuffle proof removed, the real shuffle runs in the ladder tests. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2264 PAPER R-RUNNER-454 done: an ISIN line is asked with an empty security type so IDTL resolves from the broker's answer. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 PAPER R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2293 RUNGS fix: the pool's tape test judges in-process, green on the Windows PC as well as GitHub (rungs-gate claim; box's remainder outside the claim). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2295 RUNGS R-RUNNER-485 met: ladder lists catalogue rows with no Python file through the spec maker. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2302 RUNGS R-GRID-9 (RUNGS half): the ladder proves a variant by its base rule. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2312 RUNGS R-RUNNER-558 done: INTRADAY and SCALP tables carry "rungs built". |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2309 RUNGS R-RUNNER-557 done: B2 ticked; Zweig's ratio bars from the universe breadth. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2315 RUNGS fast engine checked on all 7 golden series; second Keltner tie pinned; the desk's Keltner rounding fault located (lab/blocks.py), box not ticked. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2320 RUNGS a finished ladder set is told to his phone once (rungs-sets step, LAD-09). |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b ticked: the known-answer kit's crowd, a planted edge, goes forward through every rung; its noise twin is refused. |
+| 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS E13 (R-RUNNER-572): rung 15, one bar late; an edge paid only on the next open fails, one that lasts passes. |

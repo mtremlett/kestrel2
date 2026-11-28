@@ -82,6 +82,7 @@ from lab import luck, rulebook
 from lab.cell import Cell
 from lab.luck import Corrected
 from lab.rung import Verdict
+from lab.spec import SpecRule
 
 HEAD = b'{"register": "trials"}\n'  #: a register's first line: an empty file is not one
 #: Fixed before any result. Two trials whose daily returns correlate by LINK or more are one
@@ -102,7 +103,11 @@ def name(cell: Cell) -> str:
 def rule_hash(rule: str) -> str:
     """The first twelve letters of the hash of the rule's code as this process loaded it."""
     made = rulebook.rule(rule)
-    return code_hash(inspect.getsource(sys.modules[made.__module__]), made.__name__)
+    code = code_hash(inspect.getsource(sys.modules[made.__module__]), made.__name__)
+    if not issubclass(made, SpecRule):
+        return code
+    #: a catalogue row is the rule's code too: a setting changed is a new trial, as in the tape key
+    return hashlib.sha256(f"{code}\n".encode() + rulebook.row(rule)).hexdigest()[:12]
 
 
 def code_hash(source: str, name: str) -> str:

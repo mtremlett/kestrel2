@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -155,3 +156,18 @@ def test_the_keepers_round_reads_and_tells_only_its_recent_window(
     assert not [t for t in told if t.startswith("FAULT")]  # the year-old clash is not told again
     assert rounds.rolled(live, [LINE], now) == []  # the window rolled again: nothing new lands
     assert clashes(live, LINE, now) == ["VUAG 15m 2025-11-12 08:00: rolled and held differ"]
+
+
+def test_the_archive_never_replaces_a_day_the_broker_holds_but_fills_the_day_it_lacks(
+    tmp_path: Path,
+) -> None:
+    live, other = tmp_path / bars.LIVE, PRICE + 3
+    keeper(live, {"VUAG": 1})(LINE, "1d", (Bar(date(2026, 11, 20), PRICE, PRICE, PRICE, PRICE, 7),))
+    with bars.writing(live, bars.Source.ARCHIVE) as round_:
+        round_.daily(LINE, [Bar(date(2026, 11, 19), other, other, other, other, 9),
+                            Bar(date(2026, 11, 20), other, other, other, other, 90)])  # fmt: skip
+    assert [(b.day.day, b.close, b.volume) for b in bars.daily(live, LINE)] == [
+        (19, other, 9), (20, PRICE, 7)]  # fmt: skip
+    assert bars.sources(live, LINE, bars.DAILY) == {bars.Source.IBKR: 1, bars.Source.ARCHIVE: 1}
+    with sqlite3.connect(bars.files(live)[bars.DAILY]) as raw:
+        assert raw.execute("SELECT count(*) FROM correction").fetchone() == (0,)

@@ -684,3 +684,57 @@ Options: code 162 only, or the word "pacing". Took the word, which covers 162 an
 
 ### 2026-11-26 — the golden row joins `table`, no new command (DATA, #2144)
 One table, no new code path: `desk.quality table` carries one golden row per database.
+
+### 2026-11-27 — the keeper's copy to history is silent in `keep` (DATA, #2208)
+Options: add a report line, or stay silent. Took silent: the output the runner and tests read stays unchanged. The `--live` one-minute round does not copy by itself; the next five-minute round does.
+
+### 2026-11-27 — the quality job names only held-but-behind spans (DATA, #2201)
+Never-held spans are gaps, counted already; only a held span that is behind is a fault and is named. Cheapest option, no new command.
+
+### 2026-11-27 — the old-store check names a missing bar without judging why (DATA, #2205)
+Options: judge vouching again to tell never-vouched from lost (rejected: the check must not repeat the adoption); name every absent bar as missing (chosen). Checksums use 6-decimal prices.
+
+### 2026-11-27 — daily rows reuse the five-minute Tally (DATA, #2274)
+Options: a second type for days, or the same Tally with days shown as midnight UTC. Took the Tally, to stay small. A line absent from an old store is skipped; one absent from the one store counts all its days missing.
+
+### 2026-11-27 — `quality.escalate` kept, not deleted (DATA, #2258)
+A small tested step of data-monitor restored from an unfinished branch rather than deleted; it has no caller yet.
+
+### 2026-11-27 — the unconfirmed-step pin row is named `_unconfirmed:1` (DATA, #2263)
+The rule pin test names rules by function, so the row follows the function that holds the rule.
+
+### 2026-11-27 — four boxes' waits on requests are written as a date (DATA, scribe)
+The runner asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80` on data-isa-twins, data-survivorship, data-second-source and data-dividends. `tests/guards/test_requirements.py::test_every_id_the_plan_names_is_known` refuses two-digit R-DATA ids in a box (red on the first try). Options: write the ids (guard red; loosening it is his alone); drop the waits; write a date. Took the date 2026-12-04, the requests stay named in STATUS; the next scribe moves each wait to its request when the guard allows.
+
+### 2026-11-27 — the waits stay a date, again (DATA, scribe)
+The runner again asked for `waits: R-DATA-64..66`, `-68`, `-73`, `-78..80`; `test_every_id_the_plan_names_is_known` is red on them (two-digit ids), driven this run. Same options and choice as the entry above: the date 2026-12-04 stays, the requests stay named in STATUS.
+
+### 2026-11-27 — a pound-sized newest bar parks its line until a later bar (DATA, #2301)
+Options: A, park until a later bar removes the fault (chosen, per the request); B, park until the broker's bar for that day confirms it (left for a later step). The bar is still kept.
+
+### 2026-11-27 — monthly bars start on the month's first day 00:00 UTC (DATA, #2304)
+Options: start on the last session of the month, or on the first day as weekly starts on Monday (chosen). The store names a bar by its start, so a start on the last session was rejected. A month is written only when every session was held.
+
+### 2026-11-27 — a daily bar served off IBKR's is a fault in every hover (DATA, O12)
+His standing rule, IBKR first for every bar, had no check that read the store: 538 days sat relabelled `archive` for hours, seen only by a hand query. Options: A, a check inside the keeper's re-clean only (misses any other writer, as the old job copy was); B, the hover's daily cell reads the store itself: a day whose served bar is not IBKR's while `correction` holds IBKR's value replaced is a FAULT, kind `source` (chosen: every hour, whoever wrote it, 0.1 s on the real store). Driven red on the real store read-only, 27 Nov: 21 of 22 lines, 538 days (SPY 177, QQQ 157, AAPL 141).
+
+### 2026-11-27 — old-file roll-off reads CSV `symbol,day,open,high,low,close,volume` (DATA, #2297)
+Options: parquet of the old stooq store (needs a ticker-name map the store lacks); this CSV (chosen, the simple form). Other formats are kept and named, never called safe; nothing beyond byte twins is deleted.
+
+### 2026-11-27 — a hole the whole venue's feed shows is red in the hover, so the greenkeeper asks for it (DATA, O12)
+On 27 Nov every LSE line's bars stop at 15:45 (the old keeper's outage): 5m 15:50-16:25, 4h 12:00 and 16:00, 1m outside 11:54-15:46, and every US line's 1m at 17:59 before the early close. The hover called each cell fresh (its newest bar was of the last session), and no door asks again for a span already held, so the holes would never fill. Options: A, `history_write.plan` asks again a span held with holes (its done-set is per line and timeframe, it knows no session, and it is not the hourly door); B, fill the day by hand (A2: refused); C, the hover's intraday cell names the moments of the last ended session at which no line of the venue holds a bar, kind `hole`, so the greenkeeper, which works the hover's red cells, asks IBKR for that page (chosen: one judge, one door, IBKR first). A moment one line alone lacks is its own quiet spell, never a hole (2MU trades from 09:10), and one line holding the span alone cannot tell the two apart. Read on the real store, 27 Nov 20:2x: 166 cells red (51% fresh) until the greenkeeper's next run fills them: the hover was 98% only because it could not see them.
+
+### 2026-11-27 — every withdraw rule of the keeper and the writer has a row (DATA, O12, pattern 13)
+`desk/keeper.py` (#2389, #2394) and `desk/bars.py` (#2394, #2404) were each fixed twice in a day, each time for one live fault. Options: A, more rows by hand (the table had no way to say a rule was missing); B, a guard like `test_store_rules.py`: every function of keeper.py, bars.py and bars_form.py that is or uses a mark rule (WITHDRAW, RESTORE, UNDER, `_barred`, `_dropped`, `_upheld`) is named by a row's `SITES`, else red (chosen). Driven red 27 Nov: a planted keeper function reading `bars.UNDER` failed the guard; `_upheld` emptied failed three rows; `_dropped` emptied failed two tests. Next change to keeper.py or bars.py lands only with this guard green (the builders lead's ruling).
+
+### 2026-11-27 — Shiller's table lives in lab/, not desk/ (DATA, #2308)
+desk/ is at its 100-file ceiling, a guard, not loosened. The free CSV route (datahub s-and-p-500) was preferred over a library, as requested.
+
+### 2026-11-27 — the hourly old-store check reuses headstart_hours' reader (DATA, #2317)
+One owner for reading old hours rather than a second reader. Deleting the originals still waits on his yes, asked once the real run is clean (hard line).
+
+### 2026-11-27 — a withdrawn day stays withdrawn only while the judge drops its held bar (DATA, O12)
+2,975 daily bars of 14 lines (SPY 174, QQQ 154, IITU 326, VUAG 376 among them) sit withdrawn: IBKR's own bars, marked untrue by an earlier judgement and never judged again, because only a source giving the day afresh lifted a mark and no source gives 2022 again. Options: A, lift every mark by hand once (a one-line-at-a-time fix, pattern 13: refused); B, lift a mark only when a fresh source gives the day again (the rule until now: the marks never heal); C, each daily refresh judges the line's whole held history, its withdrawn days among it, with the one judge, and a day stays withdrawn only while that judgement drops its held bar, its bar and source otherwise kept as held (chosen: one judgement, nothing deleted or relabelled, and a corrected store rule heals the history it once marked). Pinned by `test_the_withdraw_rule_table`, one synthetic row per rule. Measured read-only on the store, 27 Nov: today's rules would restore 222 of the 2,975; the rest are held out by the pound rule (`same_as_pound` with the pound near $1.07 in late 2022 calls an ordinary day's move a change of currency), a store rule fixed in its own change.
+
+### 2026-11-27 — a write the store refuses lifts no withdrawn mark (DATA, O12)
+690 correction rows (538 days; AAPL, SPY, QQQ, MSTR, 3 on most others) show IBKR's daily bars rewritten as `archive`, prices alike, the archive's volume: the old job copy (5a2d74f0, without #2361) re-cleaned a held IBKR bar under a withdrawn mark as fresh, every such row before 19:02, none since. Main's writer refuses the archive over any IBKR day, marked or not, now pinned by a withdraw-table row. The same reading found a second fault: the refused day's mark was lifted anyway, so an IBKR bar the judge drops (a zero close) was served again. Options: A, let the archive take a withdrawn IBKR day (breaks IBKR first, refused); B, lift the mark for every day given (the rule until now); C, only a bar that lands, or the judge's own restore, lifts a mark (chosen: one judgement, IBKR first, nothing deleted). Pinned by `test_the_withdraw_rule_table`'s two new rows, both driven red with the archive filter removed.

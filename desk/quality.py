@@ -8,21 +8,24 @@ from a pulled one is a red fault. Exit 0 only when green."""
 
 from __future__ import annotations
 
+import csv
 import filecmp
 import json
 import os
 import shutil
 import sys
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 from desk import archive, backfill, bars, coverage, history_write, keeper, venues
 from desk.bars import Source
 from desk.lines import LINES, Line
-from desk.spans import EPOCH, FIVE
-from desk.store import AGREE, Bar
+from desk.spans import EPOCH, FIVE, SPANS, Five, Timed
+from desk.store import AGREE, Bar, Refused
 from desk.store import _clean as cleaned
 
 
@@ -204,11 +207,105 @@ def rolloff(old: Path, kept: Path) -> tuple[list[Path], list[Path]]:
     return deleted, listed
 
 
+def _held_rows(file: Path, home: Path, lines: Iterable[Line]) -> bool:
+    """True when the file is a CSV of daily bars (symbol, day, open, high, low, close, volume)
+    and the store holds every row exactly; unreadable, unknown or differing, False."""
+    by_name, held = {line.symbol: line for line in lines}, {}
+    try:
+        with file.open(newline="", encoding="utf-8") as rows:
+            for row in csv.DictReader(rows):
+                line = by_name[row["symbol"]]
+                if line.symbol not in held:
+                    held[line.symbol] = {b.day: b for b in backfill._held(home / keeper.HOT, line)}
+                at = held[line.symbol].get(date.fromisoformat(row["day"]))
+                o, h, lo, c = (Decimal(row[k]) for k in ("open", "high", "low", "close"))
+                if at is None or at != Bar(at.day, o, h, lo, c, int(row["volume"])):
+                    return False
+    except (
+        KeyError,
+        ValueError,
+        ArithmeticError,
+        OSError,
+    ):  # an unknown line, a bad row or file: kept, named
+        return False
+    return True
+
+
+def rolloff_rows(
+    files: Iterable[Path], home: Path, lines: Iterable[Line]
+) -> tuple[list[Path], list[Path]]:
+    """Old research files with no byte twin, checked row by row against the store: a file whose
+    every row the store holds is safe to roll; any other is kept. Nothing is deleted.
+    -> (safe, kept)."""
+    safe: list[Path] = []
+    kept: list[Path] = []
+    every = tuple(lines)
+    for file in files:
+        (safe if _held_rows(file, home, every) else kept).append(file)
+    return safe, kept
+
+
+def write_rolloff_rows(folder: Path, home: Path, lines: Iterable[Line]) -> Path:
+    """Every file under the folder judged by `rolloff_rows`; the lists are written to
+    `rolloff_rows.json` in the data home, where the runner job reads them. Nothing is deleted."""
+    files = sorted(p for p in folder.rglob("*") if p.is_file())
+    safe, kept = rolloff_rows(files, home, lines)
+    path = home / "rolloff_rows.json"
+    temp = path.with_suffix(".tmp")
+    temp.write_text(
+        json.dumps({"safe": [str(p) for p in safe], "kept": [str(p) for p in kept]}), "utf-8"
+    )
+    temp.replace(path)
+    return path
+
+
+Pull = Callable[
+    [Line, str], Sequence[Timed | Five] | Refused
+]  #: a source's bars of one line's span
+Pulls = Sequence[tuple[Source, Pull]]  #: the sources in the order they are tried
+
+
+def fill_cells(path: Path, lines: Iterable[Line], pulls: Pulls, now: datetime) -> list[str]:
+    """Each intraday cell holding no bar (daily gaps have `gaps`) asked of the pulls in order,
+    the broker first and the free archives behind it, the first answer written through the one
+    writer under its own source; a cell holding a bar asks nothing. What was written, in words."""
+    wrote = []
+    for line in lines:
+        for span in HOVER_SPANS:
+            if span == "daily" or span in OFFERED.get(line.symbol, ()):
+                continue
+            if cell(path, line, span, now) != "holds no bar":
+                continue
+            for source, pull in pulls:
+                got = pull(line, span)
+                if isinstance(got, Refused) or not got:
+                    continue
+                with bars.writing(path, source) as opened:
+                    if span == "5m":
+                        opened.five(
+                            line,
+                            [Five(t.start, t.open, t.high, t.low, t.close, t.volume) for t in got],
+                        )
+                    else:
+                        opened.timed(
+                            line, span, cast(Sequence[Timed], got)
+                        )  # only 5m comes as Five
+                wrote.append(f"{line.symbol}/{span}: {source.value}")
+                break
+    return wrote
+
+
 def monitor(
-    path: Path, lines: Iterable[Line], broker: backfill.Ask, archived: backfill.Ask, now: datetime
+    path: Path,
+    lines: Iterable[Line],
+    broker: backfill.Ask,
+    archived: backfill.Ask,
+    now: datetime,
+    pulls: Pulls = (),
 ) -> str:
     """Audit, backfill every gap, audit again: the one line saying green, or what stays red."""
     every, today = list(lines), now.date()
+    fill_cells(path, every, pulls, now)
     asks: backfill.Asks = (
         *backfill.ordered(broker, archived),
         (Source.ROLLUP_5M, partial(bars.rolled_day, path)),
@@ -284,6 +381,36 @@ def _last_session(line: Line, now: datetime) -> date:
     raise LookupError(f"{line.venue}: no session ended in the ten days to {now}")
 
 
+def _held_on(path: Path, line: Line, span: str, day: date) -> set[datetime]:
+    """When the line's bars of one short span start on a day, as held; none if never held."""
+    since = datetime.combine(day, time(), UTC)
+    try:
+        got = bars.five if span == FIVE else partial(bars.timed, span=span)
+        return {b.start for b in got(path, line, since=since, until=since + timedelta(1))}
+    except (LookupError, FileNotFoundError):  # the store never held this span for the line
+        return set()
+
+
+def _outage(path: Path, line: Line, span: str, day: date) -> list[datetime]:
+    """The moments of the venue's session `day` on the span's marks at which the line holds no
+    bar and neither does any other line of its venue: a feed stopped for the whole venue, never
+    one line's quiet spell. One line holding the span alone cannot tell the two apart: none."""
+    length, hours = timedelta(seconds=SPANS[span].seconds), venues.hours(line.venue, day)
+    anchor = EPOCH + timedelta(seconds=SPANS[span].anchor)
+    first = anchor + (hours.open - anchor) // length * length
+    due = {first + length * n for n in range((hours.close - first) // length + 1)}
+    own = _held_on(path, line, span, day)
+    gone, seen = {t for t in due if t < hours.close} - own, False
+    if not own or not gone:
+        return []
+    for other in (o for o in LINES if o.venue == line.venue and o != line):
+        theirs = _held_on(path, other, span, day)
+        seen, gone = seen or bool(theirs), gone - theirs
+        if not gone:
+            return []
+    return sorted(gone) if seen else []
+
+
 def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
     """None when the line's newest bar of one span is of its venue's last ended session (a
     week's: of that week or the one before); else why: the span holds no bar, or how far behind."""
@@ -300,6 +427,10 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
         due -= timedelta(due.weekday() + 7)
     if at < due:
         return f"newest {at}, last session {due}"
+    if name not in ("daily", "1wk") and (gone := _outage(path, line, name, due)):
+        return f"{len(gone)} bars missing in its venue's feed, the first on {due}"
+    if name == "daily" and (moved := bars.moved_off(path, line)):  # IBKR first (B3)
+        return f"{len(moved)} days moved off IBKR, the first {moved[0]}"
     if name == "daily" and line.symbol in GOLDEN:  # a hole inside the history is red too
         hole = _missing(line, backfill._held(path, line), due + timedelta(1))
         return f"{len(hole)} sessions missing, the first {hole[0]}" if hole else None
@@ -308,8 +439,17 @@ def cell(path: Path, line: Line, span: str, now: datetime) -> str | None:
 
 def kind(why: str) -> str:
     """The kind of a red cell, for the escalation (a model fixes a kind already seen): a gap holds
-    no bar, a hole misses sessions inside its history, else the cell is stale."""
-    return "gap" if why == "holds no bar" else "hole" if "missing" in why else "stale"
+    no bar, a hole misses sessions inside its history, a source a day served off IBKR's bar, else
+    the cell is stale."""
+    if why == "holds no bar":
+        return "gap"
+    return "hole" if "missing" in why else "source" if "moved off IBKR" in why else "stale"
+
+
+def escalate(red_kind: str, seen: frozenset[str]) -> str:
+    """Which model a red kind wakes, cheapest first: Opus for a kind never seen, Sonnet to fix a
+    kind already seen. (Haiku reads the fault and names its kind, by `kind`, before this.)"""
+    return "sonnet" if red_kind in seen else "opus"
 
 
 def _cells(
@@ -438,6 +578,16 @@ if __name__ == "__main__":
         gone, left = rolloff(Path(sys.argv[2]), home)
         sys.stdout.write(f"rolloff: {len(gone)} duplicates deleted; for his yes: {left}\n")
         sys.exit(0)
-    said = monitor(home / keeper.HOT, LINES, backfill._broker(home, now), backfill._archive, now)
+    if sys.argv[1:2] == ["rolloff-rows"]:
+        sys.stdout.write(f"rolloff-rows: {write_rolloff_rows(Path(sys.argv[2]), home, LINES)}\n")
+        sys.exit(0)
+    said = monitor(
+        home / keeper.HOT,
+        LINES,
+        backfill._broker(home, now),
+        backfill._archive,
+        now,
+        ((Source.BACKFILL, archive.five_pull(now)),),
+    )
     sys.stdout.write(f"{said}\n")
     sys.exit(0 if " green," in said else 1)

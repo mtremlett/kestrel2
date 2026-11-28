@@ -369,3 +369,57 @@ def test_the_old_store_is_checked_against_the_one_store_and_a_restore_is_drilled
     assert headstart.compare(store, {UK: [_at(0, "10 11 9 9.5")]})[UK].same is False
     assert US not in got
     assert headstart.drill(store, tmp_path / "scratch", [UK, US]) == {UK: Tally(2, 2, True, ())}
+
+
+def test_the_old_daily_rows_are_checked_against_the_one_stores_days(tmp_path: Path) -> None:
+    old, one = tmp_path / "old.db", tmp_path / "bars.db"
+    held, gone = replace(DAY, day=date(2026, 3, 2)), replace(DAY, day=date(2026, 3, 3))
+    _database(old, [("BA.L", "1d", f"{b.day}", 10, 11, 9, 10, 500) for b in (held, gone)])
+    with bars.writing(one) as round_:
+        round_.days(UK, [held])
+    got = headstart.compare_days(one, old, [UK])[UK]
+    assert (got.old, got.held, got.same) == (2, 1, True)
+    assert [at.date() for at in got.missing] == [gone.day]
+
+
+def test_the_old_hourly_bars_are_checked_against_the_one_stores_hours(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from desk.spans import Timed
+    from lab import headstart_hours
+
+    held, gone = _at(0), _at(60)
+    monkeypatch.setattr(headstart_hours, "hours", lambda *_: (gone, held))
+    one = tmp_path / "bars.db"
+    with bars.writing(one, Source.STOOQ_HOURLY) as round_:
+        round_.timed(
+            UK,
+            "1h",
+            [Timed("1h", *(held.start, held.open, held.high, held.low, held.close, held.volume))],
+        )
+    got = headstart.compare_hours(one, tmp_path, [UK])[UK]
+    assert (got.old, got.held, got.same, got.missing) == (2, 1, True, (gone.start,))
+
+
+def test_an_old_store_is_named_deletable_only_once_counts_checksums_and_the_drill_pass(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    old, one = tmp_path / "old.db", tmp_path / "bars.db"
+    rows = [
+        ("3LGO.L", "5m", f"{b.start:%Y-%m-%dT%H:%M}:00+00:00", 10, 11, 9, 10, 5) for b in _gone()
+    ]
+    _database(old, rows)
+    register = tmp_path / "register.md"
+    register.write_text(f"| IMPORT | `{old}` |\n", encoding="utf-8")
+    with bars.writing(one) as round_:
+        round_.five(LINES[0], _gone()[:1])
+    headstart.checked(register, one, tmp_path / "r1")
+    assert "old.db: KEEP: not proven" in capsys.readouterr().out
+    with bars.writing(one) as round_:
+        round_.five(LINES[0], _gone())
+    headstart.checked(register, one, tmp_path / "r2")
+    assert "old.db: deletable on his yes" in capsys.readouterr().out
+
+
+def _gone() -> list[Five]:
+    return [_at(0), _at(5)]

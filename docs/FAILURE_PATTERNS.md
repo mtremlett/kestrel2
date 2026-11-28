@@ -18,17 +18,17 @@ predecessor's 2,000-line core stayed inside its cap while its runner grew to rea
 **3. Progress counted in activity.** Cards landed, commits made, tests added — all rising
 while the thing that matters does not move. The predecessor landed about 1,100 work cards
 in six weeks and proved 10 of 64 requirements.
-→ *Caught by:* the only progress number is scenes passing out of seven, and the plan
-requires a batch adding net lines to name the scene it advances.
+→ *Caught by:* the only progress number is plan boxes ticked on main per 24 hours, from one
+function, and the plan requires a batch adding net lines to name the scene it advances.
 
 **4. The set-aside test.** A test fails, is added to a known-failures list "for now", and
 is never fixed. The predecessor carried 2,221.
 → *Caught by:* a guard forbids skip and expected-failure markers. There is no list.
 
-**5. The test that reads the live desk.** A test passes honestly on the operator's
-machine because it reads his real data or his broker, and proves nothing about the code.
-→ *Caught by:* a guard forbids machine-specific paths, and GitHub runs the whole check on
-a machine with no access to any of it.
+**5. The test that reads the live desk.** A test passes on the operator's machine because it
+reads his real data or broker, or runs his PC's own tools (mypy 2.3.0 for the pinned 1.14.1, #2233).
+→ *Caught by:* a guard forbids machine-specific paths; `test_the_check_runs_the_pinned_tools`;
+and GitHub runs the whole check on a machine with no access to any of it.
 
 **6. The second version of a file.** `_v2`, `_new`, `_fixed`, or a file named after the
 session that wrote it. The predecessor had 1,218 session-named test files.
@@ -82,14 +82,14 @@ last run asked another lane for something, or named a file outside its claim, un
 claim changes or that request is done; it was driven against planted runs.
 
 **13. Tuning the cleaner on live lines.** Each parked line's next odd bar drives another
-rule into `desk/store.py`, or real prices into `desk/lines.py`: the store fitted to the data
-one line at a time (14 Nov: three rule changes in twenty minutes on six London lines). Twin:
-`desk/keeper.py`'s withdrawal of the days its judge drops, fixed on one live line twice (#855;
-#2088, VUAG 2019). → *Caught by:* the runner halts a lane whose second `fix` touches a file
-another `fix` touched within ten landed changes; `tests/unit/test_store_rules.py` (#225) pins
-every store rule to a row of one synthetic fixture table (driven red with an unpinned rule,
-`docs/DECISIONS.md`, R-RUNNER-43, #225, #227). *Debt:* the keeper's withdraw rule has no such
-table; #2088's test pins the VUAG case alone.
+rule into `desk/store.py` and `desk/store_parts.py`, or real prices into `desk/lines.py`: the
+store fitted a line at a time (14 Nov: three rule changes in twenty minutes on six lines). Twins:
+`desk/keeper.py`'s withdrawal of the days its judge drops (#855; #2088, VUAG 2019); and the writer,
+`desk/bars_form.py`, on which source takes a held day (#861, #2361, #2404): the keeper reads a marked
+day as unheld, the writer as held, so each re-clean met the gap live. → *Caught by:* the runner's
+halt on a lane's second `fix` to a file within ten landed changes; `tests/unit/test_store_rules.py`
+(#225) pins every store rule to a fixture row (R-RUNNER-43, #227); the hover names off-IBKR days;
+`test_every_withdraw_rule_of_the_keeper_and_the_writer_is_pinned_by_a_row` each mark rule (27 Nov).
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
 (#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
@@ -128,14 +128,14 @@ a runner session asks him a second time. The lane idles for half an hour.
 `docs/DECISIONS.md`, and the runner's halt holds the card, never the lane. → *Debt:* no
 check reads a session's question against the recorded rulings.
 
-**18. The hand list beside the code.** A rule kept as a list by hand drifts from what the
-code does: the trading-path merge hold missed `desk/bars.py`, which the trading day
-imports, so a change reached it mid-session (16 November); conformance was scheduled
-inside the desk's rounds, which it rightly refuses; a job pointed at a function that had
-moved; the hourly report repeated a state long past.
-→ *Caught by:* the desk's rounds are kept once in the runner and every schedule and
-restart reads them; the hourly report reads current state. → *Debt:* the trading path
-computed from the desk step's imports instead of listed.
+**18. The hand list beside the code.** A rule kept by hand drifts from what the code does: the
+trading-path merge hold missed `desk/bars.py`, which the trading day imports (16 November);
+conformance was scheduled inside the desk's rounds; a job pointed at a moved function; the hourly
+report repeated a state long past. Twins: `lab/basket.py` pairs a basket's sale days to its market
+line's bars by its own date lookup (#2217 a holiday, #2353 a stale line); `desk/keeper_live.py`'s
+roll kept its own list of spans, so the long store's 15m and 30m never came (O12, 27 Nov).
+→ *Caught by:* rounds kept once in the runner; the report reads now; `test_lab_basket.py` plants
+edges; the roll copies all spans. *Debt:* trading path from imports; the basket on the one calendar.
 
 **19. Replaced while read (Windows).** A writer replaces a file while a reader holds it
 open, and Windows refuses ("Access denied", PermissionError): the store's daily files, a
@@ -143,8 +143,8 @@ grid file, the runner's own request list, all on 16 November; and the shared clo
 `.git/config`, rewritten by its own readers (every session start tracked a branch there, 208
 sections) until READY's reads failed (19 November).
 → *Caught by:* for `.git/config`, the runner writes it no more (its drive `drive_gitconfig`).
-Otherwise nothing yet; it is an open debt. The fix is one way to read and write each
-shared file, readers and writer under one lock, in each codebase; never a retry or a sleep.
+Elsewhere `test_file_replaces_never_rise` holds the replaces at 19. *Debt:* one way to read and
+write each shared file, readers and writer under one lock; never a retry or a sleep.
 
 **20. A gate that can never open.** A rule correct where written blocks its purpose where it
 runs: the rehearsal barred on any trading date or held line (16 Nov); `desk/running.py` set London
@@ -206,11 +206,11 @@ old Cancelled state: London's 09:00 round sent nothing (20 November).
 **26. The file read whole that grew.** The ladder kept every verdict it ever wrote, each
 re-judged cell adding a line and none removed, and read and parsed the whole file on every
 start: at 1.2 GB it held 12.8 GB, EPON idle nine hours (21 Nov); 37 reads like it on main.
-Twin: `desk/book_parts.py` re-read the pounds file once a trip; deep SimCity hung 2 h (22 Nov).
-→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`: whole-file reads in `desk/`
-and `lab/` may fall and never rise; a file that cannot grow says why on the same line
-(`# bounded: <why>`). *Debt:* the growing stores among the 37 are streamed (ladder first,
-R-RUNNER-432) and a results file keeps one line per cell, compacted as it is written.
+Twin: each SimCity day redid the desk's whole past (`desk/book_parts.py`, `desk/book_parts2.py`,
+`desk/orders.py`: files re-read and rewritten, every fill re-priced, astuple): deep 2.8 h (27 Nov).
+→ *Caught by:* the ratchet `test_whole_file_reads_never_rise`; `book_parts.read_once` and `add`
+(grown, never re-read), `book._summed`; SimCity's reads-per-day and flat-day tests. *Debt:* the
+37 growing stores streamed (ladder first, R-RUNNER-432), one line per cell, compacted as written.
 
 **27. The folder guessed from another.** `rates` read the store above the records folder
 `desk/command.py` gave it: true live, false in the rehearsal (records two deeper), so Monday read

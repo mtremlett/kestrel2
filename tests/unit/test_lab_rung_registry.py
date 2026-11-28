@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door, _rows, _set
 
-from lab import ladder, rung
+from lab import ladder, ladder_map, rung
 
 #: The gate (rungs-each-rung): no rung module is off the ladder's path; waiting is empty.
 OFF_PATH: tuple[str, ...] = ()
@@ -44,12 +44,15 @@ def test_every_rung_module_is_on_the_ladders_path_and_the_map_names_none_unwired
         "ci",
         "costs",
         "cpcv",
+        "fit",
+        "late",
         "liquidity",
         "regimes",
     ]
     assert waiting == OFF_PATH, "a rung module off verdict.judge's path: wire it, or merge it away"
-    rung_map = (ladder.__doc__ or "").split("THE RUNG MAP")[1].split("\n\n")[0]
-    assert "unwired" not in rung_map, "the map names a judge off the path: wire it, or merge it"
+    assert not [
+        r for r in ladder_map.rows() if "unwired" in r
+    ], "the map names a judge off the path: wire it, or merge it"
     ladder.run(tmp_path, _door({VUSA: EDGE, ISF: NOISE}), {}, _set(VUSA, ISF))
     assert all(not ({"planted"} & set(row["rungs"])) for row in _rows(tmp_path))
     rows = _rows(tmp_path)  #: EASED: a hard fail on the first rung stops that line there
