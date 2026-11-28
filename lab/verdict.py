@@ -224,12 +224,18 @@ def _plateaued(
         return Answer.FAULT, f"the plateau could not be judged: {cannot}"
 
 
-def basket_answer(basket: Verdict, stressed: Answer) -> str:
+def basket_answer(basket: Verdict, stressed: Answer, retail: Answer | None) -> str:
     """A basket's answer's name. Off: the ladder's own. EASED: a basket the ladder fails on enough
     trades, whose after-cost mean is T_INCUBATE standard errors above nothing and whose stress
-    passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE."""
+    passed, is INCUBATE; a PASS stays PASS, and any other stress answer is never INCUBATE. The
+    retail rung (None when unread) is a soft rung, read as `one_answer` reads one: its FAULT, or
+    a `scorecard` short of PASS, is the answer of a basket that would otherwise PASS or INCUBATE."""
     pending = basket.answer is Answer.FAIL and basket.t is not None and basket.t >= T_INCUBATE
-    return INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
+    said = INCUBATE if EASED and pending and stressed is Answer.PASS else basket.answer.name
+    if retail is None or said not in (Answer.PASS.name, INCUBATE):
+        return said
+    soft = Answer.FAULT.name if retail is Answer.FAULT else scorecard([retail], 0.0)
+    return said if soft == Answer.PASS.name else soft
 
 
 def stress_answer(c: Cell, own: Sequence[Bar], pounds: Rates) -> Answer:

@@ -235,8 +235,16 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     monkeypatch.setattr(verdict, "EASED", eased)
     first = verdict.ready(CELL, EDGE, {}, ())
 
-    def said(t: str, ladders: Answer, stress: Answer = Answer.PASS) -> str:
-        return verdict.basket_answer(replace(first, answer=ladders, t=Decimal(t)), stress)
+    def said(
+        t: str, ladders: Answer, stress: Answer = Answer.PASS, retail: Answer | None = None
+    ) -> str:
+        made = replace(first, answer=ladders, t=Decimal(t))
+        return verdict.basket_answer(made, stress, retail)
+
+    for sour in (Answer.FAIL, Answer.FAULT):  #: a graded rung failed or faulted is never a PASS
+        assert said("2.1", Answer.PASS, retail=sour) == sour.name
+        assert said("1.0", Answer.FAIL, retail=sour) == (sour.name if eased else "FAIL")
+    assert said("2.1", Answer.PASS, retail=Answer.DOUBT) == "PASS"  #: WEAK, within MAX_WEAK
 
     assert said("0.9", Answer.FAIL) == "FAIL"
     assert said("1.0", Answer.FAIL) == ("INCUBATE" if eased else "FAIL")

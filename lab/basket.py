@@ -206,5 +206,5 @@ def row(
         "rungs": verdict.reported(rungs),
         "unrun": UNRUN,
         "every": verdict.every(rungs),
-        "answer": verdict.basket_answer(basket, stressed),
+        "answer": verdict.basket_answer(basket, stressed, rungs.get("retail", (None,))[0]),
     }
