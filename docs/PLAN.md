@@ -964,9 +964,7 @@ his PC with the desk's own client id (222), never 4001.
       sent nothing cannot be green (NS-10) (#511: `desk/streak.py`; remains: showing the streak in the day's message and the pre-flight line)
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
-- [ ] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
-      Remains: #2107 was red only on the desk/ 18,000-line ceiling (18,073); #2109 freed 49 lines
-      (plan steward, 27 Nov: wait removed: the blocker was room, not him; BUDGET.json phase 3-money-paper allows desk/ 30,000 lines and desk/ holds 18,851 on b8e90a32; none of his hard lines is touched)
+- [x] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
