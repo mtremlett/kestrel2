@@ -4,7 +4,7 @@ of nothing by its whole confidence interval?
 The interval is the mean plus and minus T_PASS standard errors (Wasserman, All of Statistics,
 6.3.2), the sample's own deviation estimating the spread. The rung answers on the whole interval,
 not on a sign: wholly above nothing PASS, wholly below FAIL, holding nothing DOUBT. Under MIN_TRADES
-gains it is THIN, never a fail; no gain at all is a FAULT in the test (LAD-06, LAD-09); gains
+trades it is THIN, never a fail; no gain at all is a FAULT in the test (LAD-06, LAD-09); gains
 with no spread are refused loudly. Its two errors and thirty trades are the first rung's own
 (`lab/rung.py`), read from there. It does not call `rung.band`: the interval is open at both
 ends (strictly above or below nothing), `band` is closed at T_PASS, so folding would move a
@@ -72,10 +72,13 @@ def judge(gains: Sequence[Decimal]) -> Answer:
 
 
 def _judged(first: rung.Verdict) -> tuple[Answer, str]:
-    """The interval rung as the ladder reads it: its answer, and the interval in words."""
+    """The interval rung as the ladder reads it: its answer, and the interval in words. Too few
+    trades is the first rung's own answer (`rung.decide`, on trades): the loss planted at a stop
+    (G2) is among the gains the interval reads, never a trade counted."""
+    if first.answer in (Answer.FAULT, Answer.THIN):
+        many = len(first.trades)
+        return first.answer, f"{many} trades: under {MIN_TRADES} the interval is not read"
     answer = judge(first.gains)
-    if answer in (Answer.FAULT, Answer.THIN):
-        return answer, f"{len(first.gains)} gains: under {MIN_TRADES} the interval is not read"
     _, low, high = rung.interval(first.gains)
     return answer, f"the mean gain lies in {low:.4f} to {high:.4f} after costs; needs above nothing"
 
