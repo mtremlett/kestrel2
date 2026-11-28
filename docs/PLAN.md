@@ -479,16 +479,16 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       (runner ops 112, 23 Nov: claim adds desk/keeper_live.py, where the polled rounds must use keeper.pace and count each request, and desk/lines.py with its test, for the lines beyond today's twenty; two runs stopped on it, real_loop)
       Built (#1886): `keeper.pace` and the `POLLED` floor/ceiling table (a pacing refusal halves the rate, never below the floor; a clean round rises 25%, never above the ceiling); nothing calls it yet. Also (#1916): `keeper_live.polled_round` asks a rota's next `rate` lines for one-minute bars, counts requests and pacing refusals for `pace`; not yet in keeper.main (the rate must persist between runs). Remains: wire it into the polled 1-minute rounds in keeper_live.py with every request counted, the 90 streams and lines beyond twenty, the measured ramp on port 4002, daily bars for every ticker.
       {id: data-ibkr-capacity; files: desk/keeper.py, tests/unit/test_keeper*.py, desk/keeper_live.py, desk/lines.py, tests/unit/test_lines.py; after: data-broker-bars; check: tests/unit/test_keeper_live.py::test_the_polled_round_counts_every_request_and_paces_by_keeper_pace}
-- [x] **A free collector, started now, before anything uses it:** once a day, about 300 calls
+- [ ] **A free collector, started now, before anything uses it:** once a day, about 300 calls
       across the free tiers he already has, each response kept raw and timestamped: a US
       second opinion on every bar (Massive's whole-market daily), a third (Tiingo), a rotating
       London audit sample (Alpha Vantage and EODHD), US macro series and release dates (FRED,
       BLS, BEA, EIA), earnings calendars (Finnhub and Alpha Vantage, cross-checked), and news
       with timestamps (Finnhub, Marketaux, GNews). NewsAPI is not used: its free terms forbid
       it. History that free tiers do not keep cannot be bought back later (BIC-06, DAT-01)
-      Built (#1663, #1712, #1728, #1752, #1791): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources), and the Alpha Vantage earnings CSV, its own reader, its dates kept beside Finnhub's.
-      (plan steward, 27 Nov: met by #1791, 117bcff6: `_alpha_earnings_read` keeps the Alpha Vantage earnings CSV as EARNINGS facts beside Finnhub's under one key; the named check never existed, so check: points at the test #1791 extended, which asserts both dates held for NVDA)
-      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_one_run_writes_the_four_kinds_and_never_prints_a_key}
+      Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources); the Alpha Vantage earnings CSV's own reader (#1791). Remains: the cross-check of Finnhub dates: no code compares the two, a disagreement is flagged by name.
+      (plan steward, 28 Nov, coordinator 277: NOT met: #1791 keeps both sources' dates but nothing compares them; the named check never existed, so check: names the test to write, red while two dates disagree unflagged)
+      {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_earnings_dates_that_disagree_between_finnhub_and_alpha_vantage_are_flagged}
 - [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
       the one effect with strong published evidence; index trend and breadth from the desk's
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
