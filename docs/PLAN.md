@@ -489,6 +489,14 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       Built (#1663, #1712, #1728, #1752): EODHD, Alpha Vantage London sample, BLS, EIA, BEA (11 sources); the Alpha Vantage earnings CSV's own reader (#1791). Remains: the cross-check of Finnhub dates: no code compares the two, a disagreement is flagged by name.
       (plan steward, 28 Nov, coordinator 277: NOT met: #1791 keeps both sources' dates but nothing compares them; the named check never existed, so check: names the test to write, red while two dates disagree unflagged)
       {id: data-collector; files: desk/collector.py, tests/unit/test_collector.py; after: data-polite; check: tests/unit/test_collector.py::test_earnings_dates_that_disagree_between_finnhub_and_alpha_vantage_are_flagged}
+- [x] **Every hole in the research store's daily history listed by one rule** (R-RUNGS-40; his
+      28 Nov: "if there are gaps then the greenkeeper process needs to backfill them all"): a
+      session of a line's venue between its first and last bar with no bar and no suspension is
+      a hole, judged once (`Line.holes`), read by the hover, the ladder's pre-flight and
+      `history_bars.holes`, which lists every research line's holes for the greenkeeper (runner)
+      to ask of IBKR through the one writer. Real store, 28 Nov: 32,856 holes on 470 lines
+      (EPON's own pre-flight: 26,268 on 347).
+      {id: data-history-holes; files: desk/lines.py, desk/quality.py, lab/market.py, lab/history_bars.py, tests/unit/test_quality.py, tests/unit/test_lab_history_bars.py; check: tests/unit/test_lab_history_bars.py::test_every_research_lines_old_holes_are_listed_by_the_preflights_own_rule}
 - [ ] **Market weather recorded before it acts:** realised-volatility sizing researched first,
       the one effect with strong published evidence; index trend and breadth from the desk's
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
