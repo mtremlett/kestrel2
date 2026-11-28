@@ -605,6 +605,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2297 R-RUNNER-523 built: row-checked roll-off listing, 1 test, +57 lines. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2308 R-RUNNER-532 step 1: the 1901 line is built from text, not yet stored. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2317 DATA: the restore check now covers five-minute, daily and hourly bars. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2267 data-tiers built (`desk/tiers.py`); the desk/ ceiling has room on main. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2307 R-RUNNER-555 polled 5-minute round now asks 27 lines (floor reached). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2321 R-RUNNER-560 done: polled keeper rounds no longer share keeper-live's gateway client id. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2341 R-RUNNER-562 keeper judge made linear, test counted not timed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2361 R-RUNNER-567 archive no longer overwrites IBKR days (writer fix by source rank). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2408 data-consolidated: verdict line built; real run and his yes remain. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2409 data-rolloff-rows: list-writing command built and tested; runner call remains. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2426 data-collector done, 13 sources, earnings cross-check test green. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2438 data-monitor: archive wired into five-minute gap filling. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2439 data-monitor: archive fills 15m/30m cells (box not finished). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 

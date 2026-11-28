@@ -738,3 +738,24 @@ One owner for reading old hours rather than a second reader. Deleting the origin
 
 ### 2026-11-27 — a write the store refuses lifts no withdrawn mark (DATA, O12)
 690 correction rows (538 days; AAPL, SPY, QQQ, MSTR, 3 on most others) show IBKR's daily bars rewritten as `archive`, prices alike, the archive's volume: the old job copy (5a2d74f0, without #2361) re-cleaned a held IBKR bar under a withdrawn mark as fresh, every such row before 19:02, none since. Main's writer refuses the archive over any IBKR day, marked or not, now pinned by a withdraw-table row. The same reading found a second fault: the refused day's mark was lifted anyway, so an IBKR bar the judge drops (a zero close) was served again. Options: A, let the archive take a withdrawn IBKR day (breaks IBKR first, refused); B, lift the mark for every day given (the rule until now); C, only a bar that lands, or the judge's own restore, lifts a mark (chosen: one judgement, IBKR first, nothing deleted). Pinned by `test_the_withdraw_rule_table`'s two new rows, both driven red with the archive filter removed.
+
+### 2026-11-28 — a polled round is 27 lines: five watch-only US names (DATA, #2307)
+The `--polled 5` round asked 22 lines, below its floor of 27. Options: more LSE lines; add to LINES (rejected: LINES makes them tradeable); a new WATCHED list, in `desk/lines.py`, with checked ISINs (chosen: MSFT, AMZN, GOOGL, META, AVGO, large US lines; never traded or ranked). `POLLED_LINES` = LINES + WATCHED. No ticker list in the keeper.
+
+### 2026-11-28 — polled rounds get their own gateway client ids (DATA, #2321)
+Options: reuse 226 (refused: two conversations on one id are refused by the gateway); next free ids 227, 228, 229 for the 5, 15 and 60 minute rounds (chosen), none of 222, 223, 225, 226.
+
+### 2026-11-28 — the archive never replaces a day IBKR holds (DATA, #2361)
+Rank applied at the one writer for source ARCHIVE only. Options: per line or day (rejected by the request); rank all sources (wider than asked). BACKFILL already fills only where none is held. The 682 existing correction rows stay; repairing them is a separate job.
+
+### 2026-11-28 — an empty comparison does not prove an old store deletable (DATA, #2408)
+Options: count nothing compared as proven, or not. Chose not proven (nothing compared proves nothing; fail loudly): the verdict is 'deletable on his yes' only when every 5m, daily and hourly comparison matched with nothing missing and the restore drill read back clean, else 'KEEP: not proven'. Nothing is deleted.
+
+### 2026-11-28 — rolloff-rows writes its list as JSON in the data home (DATA, #2409)
+Options: stdout only; `rolloff_rows.json` (safe, kept), written atomically (chosen) so the runner job reads one stable file.
+
+### 2026-11-28 — the archive adapter lives in desk/archive.py; hourly bars wait for a rollup (DATA, #2438, #2439)
+The one-price-door guard allows only the writers to read outside the databases, so `five_pull` is in desk/archive.py, not quality.py. 1h left out: the archive's US hourly bars start at :30 and the store's 1h mark refuses them. Options: bucket them, or build 1h from 5m by rollup (recommended; not done, one concern per step).
+
+### 2026-11-28 — data tiers: no overflow to Tier B; allowance order held, signalled, watched (DATA, #2267)
+The vendor is bought after the A-GATE, so Tier B overflow is not used: an over-allowance name gets London's 15-minute feed or Tier C (a placeholder Tier B feed is a fake, refused by A5). The module line is in manifest/data.toml.
