@@ -3,7 +3,11 @@ more than chance would give?
 
 A cell's trades (`lab/cell.py`) are priced as the desk trades: decided after a close, filled at the
 next open, sized by the desk's sizer from the one capital number, the line alone in the book.
-A trade is judged only once both fills fall on bars the rule was shown.
+A trade is judged only once both fills fall on bars the rule was shown. ONE HOLDING MODEL
+(`lab.spec.Holding`): an OVERNIGHT trade is sized and bought at the close it was decided on and
+sold at the next bar's open (Friday's close to Monday's open is one trade), the rule's own sell
+unread; no stop rests while the market is shut, so an open at or under its level is the stop's
+sale at that open.
 
 ITS COSTS WHOLE, by the desk's one cost model (`orders.charges`), none worked out here: commission,
 a sale's fees, half the spread and slippage on both legs (a stop's sale slips further), the
@@ -55,6 +59,7 @@ from desk.strategy import ARITHMETIC, Action, Decision
 from lab import cell, published, reproduce
 from lab.cell import Cell, Key, Record, Trade
 from lab.reproduce import Reproduction
+from lab.spec import Holding
 
 #: A-GATE (AG-01): thirty trades is the fewest a t-statistic can fairly judge; two errors the bar.
 MIN_TRADES = 30
@@ -130,18 +135,23 @@ def judge(
     settings: Settings,
     rates: Rates,
     reproduced: Sequence[Reproduction] = (),
+    holding: Holding = Holding.NEXT_OPEN,
 ) -> Verdict:
-    """The record's trades priced on the bars that made it; none before its reproductions."""
+    """The record's trades priced on the bars that made it, as the holding fills them; none
+    before its reproductions."""
     published.proven(record.key.cell.strategy)
     behind = reproduce.settled(record.key.cell.strategy, reproduced)  #: before anything is priced
     if cell.key(record.key.cell, bars) != record.key:
         raise ValueError(f"{record.key.cell}: these bars or this code did not make the record")
     read = cell.shown(record.key.cell, bars)
     at = {bar.day: n for n, bar in enumerate(read)}
-    done = [t for t in record.trades if t.sold is not None and at[t.sold] + 1 < len(read)]
+    night = holding is Holding.OVERNIGHT
+    price = _overnight if night else _price
+    ends = [(t, t.bought if night else t.sold) for t in record.trades]
+    done = [t for t, end in ends if end is not None and at[end] + 1 < len(read)]
     with localcontext(ARITHMETIC):
         try:
-            priced = tuple(_price(record.key.cell, t, read, at, settings, rates) for t in done)
+            priced = tuple(price(record.key.cell, t, read, at, settings, rates) for t in done)
         except Declined as error:  #: the one place the sizing's refusal is judged: as REFUSED
             return Verdict(
                 record.key.rung(__name__), orders.BROKER, (), None, Answer.FAULT, behind, str(error)
@@ -217,14 +227,46 @@ def _price(
     if stopped:
         sale = (Leg.STOP, stopped[0].price, stopped[0].day)
     else:  #: an open at or under the stop is the stop's sale: it rests there before the sale
-        gapped = read[out].open <= order.stop
-        sale = (Leg.STOP if gapped else Leg.SALE, read[out].open, read[out].day)
-    paid, buying = _leg(line, rates, order.quantity, Leg.BUY, bought.price, bought.day)
+        sale = _at_open(read[out], order.stop)
+    return _priced(line, rates, order, trade, (Leg.BUY, bought.price, bought.day), sale)
+
+
+def _overnight(
+    c: Cell,
+    trade: Trade,
+    read: Sequence[Bar],
+    at: Mapping[date, int],
+    settings: Settings,
+    rates: Rates,
+) -> Priced:
+    """Sized and bought at the close it was decided on, sold at the next bar's open; no stop
+    rests overnight, so an open at or under its level is the stop's sale at that open."""
+    line, close, morning = c.line, read[at[trade.bought]], read[at[trade.bought] + 1]
+    decision = Decision(c.strategy, line.symbol, trade.bought, Action.BUY)
+    order = orders.size(decision, line, close.close, rate(line, rates, close.day), settings, {})
+    buy = (Leg.BUY, close.close, close.day)
+    return _priced(line, rates, order, trade, buy, _at_open(morning, order.stop))
+
+
+Fill = tuple[Leg, Decimal, date]  #: a leg, its price and its day
+
+
+def _at_open(bar: Bar, stop: Decimal) -> Fill:
+    """A sale at the bar's open: the stop's, when it opens at or under the stop's level."""
+    return (Leg.STOP if bar.open <= stop else Leg.SALE, bar.open, bar.day)
+
+
+def _priced(
+    line: Line, rates: Rates, order: orders.Order, trade: Trade, buy: Fill, sale: Fill
+) -> Priced:
+    """Both legs' values and every cost in pounds at each one's day's rate, and the return had
+    the stop sold it on the sale's day (G2)."""
+    paid, buying = _leg(line, rates, order.quantity, *buy)
     received, selling = _leg(line, rates, order.quantity, *sale)
     at_stop, stopping = _leg(line, rates, order.quantity, Leg.STOP, order.stop, sale[2])
     ifstopped = (at_stop - paid - (buying + stopping).total) / paid
     return Priced(
-        trade, order.quantity, paid, received, buying + selling, (bought.day, sale[2]), ifstopped
+        trade, order.quantity, paid, received, buying + selling, (buy[2], sale[2]), ifstopped
     )
 
 
