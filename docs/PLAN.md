@@ -1020,7 +1020,7 @@ his PC with the desk's own client id (222), never 4001.
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
       zoo's cancelled, the desk's still resting. Edits only, no new desk/ file
       {id: paper-side-stops; files: desk/paper.py, tests/unit/test_paper.py; check: tests/unit/test_paper.py::test_two_stops_on_one_ticker_rest_apart_by_side}
-- [ ] The rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov): Saturday's zoo-on
+- [ ] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
       rehearsal sent 28 one-share orders, each given the fill wait (120 s) on a shut market, and the runner ended
       it at 3600 s at Friday's 09:40 bar, before its own cancel ran: a buy and its stop were left resting at the
       paper broker (failure pattern 24). On a shut market no order can fill, so the rehearsal's account waits a few
@@ -1069,7 +1069,7 @@ grid-tune and grid-key side by side; then grid-pass, grid-week, grid-declared, g
       lab/sweep.py, lab/batch.py, lab/tune.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_batch.py, tests/unit/test_lab_tune.py, manifest.toml; after:
       grid-venue, grid-tune, grid-key}
-- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612 and again in #2021 after #2007 dropped it), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563; the log line carries them, #1748); the 15 Nov stop's trigger is unproven; old failed journals under kept/ heal when a pass reruns them (#2007) {id: grid-week; waits: 2026-11-28; files: lab/batch.py, lab/sweep.py,
+- [ ] Runs seven days without stopping. Remains: the week's clone runs pre-#1210 code against the new-format store (2,810 cells fail each hour since 21 Nov 03:21 UTC: #1370, and stale `.faults` notes swept as phantom tickers, filter restored in #1612 and again in #2021 after #2007 dropped it), so the seven days restart unbroken once the runner brings it to current main and restarts the job; read `sweep.unbroken` on or after 28 Nov and tick if 7 days. A pass that raises is now logged and the week carries on (#1562); each pass line names its commonest failure causes (`why`, #1563; the log line carries them, #1748); the 15 Nov stop's trigger is unproven; old failed journals under kept/ heal when a pass reruns them (#2007) {id: grid-week; waits: 2026-11-29; files: lab/batch.py, lab/sweep.py,
       lab/tune.py, tests/unit/test_lab_batch.py, tests/unit/test_lab_sweep.py,
       tests/unit/test_lab_tune.py; check: tests/unit/test_lab_sweep.py::test_unbroken_reads_seven_days_from_the_weeks_journal}
 - [x] The week's clone runs current main's code, not pre-#1210: a pass runs the code at its own home
