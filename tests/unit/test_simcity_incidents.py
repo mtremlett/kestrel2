@@ -20,57 +20,36 @@ from desk import (
     day,
     day_money,
     gateway,
+    incidents,
     keeper,
     keeper_live,
     paper,
     simcity,
-    simcity_incidents,
     simcity_parts,
     store,
     venues,
     watch,
 )
+from desk.incidents import hole as hole_module
+from desk.incidents.beside import LEFT, SOLD, beside
+from desk.incidents.cancelled import CANCELLED, NAMED, cancelled
+from desk.incidents.deaf import DEAF, deaf
+from desk.incidents.dropped import DROPPED, dropped
+from desk.incidents.gateway_silent import STOP_SILENT, gateway_silent
+from desk.incidents.halted import HALTED, halted
+from desk.incidents.hole import HOLE, PROMISE, hole
+from desk.incidents.locked import LOCKED, locked
+from desk.incidents.minutes import LIVE, minutes
+from desk.incidents.outside import OUTSIDE, outside
+from desk.incidents.parked import PARKED, parked
+from desk.incidents.silent import SILENT, silent
+from desk.incidents.slow import SLOW, slow
+from desk.incidents.stale import REFUSED, STALE, stale
+from desk.incidents.unbarred import UNBARRED, unbarred
+from desk.incidents.unheld import UNHELD, unheld
+from desk.incidents.unreachable import SHUT
 from desk.lines import YARDSTICK
 from desk.simcity_census import Census
-from desk.simcity_incidents import (
-    CANCELLED,
-    DEAF,
-    DROPPED,
-    HALTED,
-    HOLE,
-    LEFT,
-    LIVE,
-    LOCKED,
-    NAMED,
-    OUTSIDE,
-    PARKED,
-    PROMISE,
-    REFUSED,
-    SHUT,
-    SILENT,
-    SLOW,
-    SOLD,
-    STALE,
-    STOP_SILENT,
-    UNBARRED,
-    UNHELD,
-    beside,
-    cancelled,
-    deaf,
-    dropped,
-    gateway_silent,
-    halted,
-    hole,
-    locked,
-    minutes,
-    outside,
-    parked,
-    silent,
-    slow,
-    stale,
-    unbarred,
-    unheld,
-)
 from desk.store import Bar
 
 
@@ -100,7 +79,7 @@ def test_a_holed_line_sold_before_the_close_keeps_the_promise_and_without_the_sa
 ) -> None:
     monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
     sold = SimpleNamespace(positions=lambda _desk: {})  #: the held line left the book that day
-    monkeypatch.setattr(simcity_incidents, "book", sold)
+    monkeypatch.setattr(hole_module, "book", sold)
     assert not any(PROMISE in broken for broken in night(monkeypatch, tmp_path / "sold").broken)
     monkeypatch.undo()
     monkeypatch.setattr(day_money, "close", lambda a, line, _upto: a[line][-1].close)
@@ -339,3 +318,11 @@ def test_a_london_incident_drawn_on_a_day_london_keeps_shut_is_owed_and_the_day_
     life = simcity._Life(tmp_path, MARKET, ROOM, RATES, 1, Census(simcity.PATH))
     assert incident(life, boxing) is False, "drawn on a day London is shut, and not still owed"
     assert [r.day for r in life.records] == [boxing], "the day not lived"
+
+
+def test_every_incident_comes_from_its_own_module_and_simcity_names_none() -> None:
+    every = (*incidents.DRAWN, incidents.LONE)
+    for words, scenario in every:
+        assert scenario.__module__ == f"desk.incidents.{scenario.__name__}", words
+    named = [e for _, e in every if getattr(simcity, e.__name__, 0) is e]
+    assert not named, "simcity names an incident"

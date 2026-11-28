@@ -19,41 +19,11 @@ from pathlib import Path
 from shutil import rmtree
 from types import ModuleType
 
-from desk import book, broker, day, day_money, halt, kill, orders, strategy
+from desk import book, broker, day, day_money, halt, incidents, kill, orders, strategy
 from desk.broker import Crash, Fault, Pretend, Report
 from desk.lines import YARDSTICK, Line
 from desk.orders import HOLDINGS, Order, Sale, Settings, pennies
 from desk.simcity_census import Census
-from desk.simcity_incidents import (
-    CANCELLED,
-    DEAF,
-    HOLE,
-    LEFT,
-    LIVE,
-    LOCKED,
-    PARKED,
-    SHUT,
-    SILENT,
-    SLOW,
-    STALE,
-    STOP_SILENT,
-    UNBARRED,
-    UNHELD,
-    beside,
-    cancelled,
-    deaf,
-    gateway_silent,
-    hole,
-    locked,
-    minutes,
-    parked,
-    silent,
-    slow,
-    stale,
-    unbarred,
-    unheld,
-    unreachable,
-)
 from desk.simcity_parts import MONTH, Archive, Night, _behind, _gapped, _killed
 from desk.simcity_parts import _market as dealt
 from desk.store import Bar
@@ -255,26 +225,15 @@ def _unstopped(life: _Life, on: date) -> None:
         put_back()
 
 
-Event = tuple[str, Callable[[_Life, date], object]]
+Event = incidents.Event
 EVENTS: tuple[Event, ...] = (
-    (STALE, stale),
+    *incidents.DRAWN[:1],  #: the keeper's stale one is drawn first
     (BEHIND, _behind),
     (UNSTOPPED, _unstopped),
     (GAPPED, _gapped),
     (KILLED, _killed),
     (THROUGH, _through),
-    (HOLE, hole),
-    (LEFT, beside),
-    (CANCELLED, cancelled),
-    (PARKED, parked),
-    (DEAF, deaf),
-    (UNHELD, unheld),
-    (UNBARRED, unbarred),
-    (LOCKED, locked),
-    (LIVE, minutes),
-    (SILENT, silent),
-    (SLOW, slow),
-    (STOP_SILENT, gateway_silent),
+    *incidents.DRAWN[1:],
 )
 
 
@@ -426,10 +385,10 @@ def _live(life: _Life) -> None:
             ran = happen(life, on) is not False  #: False: it could not run today, still owed
             todo += [] if ran else [(scenario, happen)]
             life.done |= {scenario} if ran else set()
-        elif SHUT not in life.done:  #: once, on a plain morning; it draws nothing from the seed
-            census.now(SHUT)
-            unreachable(life, on)
-            life.done.add(SHUT)
+        elif incidents.LONE[0] not in life.done:  #: once, on a plain morning; no draw
+            census.now(incidents.LONE[0])
+            incidents.LONE[1](life, on)
+            life.done.add(incidents.LONE[0])
         else:
             life.live(on)
     census.now(RECKONING)
