@@ -777,6 +777,11 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2369 R-RUNNER-569 built: conformance settles its own earlier orders before it sends. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2381 R-RUNNER-564 built: conformance sizes through orders.size's live price. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2434 paper-watcher built: independent supervisor watcher, 3 tests. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2469 paper-rehearsal-wait built; Monday's rehearsal should now end inside its time. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2476 paper-side-stops: read by ticker and side landed; set/move/cancel remain. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2477 paper-side-stops: its box check now resolves to a passing test. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2489 paper-rehearsal-wait: shut-market wait 5 s to 3 s; planted Friday of 313 orders ends inside its time. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2497 paper-supervisor-simcity ticked: the supervisor's kill-and-restart proved through SimCity, no operator action. |
 
 ### GRID
 

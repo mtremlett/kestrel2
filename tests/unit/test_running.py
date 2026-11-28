@@ -201,8 +201,14 @@ def test_what_a_desk_that_died_part_way_left_at_the_broker_is_put_right(
 ) -> None:
     def recover(root: Path, *answers: Said) -> tuple[tuple[str, ...], list[bytes]]:
         sent = _gateway(monkeypatch, *answers[:1], *answers)  # the account as found is read first
+        broker = tp._paper(root)
         return running.recover(
-            root, tp._paper(root), LISTED, MON.date(), paper.Door(paper.DESK)
+            root,
+            broker,
+            LISTED,
+            MON.date(),
+            paper.Door(paper.DESK),
+            lambda: book.collect(root, broker),
         ), sent[1:]
 
     idle, part, unheld = (tmp_path / name for name in ("idle", "part", "unheld"))
@@ -336,7 +342,7 @@ def test_the_days_record_is_made_once_every_market_is_shut_and_a_missed_session_
     days = [date(2026, 11, n) for n in (13, 16, 17)]
     assert [r.day for r in day.records(missed.root)] == days
     assert "📅 Last day on record Tue 17 Nov" in _told(tuesday)[-1]
-    assert _told(asked) == days
+    assert _told(asked) == [days[-1], *days[:2]]  # today's first, for the collect
     assert _told(missed.held)[1:] == [  # after the crash watch's look
         on + timedelta(days=1) for on in days
     ]

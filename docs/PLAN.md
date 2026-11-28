@@ -1013,7 +1013,7 @@ his PC with the desk's own client id (222), never 4001.
       manifest.toml; after: paper-running}
 - [x] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
-- [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
+- [x] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
       counted; no Windows task, no gateway, nothing of his (builders lead, 27 Nov: PAPER had no box buildable and
       provable through SimCity without the operator). The claim is the test alone: the supervisor's module is held by two
@@ -1058,7 +1058,7 @@ his PC with the desk's own client id (222), never 4001.
       stay green until money-side-stops adds them there. Gate: a gateway tape with two stops on one ticker, the
       zoo's cancelled, the desk's still resting. Edits only, no new desk/ file
       {id: paper-side-stops; files: desk/paper.py, tests/unit/test_paper.py; check: tests/unit/test_paper.py::test_two_stops_on_one_ticker_rest_apart_by_side}
-- [ ] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
+- [x] FIRST-LIGHT: the rehearsal ends inside its time and leaves nothing working (coordinator 298, 28 Nov; tag: coordinator 300, Monday's rehearsal reads NO-GO until it lands): Saturday's zoo-on
       rehearsal sent 28 one-share orders, each given the fill wait (120 s) on a shut market, and the runner ended
       it at 3600 s at Friday's 09:40 bar, before its own cancel ran: a buy and its stop were left resting at the
       paper broker (failure pattern 24). On a shut market no order can fill, so the rehearsal's account waits a few
@@ -1067,7 +1067,7 @@ his PC with the desk's own client id (222), never 4001.
       job timeout; skipping the send. Gate: a test, written first, where a planted rehearsal of 28 orders ends
       inside its limit with no order of its own working. Measured Sat 28 Nov 13:45 after #2469 (the 5 s wait):
       a whole Friday is 313 orders at about 10 s each, plus three 30 s gateway dial timeouts, so the 3300 s ran
-      out at Friday's 17:50 bar, NO-GO, nothing left working; the planted rehearsal holds a Friday's 313 orders
+      out at Friday's 17:50 bar, NO-GO, nothing left working; the planted rehearsal holds a Friday's 313 orders (#2469, #2489: shut-market wait 3 s, seen red at 5 s and green at 3 s; remains: the per-order cost is estimated, the next real rehearsal's tape confirms it and that the broker cancels a short-lived buy cleanly)
       {id: paper-rehearsal-wait; files: desk/command.py, desk/placing.py, tests/unit/test_command.py, tests/unit/test_placing.py; check: tests/unit/test_command.py::test_a_rehearsal_of_many_orders_ends_inside_its_time_with_none_working}
 - [ ] The rehearsal's NO-GO names what failed (card nogo-line-names-cause, R-RUNNER-442): a rehearsal whose first
       or last account read stalls still ends REHEARSAL NO-GO, never a bare TimeoutError: the line names that read
@@ -1374,7 +1374,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       one holding model, no second engine: a spec field holding ('next_open' the default, 'overnight') read by
       lab/spec.py; 'overnight' buys at close[t] and sells at open[t+1] (Friday to Monday one trade), costs whole
       by orders.charges, no stop while the market is shut. Gate, written first, in the contract test: hand-worked
-      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named lab/cell.py, GRID's: a part that needs it is a GRID box this one waits for)
+      Thursday and Friday entries; a gap through a stop's level sold at the open; future-blind at close[t] (the card also named GRID's cell module: a part that needs it is a GRID box this one waits for)
       {id: holding-overnight; files: lab/rung.py, lab/spec.py, tests/unit/test_lab_rung.py, tests/unit/test_lab_spec*.py; check: tests/unit/test_lab_rung.py::test_an_overnight_holding_buys_at_the_close_and_sells_at_the_next_open}
 - [ ] Row 101's overnight baseline through the ladder (card holding-overnight-row101, R-RUNNER-375, part 2 of 3):
       [overnight_baseline] in lab/catalogue.toml (row 101 of set-catalogue.md, source named), buy every close and
