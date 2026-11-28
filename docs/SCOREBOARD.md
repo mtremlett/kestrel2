@@ -757,6 +757,9 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2251 R-RUNNER-513 met: conformance sizes at the market when it gaps down. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2351 R-RUNNER-568 done: one SMGB stop no longer stops every London line. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2347 R-RUNNER-536 hourly Gateway-down line built, test seen red before (no pnl.down). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2369 R-RUNNER-569 built: conformance settles its own earlier orders before it sends. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2381 R-RUNNER-564 built: conformance sizes through orders.size's live price. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2434 paper-watcher built: independent supervisor watcher, 3 tests. |
 
 ### GRID
 
