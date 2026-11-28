@@ -92,14 +92,14 @@ halt on a lane's second `fix` to a file within ten landed changes; `tests/unit/t
 `test_every_withdraw_rule_of_the_keeper_and_the_writer_is_pinned_by_a_row` each mark rule (27 Nov).
 
 **14. The judge fixed from the outside in.** `lab/ladder.py` took four fixes in ten changes
-(#402 and #419, two blind reviews; #405, a missing market day; #410, a failed cell judged
-again; #427, the "rungs built" count read from a docstring). Each review found a new edge
-in the one 400-line module that judges, counts, keeps tapes and writes the table, and each
-fix was true; no rung had a golden verdict pinned, so nothing showed a judgement drift
-until a reviewer read the code.
+(#402, #419, #405, #410, #427): each review found a new edge in the one 400-line module that
+judges, counts, keeps tapes and writes the table; no rung had a golden verdict pinned, so
+nothing showed a judgement drift until a reviewer read the code.
 → *Caught by:* the rung registry, the module split, the churn guard. Twin, `lab/ladder_sets.py`
 (#1992, 9db3dee8, #2218): 'stopped part-way' reaches the table writer as text, not a typed
 result. → *Caught by:* `test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected`.
+Twin, `lab/verdict.py` (#2491, O95 I3b, I7): the one rule was written again for each kind of row
+(cell, stopped line, basket), each copy short a gate. → *Caught by:* one `verdict.answered`.
 → *Debt:* a typed pass outcome (A2); a golden verdict per rung on the fixture (B5).
 
 **15. The broker the pretend never met.** `desk/conformance.py` is the only code that

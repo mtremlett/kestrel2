@@ -5,7 +5,7 @@ forward while a rung is unrun."""
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -236,15 +236,30 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     first = verdict.ready(CELL, EDGE, {}, ())
 
     def said(
-        t: str, ladders: Answer, stress: Answer = Answer.PASS, retail: Answer | None = None
+        t: str,
+        ladders: Answer,
+        stress: Answer = Answer.PASS,
+        retail: Answer | None = None,
+        yearly: float = 1.0,
     ) -> str:
         made = replace(first, answer=ladders, t=Decimal(t))
-        return verdict.basket_answer(made, stress, retail)
+        rungs = {"first": ladders} | ({} if retail is None else {"retail": retail})
+        return verdict.basket_answer(made, rungs, stress, yearly)
 
     for sour in (Answer.FAIL, Answer.FAULT):  #: a graded rung failed or faulted is never a PASS
         assert said("2.1", Answer.PASS, retail=sour) == sour.name
         assert said("1.0", Answer.FAIL, retail=sour) == (sour.name if eased else "FAIL")
     assert said("2.1", Answer.PASS, retail=Answer.DOUBT) == "PASS"  #: WEAK, within MAX_WEAK
+    #: the one rule, never a judge of its own: a hard gate short of PASS is the answer, a soft
+    #: rung's FAULT before the scorecard, and a yearly Sharpe over SHARPE_STOP a hard stop
+    made = replace(first, answer=Answer.PASS, t=Decimal("2.1"))
+    doubted = {"first": Answer.PASS, "deflated": Answer.DOUBT}
+    assert verdict.basket_answer(made, doubted, Answer.PASS, 1.0) == "DOUBT"
+    assert said("2.1", Answer.PASS, yearly=2.5) == "STOP"
+    assert said("2.1", Answer.PASS, retail=Answer.FAULT, yearly=2.5) == "FAULT"
+    assert said("2.1", Answer.PASS, Answer.FAIL) == "FAIL"  #: stress is a soft rung
+    assert said("1.0", Answer.FAIL, yearly=2.5) == ("STOP" if eased else "FAIL")
+    assert verdict.gates({"first": (Answer.PASS, ""), "retail": (Answer.THIN, "")})
 
     assert said("0.9", Answer.FAIL) == "FAIL"
     assert said("1.0", Answer.FAIL) == ("INCUBATE" if eased else "FAIL")
@@ -252,6 +267,11 @@ def test_a_basket_at_one_standard_error_incubates_and_over_the_stress_limit_neve
     for over in (Answer.FAIL, Answer.THIN, Answer.FAULT):  #: stress over its limit or untested
         assert said("1.5", Answer.FAIL, over) == "FAIL"
     assert said("1.5", Answer.THIN) == "THIN"  #: too few trades says nothing
+
+
+def _said(rungs: Mapping[str, tuple[Answer, str]]) -> dict[str, Answer]:
+    """Each rung's answer, its reason dropped: the one rule's input."""
+    return {name: said for name, (said, _) in rungs.items()}
 
 
 @OFF
@@ -285,6 +305,14 @@ def test_one_weak_soft_rung_no_longer_kills_a_cell_and_one_failed_hard_gate_alwa
     )
     assert ran is not None and ran[0] is Answer.PASS, "no lowest of NAMED before the shuffle"
     stopped = weak | {"folds": (Answer.FAULT, ""), "stress": (Answer.FAIL, "")}
-    assert verdict._stopped(0, stopped, {})["answer"] == "FAULT", "a FAULT is no FAIL"
+    assert verdict.answered(_said(stopped), 1.0, stop=True) == "FAULT", "a FAULT is no FAIL"
+    #: I7: a line stopped at stress answers by the one rule: a soft FAULT first, then the
+    #: scorecard with its yearly stop, never PASS; a hard gate short of PASS before all
+    at_stress = _said(weak | {"stress": (Answer.FAIL, "")})
+    assert verdict.answered(at_stress | {"market": Answer.FAULT}, 1.0, stop=True) == "FAULT"
+    assert verdict.answered(at_stress, 2.5, stop=True) == "STOP"
+    assert verdict.answered(at_stress, 1.0, stop=True) == "FAIL"
+    assert verdict.answered({"first": Answer.PASS}, 1.0, stop=True) == "FAIL", "reproduce failed"
+    assert verdict.answered({"first": Answer.THIN}, 2.5, stop=True) == "THIN"
     monkeypatch.setattr(verdict, "one_answer", lambda *_: "WIRED")
     assert _judge()["answer"] == "WIRED", "judge answers by the one rule"

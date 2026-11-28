@@ -21,9 +21,15 @@ DAY = date(2010, 1, 1)
 LINE_NAMES = ("VUSA", "ISF", "SMGB")
 
 
-def _line_verdict(symbol: str) -> Verdict:
-    """12 trades of a line: gains alternating 5% and 1%, so 6 and 6 after the (nil) costs."""
-    gains = [Decimal("0.05"), Decimal("0.01")] * 6
+#: 12 gains alternating 5% and 1%: pooled, a yearly Sharpe of 2.81, over the one rule's stop
+SHARP = (Decimal("0.05"), Decimal("0.01")) * 6
+#: 12 gains alternating 5% and -1%: pooled, a yearly Sharpe of 1.25 and a deflated one of 0.95
+CALM = (Decimal("0.05"), Decimal("-0.01")) * 6
+RULE = "breakout_20_10"
+
+
+def _line_verdict(symbol: str, gains: tuple[Decimal, ...] = SHARP) -> Verdict:
+    """12 trades of a line: `gains` after the (nil) costs."""
     priced = tuple(
         Priced(Trade(DAY, DAY), 1, Decimal(100), 100 * (1 + g), FREE, (DAY, DAY), None)
         for g in gains
@@ -44,7 +50,8 @@ def test_three_thin_lines_make_one_basket_of_36_trades_judged_on_the_pooled_gain
     #: sample variance is 36 * 0.0004 / 35, the standard error sqrt(0.0004 / 35), and
     #: t = 0.03 / sqrt(0.0004 / 35) = 0.03 * sqrt(87500) = 8.874: above 2 on 36 trades, PASS
     assert row["trades"] == 36
-    assert row["answer"] == "PASS"
+    #: the first rung passes; the pooled yearly Sharpe of 2.81 is the one rule's hard stop
+    assert row["rungs"]["first"][0] == "PASS" and row["answer"] == "STOP"
     assert row["cell"] == ["breakout_20_10", "BASKET", "all lines pooled"]
     assert row["trials"] == 50
     assert "36 trades judged" in row["rungs"]["first"][1]
@@ -54,6 +61,22 @@ def test_three_thin_lines_make_one_basket_of_36_trades_judged_on_the_pooled_gain
     stale = Against(LINES[0], (), {})  #: a market holding no bars: the retail rung FAULTs
     sour = basket.row(7, "breakout_20_10", lines, 50, Answer.PASS, stale)
     assert sour["rungs"]["retail"][0] == sour["answer"] == "FAULT"  #: never a PASS beside it
+
+
+def test_a_basket_is_answered_by_the_one_rule_and_a_weak_retail_rung_holds_nothing_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(verdict, "EASED", True)
+    calm = [_line_verdict(s, CALM) for s in LINE_NAMES]
+    market = Against(LINES[0], (), {})  #: the retail rung's answer is planted below
+    for retail, answer, every in ((Answer.DOUBT, "PASS", True), (Answer.FAIL, "FAIL", False)):
+        monkeypatch.setattr(basket, "grade", lambda *_, said=retail: (said, "planted"))
+        row = basket.row(7, RULE, calm, 50, Answer.PASS, market)
+        assert (row["answer"], row["every"]) == (answer, every), retail
+    assert basket.row(7, RULE, calm, 50, Answer.FAIL)["answer"] == "FAIL"  #: stress, soft, failed
+    doubted = [_line_verdict(s, (Decimal("0.04"), Decimal("-0.01")) * 6) for s in LINE_NAMES]
+    row = basket.row(7, RULE, doubted, 50, Answer.PASS)  #: a deflated Sharpe of 0.89, a HARD gate
+    assert row["rungs"]["deflated"][0] == "WEAK" and row["answer"] == "DOUBT"
 
 
 def test_a_failing_basket_over_one_standard_error_is_incubate_listed_apart_and_never_goes(
