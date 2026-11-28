@@ -46,7 +46,6 @@ from desk.orders import (
     Sale,
     Settings,
     cost,
-    expected_gain,
     gapped,
     is_zoo,
     order_id_of,
@@ -54,7 +53,6 @@ from desk.orders import (
     size,
     stop_under,
     strategy_of,
-    thin,
     traded_value,
 )
 from desk.risk import Standing
@@ -441,8 +439,6 @@ def _buy(
         order = size(d, line, *price, settings, mine, market, traded_value(bars, price[1]))
     except Refused as refused:  #: the gate's answer, kept with the day's others
         return book.Sent(name, 0, str(refused), Blocker.GATE)
-    if tell and thin(order, expected_gain(bars, order)):
-        tell(f"thin {name}", f"{name}: expected gain is under twice its round-trip cost (TRD-10)")
     looked = watch and watch(d.symbol)
     pounds, moves = looked or (None, None)
     return _send(root, broker, order, settings, tell, standing(root, day), pounds, moves, round_)
