@@ -75,6 +75,16 @@ def files(live: Path) -> dict[str, Path]:
     return {DAILY: live.with_name(HISTORY), FIVE: live}
 
 
+#: A roll-up's bar takes the place of a bar held from its own roll-up source alone: derived
+#: data follows its source bars (B3), and a pulled bar of any other source stays.
+RESTATE = ADD + (" ON CONFLICT (venue, symbol, span, at) DO UPDATE SET open = excluded.open,"
+                " high = excluded.high, low = excluded.low, close = excluded.close,"
+                " volume = excluded.volume WHERE bar.source = excluded.source AND"
+                " (bar.open, bar.high, bar.low, bar.close, bar.volume) IS NOT"
+                " (excluded.open, excluded.high, excluded.low,"
+                " excluded.close, excluded.volume)")  # fmt: skip
+
+
 class NoRound(RuntimeError):
     """No round was begun, or the round is lost, for SQLite's own reason: "database is
     locked" is a store that stayed in another's hands for WAIT seconds."""
@@ -86,6 +96,12 @@ class Round:
 
     def __init__(self, held: Mapping[str, sqlite3.Connection], source: Source) -> None:
         self._held, self._source = held, source
+
+    def _put(self) -> str:
+        """How this round's source writes a bar for a moment already held."""
+        if self._source.value.startswith("rollup:"):
+            return RESTATE
+        return PUT if self._source.fresh else FILL
 
     def _write(
         self,
@@ -153,19 +169,19 @@ class Round:
 
     def days(self, line: Line, bars: Iterable[Bar]) -> int:
         """More daily bars, and how many landed: as `five`, but for days not moments."""
-        put = PUT if self._source.fresh else FILL
+        put = self._put()
         return self._write(put, line, DAILY, ((bar.day.toordinal(), bar) for bar in bars))
 
     def five(self, line: Line, bars: Iterable[Five]) -> int:
         """More of a line's five-minute bars, and how many landed. They only gather: from a
         fresh source a bar given again for a moment takes the place of the one held for it;
         from any other a bar lands only on a moment that holds none. No other bar is touched."""
-        put = PUT if self._source.fresh else FILL
+        put = self._put()
         return self._write(put, line, FIVE, ((_seconds(b.start), b) for b in bars))
 
     def timed(self, line: Line, span: str, bars: Iterable[Timed]) -> int:
         """More of a line's bars of any other span, and how many landed: as `five`."""
-        put = PUT if self._source.fresh else FILL
+        put = self._put()
         return self._write(
             put, line, span, ((_seconds(b.start), b) for b in bars if b.span == span)
         )
