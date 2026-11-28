@@ -136,3 +136,21 @@ def test_an_order_left_working_fills_at_its_next_market_unless_cancelled_and_sto
     filled = left.report("o-2")
     assert filled and filled.reason is None and filled.fills[0].price == 18 and left.cancel() == ()
     assert killed.holdings() == () and len(killed.fills()) == 2, "a cancelled order filled"
+
+
+def test_the_zoos_stop_and_the_desks_stop_on_one_ticker_rest_apart() -> None:
+    zoo = _order("20251110-zoo_x-A", A, 1, "40")
+    broker = _broker(None, _order("20251110-s-A", A, 10, "45"), zoo)
+    assert broker.resting_stops() == {"A": (10, Decimal(45))}
+    assert broker.resting_stops(zoo=True) == {"A": (1, Decimal(40))}
+    assert broker.stops() == (("A", 10), ("A", 1))
+    broker.restop("A", Decimal(46), zoo=True)
+    broker.cancel_stop("A", zoo=True)
+    assert broker.resting_stops() == {"A": (10, Decimal(45))} and not broker.resting_stops(True)
+    broker.put_stop_back("A", Decimal(40), zoo=True)
+    assert broker.resting_stops(True) == {"A": (1, Decimal(40))}
+    broker.place(Sale("20251110-zoo_x-A-s", A, 1))
+    assert not broker.resting_stops(True) and broker.resting_stops()["A"] == (10, Decimal(45))
+    broker.cancel_stop("A")
+    with pytest.raises(ValueError, match="A: no stop rests to be moved"):
+        broker.restop("A", Decimal(46))

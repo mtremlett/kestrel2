@@ -104,13 +104,13 @@ result. → *Caught by:* `test_a_stopped_pass_writes_no_table_and_the_survivorsh
 
 **15. The broker the pretend never met.** `desk/conformance.py` is the only code that
 cancels, re-sends and trades beside the desk's book at the real broker, so each live run
-found a broker behaviour the pretend broker lacked (a second run's orders refused as
-duplicates, #435's minute; a run line naming the account when it meant the last step,
-#444; a stop "triggered" by cancelling it and selling at the market, compared with a
-pretend fill at the stop level, 16 November).
-→ *Caught by:* every run keeps its tape (real beside pretend, with the broker's own words),
-and a step whose two sides name different actions is a finding, not a pass (#557). The
-module was split (`desk/conformance_parts.py`).
+found a broker behaviour the pretend lacked (orders refused as duplicates, #435; a stop
+"triggered" by a cancel and a market sell, 16 Nov). Twin: `desk/history.py` met IBKR's bar
+answers one shape at a time (#739 the store's marks, #2053 its Busy text, #2460 a decimal
+volume '2831.4' that stopped the greenkeeper's whole run, 28 Nov).
+→ *Caught by:* every run keeps its tape (the broker's own words); a step whose sides differ is
+a finding (#557); the module split (`desk/conformance_parts.py`); history reads each bar field
+once, at entry, refusing an unknown shape in IBKR's words. *Debt:* no table of IBKR's bars.
 
 **16. The request rebuilt in parallel.** One piece of work reaches several sessions through
 different doors and is built two to four times: on 16 November R-RUNNER-190 four times through

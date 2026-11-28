@@ -70,6 +70,9 @@ ROOT, STORE, REHEARSALS = "desk", "store", "rehearsals"  #: folders, each inside
 CAPITAL = Decimal(10_000)  #: the paper desk's one capital, in pounds, until he rules another
 FIRST, LAST, EVERY = time(5, 30), time(22), timedelta(minutes=5)  #: the runner's day, UK clock
 NAMED = (OSError, HTTPException, ValueError, kill.Failed, messenger.Undelivered, paper.NotPaper)
+RUN_SECONDS = 3300  #: a rehearsal's own limit: the runner ends it at 3600 s, its cancel unrun
+#: The longest one step can take at the rehearsal's account: its orders' waits and the knock.
+STEP_BOUND = paper.MAX_ORDERS * placing.SHUT_SECONDS + paper.SECONDS
 USAGE = "python -m desk.running [--preflight | --rehearse]"
 OPEN = "REHEARSAL NO-GO: not begun: {}."
 GO = (
@@ -232,9 +235,12 @@ def _amiss(desk: Desk, on: date, left: Sequence[str], changes: Sequence[str]) ->
 
 def _live(desk: Desk, moments: Sequence[datetime], clock: Callable[[], datetime]) -> list[str]:
     """A step at each moment, as the day's: one that fails is named and the next carries on; the
-    run stops, named, if a market comes near by the clock."""
-    failed = list[str]()
+    run stops, named, if a market comes near by the clock or its own time (RUN_SECONDS) is spent."""
+    failed, began = list[str](), clock()
     for at in moments:
+        if (clock() - began).total_seconds() + STEP_BOUND > RUN_SECONDS:
+            failed.append(f"{at:%H:%M} UTC stopped, the rehearsal's {RUN_SECONDS} s were spent")
+            break
         if near := trading(clock()):
             failed.append(f"{at:%H:%M} UTC stopped, {' and '.join(near)} near")
             break
@@ -278,7 +284,7 @@ def rehearse(
         frozenset(h.name for h in before.holdings if h.shares),
         frozenset(o.broker_id for o in before.orders),
     )
-    door = paper.Door(paper.DESK, found)  #: the account found is not the rehearsal's to see
+    door = placing.Shut(paper.DESK, found)  #: the account found is not the rehearsal's to see
     desk = _desk(root / REHEARSALS / f"{now:%Y%m%dT%H%M%S}", post, root.parent)
     desk = replace(desk, door=door, zoo=(root / ZOO_ON).exists())  #: the desk's switch, rehearsed
     failed = _live(desk, moments, clock)

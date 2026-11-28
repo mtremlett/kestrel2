@@ -40,3 +40,4 @@
 "lab/headstart_days.py" = "the old database's daily rows as a head start: only its table ohlcv's 1d rows, read-only, cleaned by the one store and let into the fast store under their own source on the days that hold no bar"
 "lab/headstart_hours.py" = "the old Stooq store's hourly bars as a head start: read-only, each named by its start in UTC, vouched for by its day, cleaned by the one store and let into the history database under their own source"
 "lab/headstart_matrix.py" = "the old Stooq matrices' 15-minute, 30-minute and hourly arrays as a head start: read-only, named by their start in UTC, vouched for by their day, cleaned by the one store and let into the two databases under their own source"
+"desk/weather.py" = "the market weather recorded before it acts: each line's realised volatility, one reading a day from the closes up to that day, kept in a file nothing that trades reads"
