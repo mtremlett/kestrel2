@@ -1193,10 +1193,10 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         whole ladder on fixture data; its check is that the kit passes on main, which lifts the ladder's hold.
         Done (27 Nov, Builder R2): the planted edge is a crowd (`Crowd`, in while the day's volume is crowded), the only edge its rule hears, on deep lines, over 17 years; it goes forward on all four lines, every rung run and passed; the same crowds on lines that do not move with them FAIL at the first rung. The breakout's rise stays heard, not forward (DECISIONS 27 Nov). The hold itself is the coordinator's (E21)
         {id: rungs-known-answer-kit; files: tests/unit/test_lab_known_answer.py, tests/unit/test_lab_ladder_known_answer.py, tests/unit/test_lab_rung.py; waits: 2026-11-27; check: tests/unit/test_lab_ladder_known_answer.py::test_a_planted_edge_reads_pass_through_the_whole_ladder}
-  - [ ] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
+  - [x] L16 the gate: the runner runs the catalogue 24x7, each change re-running only its
         own specs, each set's table published with "rungs built: n of 12"
-        Remains (#2293): in-repository parts are on main (#2257, #2189, #2312); the runner's 24x7 catalogue job obeys job-ladder.hold until the known-answer kit passes on main (waits on R-RUNGS-46); stale-market crash at publish (lab/basket.py)
-        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; waits: R-RUNGS-46; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
+        Done (#2428): a stale or refused market under a basket is the retail rung's named FAULT and the table is still written (#2293). Remains, runner's: release job-ladder.hold, as R-RUNGS-46 is met (#2226)
+        {id: rungs-gate; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py, lab/basket.py; check: tests/unit/test_lab_ladder_pool.py::test_a_stale_market_publishes_a_named_gap_never_a_crash}
   - [x] L17 A PASS CAN EXIST: `verdict.UNRUN` names plateau on every cell and `goes()` needs no rung unrun, so
         no cell could ever go forward (blind review 22 Nov 09:2x). Plateau judged on each rule's B5 variants
         (the centre of a plateau, canon B6), so a cell with a real edge can pass; a planted edge goes forward
@@ -1251,6 +1251,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         Built: `lab/catalogue.toml` 24 rows, `Spec.parse` refuses any without (#1078, verified)
   - [x] B4 the nineteen eponymous rules as rows, identical trades on the fixture proven.
         Built: all 21 rows trade as their Python twins (#873, #1382, #1430, #1464); Zweig on breadth bars (#2425).
+        Built (#2345, #2383, #2425): all 21 rows pinned by a fingerprint of their fixture trades; the pins outlive the twins; Zweig has its own named check. Remains: MONEY deletes the 19 `desk/eponymous_*.py` twins (R-RUNGS-51; eleven are imported by desk/intraday.py), then `_twin` goes from the catalogue test and the box ticks.
         Deleting the Python files is R-RUNNER-127, a builder's: the files are MONEY's and the zoo, the ladder,
         promotion and the rulebook read them (coordinator 281, `docs/DECISIONS.md`)
         {id: rungs-rows-as-rules; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-spec; check: tests/unit/test_lab_catalogue.py::test_zweig_breadth_thrust_row_trades_as_its_python_twin}
@@ -1258,13 +1259,13 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
         {id: rungs-b5; files: lab/spec.py, lab/variants.py, lab/catalogue.toml, tests/unit/test_lab_variants.py; waits: R-RUNGS-33; check: tests/unit/test_lab_variants.py::test_every_variant_matches_the_desk_engine_before_it_is_judged}
   - [ ] B6 the old desk's families listed and entered as sets of rows marked QUARRY, their
         cases derived by hand, never from the old desk's numbers
-        {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; after: rungs-rows-as-rules; check: tests/unit/test_lab_catalogue.py::test_quarry_rows_carry_hand_derived_cases}
+        {id: rungs-quarry-rows; files: lab/catalogue.toml, tests/unit/test_lab_catalogue*.py; waits: 2026-11-29; check: tests/unit/test_lab_catalogue.py::test_quarry_rows_carry_hand_derived_cases}
   - [x] P1 a fast engine for rows, vectorised in `lab/`, matching the desk's engine on the
         golden fixture (canon B2) or removed; indicators computed once per ticker and shared
         {id: rungs-fast-engine; files: lab/fast.py, tests/unit/test_lab_fast.py; after: rungs-blocks; check: tests/unit/test_lab_fast.py::test_the_fast_engine_matches_the_desk_on_the_golden_fixture}
   - [ ] GC the grid chained onto each set: rows swept over their ranges and the research
         universe, through the same tapes and rungs, the plateau's centre reported (canon B6)
-        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; after: rungs-gate; check: tests/unit/test_lab_ladder_pool.py::test_a_set_sweeps_its_rows_ranges_and_reports_the_plateau_centre}
+        {id: rungs-grid-chain; files: lab/ladder_sets.py, lab/ladder_pool.py, tests/unit/test_lab_ladder_pool.py; waits: 2026-11-29; check: tests/unit/test_lab_ladder_pool.py::test_a_set_sweeps_its_rows_ranges_and_reports_the_plateau_centre}
 - [x] Each indicator known-answer tested against a published reference series (STR-14).
       Built: moving average, Bollinger deviation, Wilder smoothing (#145); true range, RSI gains
       and losses, channel (#154): five tables, 250 printed numbers; the tables now in lab/published_tables.py and the RSI held to cs-rsi.xls's 19 printed rows (#1640). Built: the band line held to StockCharts' printed Lower Band, 23 rows (#1707); every table also run while a rule is holding (#1749). Retired (coordinator 100, 22 Nov 23:0x): Supertrend's carried band and a fresh-low table, for which no free printed worked example was found; no paid data before profit (his 22 Nov), not a hard line. Supertrend stays held to its reference script's carried bands (lab/published.py, supertrend_10_3)
@@ -1300,7 +1301,7 @@ fold; every fold is a trial the luck rung counts (canon B6, AG-01).
       around any plateau found, each family named before it runs. After each set, one
       Telegram summary and a results file: every strategy, every rung's verdict with its
       reason, the trial count it was judged against, and what goes forward (LAD-09, LAD-03)
-      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
+      {id: rungs-sets; files: lab/ladder_sets.py, tests/unit/test_lab_ladder_sets*.py; waits: R-RUNGS-34; check: tests/unit/test_lab_ladder_sets.py::test_each_finished_set_writes_its_results_file_and_summary}
 - [ ] **Graduation to paper:** a strategy passes all eleven rungs and the luck test at the
       set's full trial count (and its reproduction, if published); it is named in this plan,
       with its kill condition, before its first paper day; it then trades paper side by side

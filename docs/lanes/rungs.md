@@ -633,3 +633,42 @@ cell (why #2380 was red and closed). Counts unchanged (6 of 14); no answer chang
 cell is judged once more, as after any edit of `lab/ladder.py`. Proven by
 `tests/unit/test_lab_ladder_map.py::test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it`
 and the map tests now reading `lab/ladder_map.py`, seen red on main (no module).
+
+### 2026-11-27 — the known-answer kit: leave the edge assertions to #2326 (#2328)
+- Runner ops' claim gap for rungs-pound-gap, under his standing ruling "please always go with recommended to avoid waiting for me to attend". Options: (a) edit lab/ladder_sets.py outside the claim, (b) record it met. Took (b): #1992 is on main and the box's files already name both; nothing built.
+- Tighten the edge assertions now? Options: (a) tighten here, (b) leave them to #2326 and file what still blocks. Took (b): #2326 holds the same file and tightening (pattern 16), and "goes forward" cannot pass while `reproduce` is unrun for a rule with no author's figure (R-RUNGS-48).
+- Restore of the red PR: its only red was `step (unit 2/5)` CANCELLED, not a test. Options: (a) close, (b) bring up to date and re-run. Took (b): a docstring in the claimed file, every other step green.
+
+### 2026-11-27 — catalogue rows proved by a fingerprint of their trades (#2345)
+- How to prove identical trades once a twin is deleted. Options: (a) keep every Python file forever (against the box); (b) rely on each row's hand-written known-answer cases (too weak: a few bars, not the fixture's trades); (c) pin a hash of each row's fixture decisions, taken while the twin still matched. Took (c), a golden in the B5 sense: a changed hash is a changed rule and needs its reason in DECISIONS.
+- The seven unused twin files were not deleted here although their names fit the claim: MONEY's money-epon-room holds that work and its claim has manifest.toml; doing it here builds it twice (pattern 16).
+- rungs-pound-gap's claim gap (lab/ladder_sets.py): options (a) edit here, which the check refuses, (b) leave it to its own card. Took (b); already met on main (#1992).
+
+### 2026-11-27 — the fast engine's Keltner ties are the desk block's fault (#2348, #2411)
+- At an exact band tie, which engine is right? The fast engine (exact whole sums, "not beyond"). "Over/under the band" is strict and a rule must not depend on rounding at the 26th decimal (canon B4); the desk's `_Keltner` divides by 3 in decimals. Copying the rounding into the fast engine was rejected. Request R-RUNGS-49.
+- Land the full-fixture parity test with Keltner left out? No: a special case for a test input (canon A3, A2).
+- What to do with the mismatch in #2411. Options: tick with the mismatch pinned; drop Keltner from the check (refused, A2); land the check with the desk's rounding pinned as `DESK_ROUNDS`, a list that can only shrink, and leave the box open. Took the third: the box says "matching the desk's engine", and they do not yet match. Driven: with the list emptied the test fails `keltner_channel_trend on walk 5: [85, 86, 87] == []`.
+- The claim gap for rungs-pound-gap was left to runner ops (neither file is in the claim); met on main (#1992).
+
+### 2026-11-27 — set 2, the transfer study, told through the ladder door (#2358)
+- Publish the study or run it inside the ladder? Options: (a) call `lab.transfer.main` from the ladder door (needs the store and folders the runner chooses, and writes the study's files from a second place); (b) read its finished results file. Took (b): one writer of the study (GRID's), the ladder only publishes and tells (LAD-09).
+- "Goes forward" for set 2 is always none: the study is PRE-REVIEW and never a verdict, so a PASS there is counted, never promoted (canon B6).
+- rungs-pound-gap's claim gap: options (a) build the pooled pre-flight now, (b) record it met. Took (b): #1992 has it (`_pooled.go` calls `ladder.preflight`) and a test plants a missing pound day.
+
+### 2026-11-27 — the catalogue pins no longer import a Python twin (#2383)
+- Deletion of the 19 `desk/eponymous_*.py` files not done here. Options: (a) delete and edit every importer anyway (claim drift, pattern 21), (b) land the in-claim step and name the rest. Took (b). Best split for the rest: first lab/rulebook.py and the ladder read the catalogue rows only (RUNGS), then delete the files the zoo does not import; the zoo's ten stay as the desk's paper machinery rules unless the desk drops them (manifest.toml forbids desk/ importing lab/).
+- rungs-pound-gap's claim gap: left to runner ops, met on main; rungs-epon-first stays held on R-RUNGS-38.
+
+### 2026-11-27 — the known-answer kit names why its edge cannot go forward (#2402)
+- Tighten the edge assertion to PASS now? Options: (a) lengthen the walks and assert PASS, (b) record the blockers and land no assertion change. (a) cannot be green: fit and liquidity FAIL on the fixture, and it runs over ten minutes. Took (b), by the stop rule (canon A8). Next attempt: an edge only its own rule hears, on bars with real volume, over enough history for 30 up-day trades, on about six lines.
+- The runner's order on rungs-pound-gap's claim: nothing left to act on, the box is ticked (#1951, #1966, #1992).
+
+### 2026-11-27 — Zweig's parity under its own name, and no tick (#2425)
+- The box's "Zweig waits on breadth data": options (a) leave it waiting, (b) treat parity as met. Took (b): the row reads ratio bars built by `lab.spec.ratio_bars` from advances and declines, so parity on the fixture needs no breadth store; breadth data matters only for judging on real prices (R-RUNNER-557).
+- Ticks none rather than the id: the box says "then their Python files deleted", which is not done and is MONEY's (R-RUNGS-51).
+- rungs-pound-gap's claim gap: PLAN already lists both files; nothing to do in this claim.
+
+### 2026-11-28 — a stale market is the retail rung's named FAULT (#2428)
+- A stale market under a basket. Options: (a) drop the retail rung silently (a silent failure, pattern 10), (b) judge only up to the market's last bar (a different trial from the basket's), (c) FAULT with the gap named. Took (c): it fails loudly, keeps the rule from going forward on an unread rung, and the table is published.
+- A market the keeper refuses (`keeper.Stale`) is treated as holding no bars, named by the same FAULT, caught only in `_against` and only for that error: the narrow catch turns the error into a named answer, never ignores it.
+- Pound gap: one objective per session (A8); rungs-pound-gap's files were not built here and the claim widening stays runner ops'. Release of job-ladder.hold asked as R-RUNGS-52.

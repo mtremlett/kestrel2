@@ -1223,3 +1223,16 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2320 RUNGS a finished ladder set is told to his phone once (rungs-sets step, LAD-09). |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS L15b ticked: the known-answer kit's crowd, a planted edge, goes forward through every rung; its noise twin is refused. |
 | 2026-11-27 | 7 of 7 | - | - | - | 14 of 14 proven | green | RUNGS E13 (R-RUNNER-572): rung 15, one bar late; an edge paid only on the next open fails, one that lasts passes. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2328 RUNGS: known-answer kit checked on main (noise refused, edge heard); docstring corrected; waits on #2326 and a reproduce request. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2345 RUNGS: catalogue rows pinned by trade fingerprint, so the eponymous twins can be deleted without losing proof (box still open). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2348 RUNGS P1: the fast engine is proven on all seven golden series except four exact Keltner ties, both bands now pinned; the fault is in the desk's block. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2358 RUNGS: set 2, the grid transfer study, now published and told to his phone by the ladder's door (rungs-sets step). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2366 RUNGS: R-GRID-9's GRID half reopened as its own request (R-RUNNER-565); no box ticked. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2383 RUNGS: the rows' parity pins outlive their Python twins; 0 boxes ticked (deletion needs a wider claim). |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2402 RUNGS L15b probed: the edge's way forward is blocked by fit and liquidity on the fixture, now written in the kit; no box ticked. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2411 RUNGS: the fast engine's parity check covers all seven golden series (every book row), and the desk's Keltner rounding is pinned until blocks.py is fixed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2229 RUNGS S9: a cell the grid refuses runs its one rule on the desk's engine; a refused supertrend cell 0.11 s to 0.02 s; no verdict changed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2235 RUNGS S3: the shuffle rung stops once a sixth of 101 is as good; failing cells 25-30 s to 1-7 s, every answer identical on 14 cells. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2236 RUNGS S5: a cell's shuffles are one tape, read back with no simulation; files per cell 101 to 2, donchian cold 26.1 to 15.2 s; no verdict changed. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2425 RUNGS: rungs-rows-as-rules parity proven for 21 of 21 rows under the box's named check; twin deletion requested of MONEY. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2428 RUNGS L16 ticked (rungs-gate): a stale or missing market under a basket names its gap and the set's table is still published (#2293 closed). |
