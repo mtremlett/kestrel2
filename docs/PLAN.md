@@ -508,6 +508,7 @@ Checked 20 Nov (MONEY, s8): no blocking request is open. R-RUNGS-7's desk half i
       own bars next; VIX term structure, credit spreads and the yield curve recorded each day
       but acting only once each passes REG-07; news for event awareness, never a signal until
       proven (REG-01, REG-07, STR-20)
+      Built (#2470): realised volatility (20-day std, `desk/weather.py`) recorded daily per line, nothing reads it. Remains: index trend and breadth; VIX term structure, credit spreads, yield curve; news; the keeper calling record daily; each acting only after REG-07.
       {id: data-weather; files: desk/weather.py, tests/unit/test_weather.py; after: data-tiers; check: tests/unit/test_weather.py::test_realised_volatility_is_recorded_each_day_before_it_acts}
 - [ ] Daily Stooq reader into desk (card stooq-into-desk, R-RUNNER-419; his ruling Sat 21 Nov 08:2x 'Yes, allow it'):
       stooq_rows (lab/headstart_days.py) moves to a new desk/daily_local.py registered under DATA; lab imports it

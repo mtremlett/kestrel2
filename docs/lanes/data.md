@@ -770,3 +770,12 @@ Decided: `archive.five_pull` answers 5m, 15m, 30m and London 1h cells; the adapt
 ### 2026-11-28 — data in tiers: no placeholder for Tier B (DATA, #2267)
 
 Decided: Tier B (vendor not bought, after the A-GATE) raises NotImplementedError; overflow goes to London's 15-minute broker feed or Tier C. Option: a placeholder feed (refused by A5, a fake). Allowance priority: held, signalled, watched. The module line is in manifest/data.toml.
+
+
+### 2026-11-28 — market weather starts with realised volatility (DATA, #2470)
+
+Decided: volatility first (strongest published evidence), as the box says; window 20 days (a trading month), the same std as `risk.volatility` (one home); storage a jsonl per line in a folder the caller names. Option: a database table (heavier, needs the writer), rejected for a recorded-only layer.
+
+### 2026-11-28 — keeper split named by what it owns (DATA, #2462)
+
+Decided: the split module is `keeper_round` (the round's judging), not parent plus suffix (`keeper_parts` fails the fragment-name guard, pattern 6); `_kept_in` and `pound_closes` are re-exported from `desk.keeper` rather than editing other lanes' files. Option: edit those callers (rejected, outside the claim).

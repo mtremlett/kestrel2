@@ -623,6 +623,8 @@ touch the same lines. A session the operator starts himself appends to the table
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2267 data-tiers built and ticked. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2453 R-RUNNER-563 weekly roll-up follows restated days; IDTL 1wk keeper FAULT cleared at the writer. |
 | 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2461 data-monitor: archive pull covers 1h (London); box not finished. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | #2470 data-weather first layer: realised volatility recorded daily. |
+| 2026-11-28 | 7 of 7 | - | - | - | 14 of 14 proven | green | R-RUNNER-271 desk/keeper.py split under 350 lines, no behaviour change (#2462). |
 
 ### LADDER (until 13 November; since then GRID and RUNGS)
 
