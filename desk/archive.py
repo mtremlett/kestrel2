@@ -162,7 +162,7 @@ def parse_five(line: Line, payload: bytes, now: datetime) -> tuple[Five, ...]:
 
 
 def parse_timed(line: Line, payload: bytes, now: datetime, span: str) -> tuple[Timed, ...]:
-    """A line's bars of a quarter or half hour from the archive's answer, as far as they had
+    """A line's bars of a quarter, half or whole hour from the archive's answer, as far as they had
     ended by now; the answer's closing price of the moment is no bar, as in `parse_five`."""
     meta, rows = _read(line, span, payload)
     moment = min(meta["regularMarketTime"], meta["currentTradingPeriod"]["regular"]["end"])
@@ -290,7 +290,7 @@ def fetch_five(
 
 
 def fetch_timed(line: Line, now: datetime, span: str) -> tuple[Timed, ...]:
-    """A line's bars of a quarter or half hour up to now, read on entry, as far back as the
+    """A line's bars of a quarter, half or whole hour up to now, read on entry, as far back as the
     archive keeps them (the same days as five-minute bars); not kept raw."""
     return _kept(
         None,
@@ -321,13 +321,13 @@ def gather(
 
 
 def five_pull(now: datetime) -> Callable[[Line, str], Sequence[Five | Timed] | Refused]:
-    """The archive as a gap-filling pull: five-minute, quarter-hour and half-hour bars; any other
-    span is refused, with the reason."""
+    """The archive as a gap-filling pull: five-minute, quarter-hour, half-hour and hourly bars; any
+    other span is refused, with the reason."""
 
     def pull(line: Line, span: str) -> Sequence[Five | Timed] | Refused:
         if span == "5m":
             return gather([line], now, fetch_five)[line]
-        if span in ("15m", "30m"):
+        if span in ("15m", "30m", "1h"):
             return gather([line], span, lambda ln, sp: fetch_timed(ln, now, sp))[line]
         return Refused(f"the archive keeps no {span} bars")
 
