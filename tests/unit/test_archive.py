@@ -335,7 +335,7 @@ def test_once_the_archive_refuses_the_rest_of_the_round_is_not_asked(
     assert all(isinstance(a, Refused) and "Refusing" in a.reason for a in answers.values())
 
 
-def test_the_archive_pull_answers_intraday_cells_of_five_to_thirty_minutes_only(
+def test_the_archive_pull_answers_intraday_cells_of_five_minutes_to_an_hour_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(archive, "fetch_five", lambda _line, _now: FIVES)
@@ -350,4 +350,18 @@ def test_the_archive_pull_answers_intraday_cells_of_five_to_thirty_minutes_only(
     assert pull(US, "5m") == FIVES
     got = pull(US, "15m")
     assert [b.span for b in got] == ["15m", "15m"] and "interval=15m" in asked[0]  # type: ignore[union-attr]
-    assert isinstance(pull(US, "1h"), Refused)
+    asked.clear()
+    hour = (("2025-11-14T09:00", "1.0", "2.0", "0.5", "1.5", 9),)
+
+    def hourly_answer(url: str) -> bytes:
+        asked.append(url)
+        return _payload(hour, "GBP", "BBB.L", "1h")
+
+    monkeypatch.setattr(archive, "_ask", hourly_answer)
+    hourly = pull(UK, "1h")
+    assert not isinstance(hourly, Refused) and "interval=1h" in asked[0]
+    # the archive starts a US hour at the half hour: refused with its reason, never written askew
+    monkeypatch.setattr(archive, "_ask", lambda _url: _payload(span="1h"))
+    askew = pull(US, "1h")
+    assert isinstance(askew, Refused) and "not a 1h mark" in askew.reason
+    assert isinstance(pull(US, "4h"), Refused)
