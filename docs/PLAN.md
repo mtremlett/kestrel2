@@ -965,7 +965,6 @@ his PC with the desk's own client id (222), never 4001.
       {id: paper-first-light; files: desk/streak.py, tests/unit/test_streak.py,
       manifest.toml; after: paper-running}
 - [x] An independent watcher of the supervisor, which is restarted weekly (OPS-03)
-      Remains: the Windows task that starts the watcher beside the supervisor is runner-side work (#2434).
       {id: paper-watcher; files: desk/watcher.py, tests/unit/test_watcher.py; check: tests/unit/test_watcher.py::test_the_watcher_raises_when_the_supervisor_receipt_is_stale}
 - [ ] The desk supervisor proved in SimCity: a SimCity week run under the supervisor on the pretend broker and
       clock, its step killed mid-run, is restarted with a dated receipt and the week ends with no operator action
