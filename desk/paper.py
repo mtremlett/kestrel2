@@ -398,6 +398,17 @@ def differences(
     return named(ours, [(h.name, h.shares) for h in account.holdings], "the broker holds")
 
 
+def stops_of(account: Account, symbol: str, client: int) -> tuple[Resting, ...]:
+    """THE STOPS ONE SIDE RESTS ON A TICKER: the account's resting stops on symbol that the
+    client id placed (the desk's own, or the zoo's), so two sides' stops on one ticker are told
+    apart and one side's is never read, moved or cancelled as the other's."""
+    return tuple(
+        o
+        for o in account.orders
+        if o.symbol == symbol and o.kind == "STP" and o.client == str(client)
+    )
+
+
 def own(line: Line) -> str:
     """The name a holding of the desk's line goes under (Holding.name): a share or a fund,
     in the line's currency."""
