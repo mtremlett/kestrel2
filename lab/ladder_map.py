@@ -1,7 +1,7 @@
-"""ladder_map - THE RUNG MAP (L2): the plan's eleven rungs, easing 4's twelfth and his 26 Nov
-13th and 14th, each `n name: module, test`, and the count of those the ladder judges by. It is its
-own module (R-RUNNER-571) so a new rung adds its row here and never edits `lab/ladder.py`; it is
-not named `rung_*`, which `rung.found` reads as a rung's own module.
+"""ladder_map - THE RUNG MAP (L2): the plan's eleven rungs, easing 4's twelfth, his 26 Nov
+13th and 14th and E13's 15th, each `n name: module, test`, and the count of those the ladder
+judges by. It is its own module (R-RUNNER-571) so a new rung adds its row here and never edits
+`lab/ladder.py`; it is not named `rung_*`, which `rung.found` reads as a rung's own module.
 
 A row's names differ: `first` holds 1-3, `market` 4 and 6. Each rung's proof is in its own test;
 (unbuilt) marks a file not yet there; after the dash, what is owed. BUILT: its module declares a
@@ -36,6 +36,7 @@ MAP = (
     " - no RUNG; merged",
     "13 liquidity and capacity: lab/rung_liquidity.py, tests/unit/test_lab_rung_liquidity.py",
     "14 fit with the book: lab/rung_fit.py, tests/unit/test_lab_rung_fit.py",
+    "15 one bar late: lab/rung_late.py, tests/unit/test_lab_rung_late.py",
 )
 
 

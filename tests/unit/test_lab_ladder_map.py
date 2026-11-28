@@ -23,7 +23,7 @@ def test_the_map_names_its_rungs_once_each_to_files_there_or_marked_unbuilt() ->
     unread = [line for line, entry in zip(lines, found, strict=True) if entry is None]
     assert not unread, f"not `n name: module, test`: {unread}"
     rungs = [entry.groups() for entry in found if entry is not None]
-    assert [int(rung[0]) for rung in rungs] == list(range(1, 15)), "fourteen rungs, 1 to 14, once"
+    assert [int(rung[0]) for rung in rungs] == list(range(1, 16)), "fifteen rungs, 1 to 15, once"
     for what, column in (("name", 1), ("test", 4)):
         seen = [rung[column] for rung in rungs]
         twice = sorted({one for one in seen if seen.count(one) > 1})
@@ -42,7 +42,7 @@ def test_a_row_is_built_exactly_when_its_module_declares_a_rung_and_the_count_re
     rows = re.findall(r"lab/(\w+)\.py, \S+( - no RUNG)?", "\n".join(ladder_map.rows()))
     wrong = [m for m, owed in rows if hasattr(import_module(f"lab.{m}"), "RUNG") == bool(owed)]
     assert not wrong, f"the map's built-or-not disagrees with the module's RUNG: {wrong}"
-    assert ladder.rungs_built() == (6, 14)  #: costs, ci, regimes, cpcv, liquidity, fit
+    assert ladder.rungs_built() == (7, 15)  #: costs, ci, regimes, cpcv, liquidity, fit, late
 
 
 def test_the_ladders_docstring_holds_no_rung_map_so_a_new_rung_never_edits_it() -> None:
