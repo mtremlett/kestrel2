@@ -236,6 +236,65 @@ def test_the_pooled_set_refuses_input_gaps_and_a_set_over_one_percent_fault_is_w
     assert "## NOT PUBLISHED" in (tmp_path / "ladder" / "sets" / "EPON.md").read_text()
 
 
+def test_a_set_whose_inputs_have_gaps_waits_for_the_fill_by_its_own_exit_never_a_crash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from test_lab_ladder import ISF, NOISE, VUSA, _door
+
+    holed = _door({VUSA: NOISE, ISF: NOISE[:4] + NOISE[5:]})  #: ISF lacks a session (L20)
+    monkeypatch.setattr(history_bars, "reader", lambda _: holed)
+    monkeypatch.setattr(history_bars, "pounds", lambda _: {})
+    monkeypatch.setattr(history_bars, "lines", lambda _: (VUSA,))
+    phone: list[object] = []
+
+    def door(keys: object) -> messenger.Post:
+        phone.append(keys)  #: opened only to tell his phone
+        return len
+
+    env = {"KESTREL2_DATA": str(tmp_path)}
+    with pytest.raises(SystemExit) as ended:
+        ladder_sets.main(env, [], door)
+    assert ended.value.code == ladder_sets.WAITS != 1  #: a wait for the greenkeeper, not a fault
+    said = capsys.readouterr()
+    assert said.err.startswith("ladder: the set waits for the store's next fill: ")
+    assert "refuses to start, first ISF has no bar on 2010-01-05" in said.err
+    assert not phone and not said.out and not (tmp_path / "ladder").exists()  #: no register
+
+
+def test_each_finished_set_writes_its_results_file_and_summary(tmp_path: Path) -> None:
+    """LAD-09, LAD-03: a finished set leaves its table and its cells file - every rule, every
+    rung's verdict with its reason, the trials it was judged against, what goes forward - and
+    one summary to his phone, told once for its answer."""
+    from test_lab_ladder import EDGE, ISF, NOISE, VUSA, _door
+
+    noon, rule = datetime(2026, 11, 14, 12, tzinfo=UTC), ["breakout_20_10"]
+    book = _door({VUSA: EDGE, ISF: NOISE})
+    said = ladder_sets.epon(tmp_path, book, {}, [VUSA], lambda: noon, rule, ladder.run)
+    table = tmp_path / "ladder" / "sets" / "EPON.md"
+    assert said.splitlines()[-1].startswith("SET EPON: 1 rules, ")
+    assert said.splitlines()[-1].endswith(f" passed, table {table}")
+    md = table.read_text("utf-8")
+    assert "rungs built: " in md and "goes forward" in md and "| breakout_20_10 | " in md
+    data = json.loads(table.with_suffix(".json").read_text("utf-8"))
+    (judged,) = [one for one in data["rules"] if one["rule"] == "breakout_20_10"]
+    assert [c["cell"][1] for c in judged["cells"]] == ["VUSA", "BASKET"] and "passed" in judged
+    for cell in judged["cells"]:  #: every rung's verdict with its reason, and its trials
+        assert cell["answer"] and cell["trials"] == data["trials"] >= 1
+        assert cell["rungs"] and all(len(why) == 2 and why[1] for why in cell["rungs"].values())
+    phone: list[str] = []
+
+    def post(text: str) -> int:
+        phone.append(text)
+        return len(phone)
+
+    def door() -> messenger.Post:
+        return post
+
+    assert ladder_sets.told(tmp_path, said, noon, door) == "telegram: told, message 1"
+    ladder_sets.told(tmp_path, said, noon, door)  #: the same answer the same day: told once
+    assert len(phone) == 1 and said.splitlines()[-1] in phone[0]
+
+
 def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_uncorrected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -243,11 +302,11 @@ def test_a_stopped_pass_writes_no_table_and_the_survivorship_line_counts_the_unc
     said = ladder_sets.epon(
         tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
     )
-    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    assert said == stopped and not (tmp_path / "ladder").exists()  #: no register
     monkeypatch.setattr(ladder.Kept, "get", lambda *_: {})  #: every cell kept from before
     said = ladder_sets.epon(
         tmp_path, lambda _line: (), {}, [STAYS], rules=["breakout_20_10"], go=lambda *_: stopped
     )  #: a pass stopped after an earlier whole one: its old rows are not this pass's table
-    assert said == stopped and not (tmp_path / "ladder" / "sets").exists()
+    assert said == stopped and not (tmp_path / "ladder").exists()  #: no register
     _, notes = ladder_sets.survivors(["breakout_20_10"], [STAYS, LONDON], {"SP500": RECORD})
     assert ladder_sets.survivorship_said(notes, 2).startswith("survivorship: 1 of 2 lines not")
