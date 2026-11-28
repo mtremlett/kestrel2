@@ -20,7 +20,7 @@ from desk.halt import Blocker
 from desk.lines import LINES, Line
 from desk.orders import Order, Refused, Sale, Settings, order_id_of, size
 from desk.placing_parts import OVER, cancel
-from desk.running import DAY
+from desk.running_notes import DAY
 from desk.store import Bar
 from desk.strategy import Action, Decision
 

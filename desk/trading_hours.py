@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from desk import venues
-from desk.running import VENUES
+from desk.running_notes import VENUES
 
 RUN = timedelta(minutes=30)  #: the rehearsal's longest run, as the runner allows it
 HOUR = timedelta(minutes=60)
