@@ -86,13 +86,24 @@ DOWN_MARK = "gateway_down"  #: the file at root holding when the Gateway was fir
 UNASKED = Known(State.UNWELL, gateway.UNWELL.format("the desk's knock on it failed"))
 
 
+def _collect(desk: Desk, broker: placing.Paper, now: datetime) -> None:
+    """The ledger takes the broker's fills, the day's rates kept first so that a stop sold past
+    the gap limit is found whichever caller reads it, and buying is halted (book.collect)."""
+    book.record_rates(desk.root, now.date(), desk.rates(now.date()))
+    book.collect(desk.root, broker, LINES, desk.room, lambda n, w: _note(desk.root, now, n, w))
+
+
 def _clean(
     desk: Desk, broker: placing.Paper, listings: Mapping[str, Listing | Unlisted], now: datetime
 ) -> bool:
     """The day's check, run now: is the paper account the desk's book? What it names is put
     right (recover) and checked again; what it still names he is told, and no order goes."""
     found = clearance.check(desk.root, now, desk.door).found
-    if found and (did := recover(desk.root, broker, listings, now.date(), desk.door)):
+    if found and (
+        did := recover(
+            desk.root, broker, listings, now.date(), desk.door, lambda: _collect(desk, broker, now)
+        )
+    ):
         _note(desk.root, now, RECOVERED, PUT_RIGHT.format("; ".join(did)))
         found = clearance.check(desk.root, now, desk.door).found
     if found:
@@ -170,7 +181,7 @@ def _work(desk: Desk, now: datetime, seen: watch.Look | None) -> None:
         return
     broker = _paper(desk, listings := listing.kept(root, now, LINES, desk.door), now)
     bar = placing.Paper(listings, root, lambda: now, desk.door, within=True)  #: R-RUNNER-468
-    book.collect(root, broker)
+    _collect(desk, broker, now)
     _stand(root, broker, now)
     if sold := goflat.step(root, broker, desk.room, now):
         _note(root, now, "go flat", f"{goflat.state(root)}: {'; '.join(sold)}")
