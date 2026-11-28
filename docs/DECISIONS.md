@@ -2976,3 +2976,19 @@ tests moved by file (`test_rounds_again.py`, `test_rounds_restop.py`, `test_bar_
 unchanged but for the module each name now lives in. The halves of money-small and money-time-gaps
 still in PAPER's files become PAPER boxes (paper-running-move, paper-collect-callers), the MONEY boxes
 `after:` them (the wall's own rule); money-round-cap returns to MONEY's book on `desk/rounds.py`.
+
+## 28 Nov - one owner of the desk's schedule: its own supervisor (coordinator 320, O112(c))
+Two things run the desk's jobs today: the runner's `daily.py` JOBS, written as "the supervisor's
+stand-in (#159)", steps the desk every five minutes; and `desk/supervisor.py`, which would run the same
+jobs with receipts, health and the operator ledger once Windows starts it at boot. Two schedulers of one
+desk is pattern 8. Options: (a) the runner owns the schedule and the supervisor's install is retired:
+the desk's daily running then lives outside the wall in a build tool (pattern 2), and paper-supervised's
+seven days cannot be counted, since its check reads the supervisor's own receipts and ledger; (b) the
+supervisor owns it and the runner's stand-in is retired: chosen. Evidence from tonight: the runner hung
+for 12 minutes (18:04 to 18:16, a git fetch under its GIT lock during a GitHub outage, O115) and the
+desk's step stopped with it; a build tool's fault should never stop the desk. Order of change, so that
+the desk always has exactly one scheduler: he runs `python -m desk.supervisor install ROOT` once from
+an administrator console (his hand, not his answer: no session elevates or enters his password, his
+hard line on credentials); the install receipt (`test_the_install_receipt_proves_both_tasks_started_at_boot`)
+ticks paper-supervisor-windows; only then the runner's JOBS step is retired, as a runner order. Until
+then the runner's stand-in stays the one scheduler and the supervisor is not started by hand.
